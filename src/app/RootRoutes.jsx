@@ -20,6 +20,7 @@ import ecommerceRoutes from "./views/app/ecommerce/ecommerceRoutes";
 import contactRoutes from "./views/app/contact/contactRoutes";
 import departmentRoutes from "./views/departments/departmentsRoute";
 import rolesRoutes from "./views/roles/rolesRoutes";
+import processingRoutes from "./views/processing/processing.routes";
 
 const redirectRoute = [
   {
@@ -44,6 +45,7 @@ const routes = [
       ...dashboardRoutes,
       ...departmentRoutes,
       ...rolesRoutes,
+      ...processingRoutes,
       ...uiKitsRoutes,
       ...formsRoutes,
       ...widgetsRoute,
@@ -64,7 +66,7 @@ const routes = [
       // Load these last
       ...redirectRoute,
       ...errorRoute,
-      
+
     ]
   }
 ];

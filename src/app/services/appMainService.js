@@ -9,24 +9,24 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
-     * 
+     *
+     *
      * Users Section
-     * 
-     * 
-     * 
+     *
+     *
+     *
      */
 
-  
+
 
 
     /**
- * 
- * 
+ *
+ *
  * Categories Section
- * 
- * 
- * 
+ *
+ *
+ *
  */
 
     /**
@@ -39,15 +39,15 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
+     *
      * ----- COMPANIES SECTION STARTS HERE -----
-     * 
+     *
      */
 
 
     /**
-     * 
-     * @param {*} data 
+     *
+     * @param {*} data
      * This method creates a new company
      */
     async createCompany(data) {
@@ -65,9 +65,9 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} id 
-     * 
+     *
+     * @param {*} id
+     *
      * This method gets a company by it's Id
      */
     async getCompanyId(id) {
@@ -77,9 +77,9 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} id 
-     * 
+     *
+     * @param {*} id
+     *
      * This method deletes a company
      */
     async deleteCompany(id) {
@@ -88,10 +88,10 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} id 
-     * @param {*} data 
-     * 
+     *
+     * @param {*} id
+     * @param {*} data
+     *
      * This method updates a company
      */
     async updateCompany(id, data) {
@@ -101,10 +101,10 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} id 
-     * @param {*} data 
-     * 
+     *
+     * @param {*} id
+     * @param {*} data
+     *
      * This method toggles a company's enabled status
      */
 
@@ -113,11 +113,11 @@ export default class AppMainService extends Component {
         return await apiService.patch(url, data);
     }
 
-    
+
     /**
-     * 
+     *
      * --- ROLES SECTION HERE ----
-     * 
+     *
      */
 
 
@@ -131,8 +131,8 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} roleData 
+     *
+     * @param {*} roleData
      * this method creates a new role
      */
     async createRole(roleData){
@@ -141,9 +141,9 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
-     * @param {*} role 
-     * @param {*} id 
+     *
+     * @param {*} role
+     * @param {*} id
      * This method updates a role
      */
     async updateRole(role, id){
@@ -153,7 +153,7 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
+     *
      * @param {*} role
      * This method deletes a role
      */
@@ -163,8 +163,8 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
-     * @param {*} role 
+     *
+     * @param {*} role
      * This method toggles a role
      */
     async toggleRole(role){
@@ -174,9 +174,9 @@ export default class AppMainService extends Component {
 
 
      /**
-     * 
+     *
      * --- DEPARTMENTS SECTION HERE ----
-     * 
+     *
      */
 
 
@@ -190,8 +190,8 @@ export default class AppMainService extends Component {
 
 
     /**
-     * 
-     * @param {*} departmentData 
+     *
+     * @param {*} departmentData
      * this method creates a new department
      */
     async createDepartment(departmentData){
@@ -200,9 +200,9 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
-     * @param {*} department 
-     * @param {*} id 
+     *
+     * @param {*} department
+     * @param {*} id
      * This method updates a department
      */
     async updateDepartment(department, id){
@@ -212,7 +212,7 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
+     *
      * @param {*} department
      * This method deletes a department
      */
@@ -222,13 +222,15 @@ export default class AppMainService extends Component {
     }
 
     /**
-     * 
-     * @param {*} department 
+     *
+     * @param {*} department
      * This method toggles a department
      */
     async toggleDepartment(department){
         department.status = !department.status
       return this.updateDepartment(department, department.id);
     }
+
+  
 
 }

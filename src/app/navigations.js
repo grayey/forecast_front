@@ -28,7 +28,7 @@ export const navigations = [
     icon: "i-Computer-Secure",
 
     sub: [
-      { icon: "i-Email", name: "Budget cycles", path: "/inbox", type: "link" },
+      { icon: "i-Email", name: "Budget cycles", path: "/processing/budget-cycles", type: "link" },
       { icon: "i-Speach-Bubble-3", name: "Budget versions", path: "/chat", type: "link" },
     ]
   },
@@ -72,7 +72,7 @@ export const navigations = [
       },
     ]
   },
- 
+
   {
     name: "Administration",
     description: "Configure system roles, approvals' heirarchy",
@@ -91,7 +91,7 @@ export const navigations = [
         path: "/dashboard/departments",
         type: "link"
       },
-     
+
       {
         icon: "i-Clock-3",
         name: "Roles",
@@ -137,7 +137,7 @@ export const navigations = [
       },
     ]
   },
-  
+
   {
     name: "Integrations",
     description: "3rd-party integrations",
@@ -484,7 +484,7 @@ export const navigations = [
             type: "link",
             path: "/contact/list"
           },
-          
+
           {
             icon: "i-Find-User",
             name: "Contact Details",
