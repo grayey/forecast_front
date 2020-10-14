@@ -58,7 +58,7 @@ async deleteBudgetCycle(budgetcycle){
 * This method toggles a budgetcycle
 */
 async toggleBudgetCycle(budgetcycle){
-   budgetcycle.status = !budgetcycle.status
+   budgetcycle.is_current = !budgetcycle.is_current;
  return this.updateBudgetCycle(budgetcycle, budgetcycle.id);
 }
 

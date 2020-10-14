@@ -6,7 +6,7 @@ const Departments = lazy(() => import("./DepartmentsComponent"));
 
 const departmentRoutes = [
   {
-    path: "/dashboard/departments",
+    path: "/admin/departments",
     component: Departments,
   }
 

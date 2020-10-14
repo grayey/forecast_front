@@ -231,6 +231,133 @@ export default class AppMainService extends Component {
       return this.updateDepartment(department, department.id);
     }
 
-  
+    /**
+        *
+        * --- ITEM CATEGORIES SECTION HERE ----
+        *
+        */
+
+
+        /**
+         * This method returns a list of all itemcategories
+         */
+        async getAllItemCategories(){
+           const url = 'itemcategories';
+           return await apiService.get(url);
+       }
+
+
+       /**
+        *
+        * @param {*} itemcategoryData
+        * this method creates a new itemcategory
+        */
+       async createItemCategory(itemcategoryData){
+           const url = 'itemcategories/';
+           return await apiService.post(url,itemcategoryData);
+       }
+
+       /**
+        *
+        * @param {*} itemcategory
+        * @param {*} id
+        * This method updates a itemcategory
+        */
+       async updateItemCategory(itemcategory, id){
+           const url =`itemcategories/${id}/`;
+           return await apiService.put(url,itemcategory);
+
+       }
+
+       /**
+        *
+        * @param {*} itemcategory
+        * This method deletes a itemcategory
+        */
+       async deleteItemCategory(itemcategory){
+           const url = `itemcategories/${itemcategory.id}`
+           return await apiService.del(url);
+       }
+
+       /**
+        *
+        * @param {*} itemcategory
+        * This method toggles a itemcategory
+        */
+       async toggleItemCategory(itemcategory){
+           itemcategory.status = !itemcategory.status
+         return this.updateItemCategory(itemcategory, itemcategory.id);
+       }
+
+       /**
+        *
+        * --- COST ITEMS SECTION HERE ----
+        *
+        */
+
+
+        /**
+         * This method returns a list of all costitems
+         */
+        async getAllCostItems(){
+           const url = 'costitems';
+           return await apiService.get(url);
+       }
+
+
+       /**
+        *
+        * @param {*} costitemData
+        * this method creates a new costitem
+        */
+       async createCostItem(costitemData){
+           const url = 'costitems/';
+           return await apiService.post(url,costitemData);
+       }
+
+       /**
+        *
+        * @param {*} costitem
+        * @param {*} id
+        * This method updates a costitem
+        */
+       async updateCostItem(costitem, id){
+           const url =`costitems/${id}/`;
+           return await apiService.put(url,costitem);
+
+       }
+
+       /**
+        *
+        * @param {*} costitem
+        * This method deletes a costitem
+        */
+       async deleteCostItem(costitem){
+           const url = `costitems/${costitem.id}`
+           return await apiService.del(url);
+       }
+
+       /**
+        *
+        * @param {*} costitem
+        * This method toggles a costitem
+        */
+       async toggleCostItem(costitem){
+           costitem.status = !costitem.status
+         return this.updateCostItem(costitem, costitem.id);
+       }
+
+
+
+       /**
+        * BULK AREA
+        *
+        */
+       async downloadTemplate(){
+         const url =`itemcategories/download_template/`;
+         return await apiService.get(url);
+       }
+
+
 
 }

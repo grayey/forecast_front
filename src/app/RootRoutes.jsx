@@ -21,6 +21,10 @@ import contactRoutes from "./views/app/contact/contactRoutes";
 import departmentRoutes from "./views/departments/departmentsRoute";
 import rolesRoutes from "./views/roles/rolesRoutes";
 import processingRoutes from "./views/processing/processing.routes";
+import itemCategoriesRoutes from "./views/itemcategories/itemCategoriesRoutes";
+import costItemRoutes from "./views/costitems/costitemsRoutes";
+
+
 
 const redirectRoute = [
   {
@@ -46,6 +50,8 @@ const routes = [
       ...departmentRoutes,
       ...rolesRoutes,
       ...processingRoutes,
+      ...itemCategoriesRoutes,
+      ...costItemRoutes,
       ...uiKitsRoutes,
       ...formsRoutes,
       ...widgetsRoute,

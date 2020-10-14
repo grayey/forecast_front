@@ -40,7 +40,7 @@ export const navigations = [
     icon: "i-Computer-Secure",
 
     sub: [
-      { icon: "i-Email", name: "Approve budget", path: "/inbox", type: "link" },
+      { icon: "i-Email", name: "[Role] Approval", path: "/inbox", type: "link" },
       { icon: "i-Speach-Bubble-3", name: "Delegate task", path: "/chat", type: "link" },
     ]
   },
@@ -82,20 +82,20 @@ export const navigations = [
       {
         icon: "i-Clock-3",
         name: "Users",
-        path: "/dashboard/users",
+        path: "/admin/users",
         type: "link"
       },
       {
         icon: "i-Clock-3",
         name: "Departments",
-        path: "/dashboard/departments",
+        path: "/admin/departments",
         type: "link"
       },
 
       {
         icon: "i-Clock-3",
         name: "Roles",
-        path: "/dashboard/roles",
+        path: "/admin/roles",
         type: "link"
       },
       {
@@ -106,33 +106,39 @@ export const navigations = [
           {
             icon: "i-Clock-3",
             name: "Item categories",
-            path: "/dashboard/roles",
+            path: "/admin/item-categories",
             type: "link"
           },
           {
             icon: "i-Clock-3",
             name: "Cost items",
-            path: "/dashboard/roles",
+            path: "/admin/cost-items",
             type: "link"
           }
         ]
       },
       {
         icon: "i-Clock-3",
+        name: "Versioning",
+        path: "/admin/versioning",
+        type: "link"
+      },
+      {
+        icon: "i-Clock-3",
         name: "Approval settings",
-        path: "/dashboard/approvals",
+        path: "/admin/approvals",
         type: "link"
       },
       {
         icon: "i-Clock-3",
         name: "Email templates",
-        path: "/dashboard/email-template",
+        path: "/admin/email-template",
         type: "link"
       },
       {
         icon: "i-Clock-3",
         name: "Tasks",
-        path: "/dashboard/tasks",
+        path: "/admin/tasks",
         type: "link"
       },
     ]

@@ -6,7 +6,7 @@ const Roles = lazy(() => import("./RolesComponent"));
 
 const rolesRoutes = [
   {
-    path: "/dashboard/roles",
+    path: "/admin/roles",
     component: Roles,
   }
 

@@ -11,3 +11,19 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+
+a.long-view{
+text-decoration: underline !important;
+cursor: pointer;
+}
+button:disabled{
+  cursor: not-allowed;
+}
+.modal-logo{
+  height: 30px !important;
+  // float: left;
+  // display: inline-flex;
+  // align-self: flex-start;
+  // display: none;
+}

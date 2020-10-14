@@ -8,6 +8,8 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
 import {FetchingRecords} from "../../../appWidgets";
+import moment from "moment";
+import { RichTextEditor } from "@gull";
 
 
 import LaddaButton, {
@@ -26,19 +28,28 @@ export class BudgetCyclesComponent extends Component{
         allBudgetCycles:[],
         showEditModal:false,
         showCreateModal:false,
+        showInstructionsModal:false,
         isSaving:false,
         isFetching:true,
         saveMsg:'Save',
         updateMsg:'Update',
         editedBudgetCycle: {},
+        viewedBudgetCycle:{},
         createBudgetCycleForm: {
-            name: "",
-            description: "",
+            year: "",
+            start_date: "",
+            end_date: "",
+            currency_conversion_rate: "",
+            instructions: "",
           },
           updateBudgetCycleForm: {
-            name: "",
-            description: "",
+            year: "",
+            start_date: "",
+            end_date: "",
+            currency_conversion_rate: "",
+            instructions: "",
           },
+          availableYears:[]
 
     }
     processingService;
@@ -71,6 +82,17 @@ export class BudgetCyclesComponent extends Component{
         this.setState({ createBudgetCycleForm, updateBudgetCycleForm });
     }
 
+    handleRichEditorChange = (html, form='create') => {
+      const {createBudgetCycleForm, updateBudgetCycleForm} = this.state
+      if(form=='create'){
+        createBudgetCycleForm['instructions'] = html;
+      }else{
+        updateBudgetCycleForm['instructions'] = html;
+      }
+      this.setState({ createBudgetCycleForm, updateBudgetCycleForm });
+
+    }
+
 
 
 
@@ -82,9 +104,11 @@ export class BudgetCyclesComponent extends Component{
          let isFetching = false;
 
         this.processingService.getAllBudgetCycles().then(
-            (budgetcyclesResponse)=>{
-                const allBudgetCycles = budgetcyclesResponse;
-                this.setState({ allBudgetCycles, isFetching })
+            async (budgetcyclesResponse)=>{
+              const allBudgetCycles = budgetcyclesResponse;
+              await  this.setState({ allBudgetCycles, isFetching }); // so allBudgetCycles is set
+              this.filterYears();
+
                 console.log('BudgetCycles response', budgetcyclesResponse)
             }
         ).catch((error)=>{
@@ -99,6 +123,34 @@ export class BudgetCyclesComponent extends Component{
     }
 
     /**
+     *
+     * @type {[type]}
+     */
+     getFutureYears = (year, count=10)=>{
+      const futureYears = [];
+      let i = 0;
+      while (i < count){
+        futureYears.push(+year + i);
+        i++;
+      }
+      return futureYears;
+
+    }
+
+    /**
+     * Filter years
+     * @type {[type]}
+     */
+
+    filterYears = async ()=>{
+      const { allBudgetCycles } = this.state;
+      const futureYears = this.getFutureYears(moment().year());
+      const budgetYears = allBudgetCycles.map(budgetCycle => +budgetCycle.year);
+      const availableYears = futureYears.filter(yr => !budgetYears.includes(+yr)).sort();
+      this.setState({availableYears});
+    }
+
+    /**
      * This method creates a new budgetcycle
      */
     createBudgetCycle = async ()=>{
@@ -107,14 +159,15 @@ export class BudgetCyclesComponent extends Component{
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
         this.processingService.createBudgetCycle(createBudgetCycleForm).then(
-            (budgetcycleData)=>{
+            async (budgetcycleData) => {
                 isSaving = false;
                 saveMsg = 'Save';
                 allBudgetCycles.unshift(budgetcycleData)
-                this.setState({ allBudgetCycles, isSaving, saveMsg })
+              await this.setState({ allBudgetCycles, isSaving, saveMsg })
+                this.filterYears();
                 const successNotification = {
                     type:'success',
-                    msg:`${budgetcycleData.name} successfully created!`
+                    msg:`${budgetcycleData.year} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -135,12 +188,17 @@ export class BudgetCyclesComponent extends Component{
     }
 
 
+    viewInstructions = (viewedBudgetCycle) => {
+      this.setState({viewedBudgetCycle});
+      this.toggleModal('instructions');
+
+    }
+
+
     /**
      * This method updates a new budgetcycle
      */
     updateBudgetCycle = async ()=>{
-
-
 
         let {updateBudgetCycleForm, allBudgetCycles, editedBudgetCycle} = this.state;
         let isSaving = true;
@@ -155,7 +213,7 @@ export class BudgetCyclesComponent extends Component{
                 this.setState({ allBudgetCycles, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${updatedBudgetCycle.name} successfully updated!`
+                    msg:`Budget cycle ${updatedBudgetCycle.year} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
@@ -187,14 +245,16 @@ export class BudgetCyclesComponent extends Component{
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
-        let {showEditModal, showCreateModal } = this.state;
+        let {showEditModal, showCreateModal, showInstructionsModal } = this.state;
         if(modalName == 'create'){
             showCreateModal = !showCreateModal;
         }else if(modalName == 'edit'){
             showEditModal = !showEditModal
+        }else if(modalName=='instructions'){
+          showInstructionsModal = !showInstructionsModal
         }
 
-        this.setState({ showEditModal, showCreateModal })
+        this.setState({ showEditModal, showCreateModal, showInstructionsModal })
     }
 
 
@@ -207,8 +267,13 @@ export class BudgetCyclesComponent extends Component{
      */
     editBudgetCycle = (editedBudgetCycle) => {
         const updateBudgetCycleForm = {...editedBudgetCycle}
+        const {availableYears} = this.state;
+        //
+        availableYears.push(+editedBudgetCycle.year);
+        availableYears.sort();
+        //
         const editedIndex = this.state.allBudgetCycles.findIndex(budgetcycle => editedBudgetCycle.id == budgetcycle.id)
-        this.setState({editedBudgetCycle, editedIndex, updateBudgetCycleForm});
+        this.setState({editedBudgetCycle, editedIndex, updateBudgetCycleForm, availableYears});
         this.toggleModal('edit')
     }
 
@@ -219,13 +284,13 @@ export class BudgetCyclesComponent extends Component{
      * This method toggles a budgetcycle's status
      */
     toggleBudgetCycle = (budgetcycle)=>{
-        const toggleMsg = budgetcycle.status? "Disable":"Enable";
-        const gL = budgetcycle.status? "lose":"gain"
+        const toggleMsg = budgetcycle.is_current? "Disable":"Enable";
+        const gL = budgetcycle.is_current? ".":", and notifications will be sent out";
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${budgetcycle.name}</b>?</small>`,
-            text: `${budgetcycle.name} members will ${gL} permissions.`,
+            title: `<small>${toggleMsg}&nbsp;<b>${budgetcycle.year}</b>?</small>`,
+            text: `Capture will be ${toggleMsg}d${gL}`,
             icon: "warning",
             type: "question",
             showCancelButton: true,
@@ -246,7 +311,7 @@ export class BudgetCyclesComponent extends Component{
                     this.setState({ allBudgetCycles })
                     const successNotification = {
                         type:'success',
-                        msg:`${toggledBudgetCycle.name} successfully ${toggleMsg}d!`
+                        msg:`Budget cycle ${toggledBudgetCycle.year} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }
@@ -270,7 +335,7 @@ export class BudgetCyclesComponent extends Component{
      */
     deleteBudgetCycle = (budgetcycle)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${budgetcycle.name}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${budgetcycle.year}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -284,12 +349,13 @@ export class BudgetCyclesComponent extends Component{
                 if (result.value) {
                 let { allBudgetCycles } = this.state
                   this.processingService.deleteBudgetCycle(budgetcycle).then(
-                    (deletedBudgetCycle)=>{
+                    async (deletedBudgetCycle) => {
                         allBudgetCycles = allBudgetCycles.filter(r=> r.id !== budgetcycle.id)
-                        this.setState({ allBudgetCycles })
+                      await this.setState({ allBudgetCycles });
+                      this.filterYears();
                         const successNotification = {
                             type:'success',
-                            msg:`${budgetcycle.name} successfully deleted!`
+                            msg:`Budget cycle ${budgetcycle.year} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -325,132 +391,294 @@ export class BudgetCyclesComponent extends Component{
             <>
                 <div className="specific">
 
+
+                                  <Modal show={this.state.showInstructionsModal} onHide={
+                                      ()=>{ this.toggleModal('instructions')}
+                                      } {...this.props} id='instructions_modal'>
+                                      <Modal.Header closeButton>
+
+                                      <Modal.Title>
+                                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                                        Instructions for <b>{this.state?.viewedBudgetCycle?.year}</b>
+                                    </Modal.Title>
+                                      </Modal.Header>
+
+                                               <Modal.Body>
+
+                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedBudgetCycle.instructions}} />
+
+                                               </Modal.Body>
+
+
+                                              <Modal.Footer>
+
+
+
+
+                                                      <LaddaButton
+                                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                          loading={false}
+                                                          progress={0.5}
+                                                          type='button'
+                                                          onClick={()=>this.toggleModal('instructions')}
+
+                                                          >
+                                                          Close
+                                                      </LaddaButton>
+
+
+                                                      </Modal.Footer>
+
+
+
+
+                                  </Modal>
+
+
+
                 <Modal show={this.state.showEditModal} onHide={
-                    ()=>{ this.toggleModal('edit')}
-                    } {...this.props} id='edit_modal'>
-                    <Modal.Header closeButton>
-                    <Modal.Title>Update {this.state.editedBudgetCycle.name}</Modal.Title>
-                    </Modal.Header>
+                                                      ()=>{ this.toggleModal('edit')}
+                                                      } {...this.props} id='edit_modal'>
+                                                      <Modal.Header closeButton>
+                                                      <Modal.Title>
+                                                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
 
-                    <Formik
-                    initialValues={this.state.updateBudgetCycleForm}
-                    validationSchema={this.updateBudgetCycleSchema}
-                    onSubmit={this.updateBudgetCycle}
-                    >
-                    {({
-                        values,
-                        errors,
-                        touched,
-                        handleChange,
-                        handleBlur,
-                        handleSubmit,
-                        isSubmitting,
-                        resetForm
-                    }) => {
+                                                        Update budget cycle <b>{this.state.editedBudgetCycle.year}</b>
+                                                    </Modal.Title>
+                                                      </Modal.Header>
+
+                                                      <Formik
+                                                      initialValues={this.state.updateBudgetCycleForm}
+                                                      validationSchema={this.updateBudgetCycleSchema}
+                                                      onSubmit={this.updateBudgetCycle}
+                                                      >
+                                                      {({
+                                                          values,
+                                                          errors,
+                                                          touched,
+                                                          handleChange,
+                                                          handleBlur,
+                                                          handleSubmit,
+                                                          isSubmitting,
+                                                          resetForm
+                                                      }) => {
+
+                                                          return (
+                                                          <form
+                                                              className="needs-validation "
+                                                              onSubmit={handleSubmit}
+                                                              noValidate
+                                                          >
+                                                               <Modal.Body>
+                                                                  <div className="form-row">
+                                                                  <div
+                                                                      className={utils.classList({
+                                                                      "col-md-6 mb-2": true,
+                                                                      "valid-field":
+                                                                          !errors.year && touched.year,
+                                                                      "invalid-field":
+                                                                          errors.year && touched.year
+                                                                      })}
+                                                                  >
+                                                                      <label htmlFor="budgetcycle_name">
+                                                                          <b>Year<span className='text-danger'>*</span></b>
+                                                                      </label>
+
+                                                                    <select
+                                                                      className="form-control"
+                                                                      id="budgetcycle_name"
+                                                                      placeholder=""
+                                                                      name="year"
+                                                                      value={values.year}
+                                                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                                                      onBlur={handleBlur}
+                                                                      required
+                                                                      >
+                                                                      <option value="">Select year</option>
+                                                                      {
+                                                                        this.state.availableYears.map((year)=>{
+                                                                        return  (<option value={year} key={year}>{year}</option>)
+                                                                        })
+                                                                      }
+
+                                                                    </select>
+                                                                      <div className="valid-feedback"></div>
+                                                                      <div className="invalid-feedback">Year is required</div>
+                                                                  </div>
+
+                                                                  <div
+                                                                      className={utils.classList({
+                                                                      "col-md-6 mb-2": true,
+                                                                      "valid-field":
+                                                                          !errors.currency_conversion_rate && touched.currency_conversion_rate,
+                                                                      "invalid-field":
+                                                                          errors.currency_conversion_rate && touched.currency_conversion_rate
+                                                                      })}
+                                                                  >
+                                                                      <label htmlFor="budgetcycle_name">
+                                                                          <b>[Currency] Rate<span className='text-danger'>*</span></b>
+                                                                      </label>
+
+                                                                      <input
+                                                                      type="number"
+                                                                      className="form-control"
+                                                                      id="currency_conversion_rate"
+                                                                      placeholder=""
+                                                                      step="0.1"
+                                                                      name="currency_conversion_rate"
+                                                                      value={values.currency_conversion_rate}
+                                                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                                                      onBlur={handleBlur}
+                                                                      required
+                                                                      />
+
+                                                                      <div className="valid-feedback"></div>
+                                                                      <div className="invalid-feedback">[Currency] Rate is required</div>
+                                                                  </div>
+
+                                                                  <div
+                                                                      className={utils.classList({
+                                                                      "col-md-6 mb-2": true,
+                                                                      "valid-field":
+                                                                          !errors.start_date && touched.start_date,
+                                                                      "invalid-field":
+                                                                          errors.start_date && touched.start_date
+                                                                      })}
+                                                                  >
+                                                                      <label htmlFor="budgetcycle_name">
+                                                                          <b>Start Date<span className='text-danger'>*</span></b>
+                                                                      </label>
+
+                                                                      <input
+                                                                      type="date"
+                                                                      className="form-control"
+                                                                      id="start_date"
+                                                                      placeholder=""
+                                                                      name="start_date"
+                                                                      value={values.start_date}
+                                                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                                                      onBlur={handleBlur}
+                                                                      required
+                                                                      />
+
+                                                                      <div className="valid-feedback"></div>
+                                                                      <div className="invalid-feedback">Start Date is required</div>
+                                                                  </div>
+
+                                                                  <div
+                                                                      className={utils.classList({
+                                                                      "col-md-6 mb-2": true,
+                                                                      "valid-field":
+                                                                          !errors.end_date && touched.end_date,
+                                                                      "invalid-field":
+                                                                          errors.end_date && touched.end_date
+                                                                      })}
+                                                                  >
+                                                                      <label htmlFor="budgetcycle_name">
+                                                                          <b>End Date<span className='text-danger'>*</span></b>
+                                                                      </label>
+
+                                                                      <input
+                                                                      type="date"
+                                                                      className="form-control"
+                                                                      id="end_date"
+                                                                      placeholder=""
+                                                                      name="end_date"
+                                                                      value={values.end_date}
+                                                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                                                      onBlur={handleBlur}
+                                                                      required
+                                                                      />
+
+                                                                      <div className="valid-feedback"></div>
+                                                                      <div className="invalid-feedback">End Date is required</div>
+                                                                  </div>
 
 
-                        return (
-                        <form
-                            className="needs-validation "
-                            onSubmit={handleSubmit}
-                            noValidate
-                        >
-                             <Modal.Body>
-                                <div className="form-row">
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        !errors.name && touched.name,
-                                    "invalid-field":
-                                        errors.name && touched.name
-                                    })}
-                                >
-                                    <label htmlFor="budgetcycle_name">
-                                        <b>Name<span className='text-danger'>*</span></b>
-                                    </label>
-                                    <input
-                                    type="text"
-                                    className="form-control"
-                                    id="budgetcycle_name"
-                                    placeholder=""
-                                    name="name"
-                                    value={values.name}
-                                    onChange={(event)=>this.handleChange(event, 'edit')}
-                                    onBlur={handleBlur}
-                                    required
-                                    />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Name is required
-                                    </div>
-                                </div>
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        touched.description && !errors.description,
-                                    "invalid-field":
-                                        touched.description && errors.description
-                                    })}
-                                >
-                                    <label htmlFor="update_budgetcycle_description">
-                                         <b>Description<span className='text-danger'>*</span></b>
-                                    </label>
-
-                                    <textarea className="form-control"
-                                    id="update_budgetcycle_description"  onChange={(event)=>this.handleChange(event,'edit')}
-                                    name="description"
-                                    defaultValue={values.description}
-                                   />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Description is required
-                                    </div>
-                                </div>
-
-                                </div>
-                            </Modal.Body>
-
-                            <Modal.Footer>
-
-                                    <LaddaButton
-                                        className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
-                                        loading={false}
-                                        progress={0.5}
-                                        type='button'
-                                        onClick={()=>this.toggleModal('edit')}
-
-                                        >
-                                        Close
-                                    </LaddaButton>
-
-                                    <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.updateBudgetCycleSchema, this.state.updateBudgetCycleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
-                                        loading={this.state.isSaving}
-                                        progress={0.5}
-                                        type='submit'
-                                        data-style={EXPAND_RIGHT}
-                                        >
-                                        {this.state.updateMsg}
-                                    </LaddaButton>
-                                    </Modal.Footer>
-
-                        </form>
-                        );
-                    }}
-
-                    </Formik>
+                                                                  <div
+                                                                      className={utils.classList({
+                                                                      "col-md-12 mb-2": true,
+                                                                      "valid-field":
+                                                                          touched.instructions && !errors.instructions,
+                                                                      "invalid-field":
+                                                                          touched.instructions && errors.instructions
+                                                                      })}
+                                                                  >
+                                                                      <label htmlFor="edit_budgetcycle_description">
+                                                                           <b>Instructions<span className='text-danger'>*</span></b>
+                                                                      </label>
 
 
-                </Modal>
 
+                                                                     <RichTextEditor
+                                                                       theme="snow"
+                                                                       modules={{
+                                                                         toolbar: [
+                                                                           [{ size: ["small", false, "large", "huge"] }],
+                                                                           ["bold", "italic", "underline", "strike"],
+                                                                           [{ list: "ordered" }, { list: "bullet" }],
+                                                                           ["clean"]
+                                                                         ]
+                                                                       }}
+                                                                       content={values.instructions}
+                                                                       handleContentChange={html =>
+                                                                         this.handleRichEditorChange(html, 'edit')
+                                                                       }
+                                                                       placeholder="insert text here..."
+                                                                     />
+
+                                                                      <div className="valid-feedback"></div>
+                                                                      <div className="invalid-feedback">
+                                                                      Provide instructions
+                                                                      </div>
+                                                                  </div>
+
+                                                                  </div>
+                                                              </Modal.Body>
+
+                                                              <Modal.Footer>
+
+                                                                      <LaddaButton
+                                                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                                          loading={false}
+                                                                          progress={0.5}
+                                                                          type='button'
+                                                                          onClick={()=>this.toggleModal('edit')}
+
+                                                                          >
+                                                                          Close
+                                                                      </LaddaButton>
+
+                                                                      <LaddaButton
+                                                                          className={`btn btn-${utils.isValid(this.updateBudgetCycleSchema, this.state.editBudgetCycleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                                                          loading={this.state.isSaving}
+                                                                          progress={0.5}
+                                                                          type='submit'
+                                                                          data-style={EXPAND_RIGHT}
+                                                                          >
+                                                                          {this.state.saveMsg}
+                                                                      </LaddaButton>
+                                                                      </Modal.Footer>
+
+                                                          </form>
+                                                          );
+                                                      }}
+
+                                                      </Formik>
+
+
+
+                                                  </Modal>
 
                 <Modal show={this.state.showCreateModal} onHide={
                     ()=>{ this.toggleModal('create')}
                     } {...this.props} id='create_modal'>
                     <Modal.Header closeButton>
-                    <Modal.Title>Create BudgetCycle</Modal.Title>
+                    <Modal.Title>
+                      <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+
+                      Create Budget Cycle
+                    </Modal.Title>
                     </Modal.Header>
 
                     <Formik
@@ -479,53 +707,163 @@ export class BudgetCyclesComponent extends Component{
                                 <div className="form-row">
                                 <div
                                     className={utils.classList({
-                                    "col-md-12 mb-2": true,
+                                    "col-md-6 mb-2": true,
                                     "valid-field":
-                                        !errors.name && touched.name,
+                                        !errors.year && touched.year,
                                     "invalid-field":
-                                        errors.name && touched.name
+                                        errors.year && touched.year
                                     })}
                                 >
                                     <label htmlFor="budgetcycle_name">
-                                        <b>Name<span className='text-danger'>*</span></b>
+                                        <b>Year<span className='text-danger'>*</span></b>
                                     </label>
-                                    <input
-                                    type="text"
+
+                                  <select
                                     className="form-control"
                                     id="budgetcycle_name"
                                     placeholder=""
-                                    name="name"
-                                    value={values.name}
+                                    name="year"
+                                    value={values.year}
+                                    onChange={(event)=>this.handleChange(event)}
+                                    onBlur={handleBlur}
+                                    required
+                                    >
+                                    <option value="">Select year</option>
+                                    {
+                                      this.state.availableYears.map((year)=>{
+                                      return  (<option value={year} key={year}>{year}</option>)
+                                      })
+                                    }
+
+                                  </select>
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">Year is required</div>
+                                </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-6 mb-2": true,
+                                    "valid-field":
+                                        !errors.currency_conversion_rate && touched.currency_conversion_rate,
+                                    "invalid-field":
+                                        errors.currency_conversion_rate && touched.currency_conversion_rate
+                                    })}
+                                >
+                                    <label htmlFor="budgetcycle_name">
+                                        <b>[Currency] Rate<span className='text-danger'>*</span></b>
+                                    </label>
+
+                                    <input
+                                    type="number"
+                                    className="form-control"
+                                    id="currency_conversion_rate"
+                                    placeholder=""
+                                    step="0.1"
+                                    name="currency_conversion_rate"
+                                    value={values.currency_conversion_rate}
                                     onChange={(event)=>this.handleChange(event)}
                                     onBlur={handleBlur}
                                     required
                                     />
+
                                     <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Name is required
-                                    </div>
+                                    <div className="invalid-feedback">[Currency] Rate is required</div>
                                 </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-6 mb-2": true,
+                                    "valid-field":
+                                        !errors.start_date && touched.start_date,
+                                    "invalid-field":
+                                        errors.start_date && touched.start_date
+                                    })}
+                                >
+                                    <label htmlFor="budgetcycle_name">
+                                        <b>Start Date<span className='text-danger'>*</span></b>
+                                    </label>
+
+                                    <input
+                                    type="date"
+                                    className="form-control"
+                                    id="start_date"
+                                    placeholder=""
+                                    name="start_date"
+                                    value={values.start_date}
+                                    onChange={(event)=>this.handleChange(event)}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">Start Date is required</div>
+                                </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-6 mb-2": true,
+                                    "valid-field":
+                                        !errors.end_date && touched.end_date,
+                                    "invalid-field":
+                                        errors.end_date && touched.end_date
+                                    })}
+                                >
+                                    <label htmlFor="budgetcycle_name">
+                                        <b>End Date<span className='text-danger'>*</span></b>
+                                    </label>
+
+                                    <input
+                                    type="date"
+                                    className="form-control"
+                                    id="end_date"
+                                    placeholder=""
+                                    name="end_date"
+                                    value={values.end_date}
+                                    onChange={(event)=>this.handleChange(event)}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">End Date is required</div>
+                                </div>
+
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
                                     "valid-field":
-                                        touched.description && !errors.description,
+                                        touched.instructions && !errors.instructions,
                                     "invalid-field":
-                                        touched.description && errors.description
+                                        touched.instructions && errors.instructions
                                     })}
                                 >
                                     <label htmlFor="create_budgetcycle_description">
-                                         <b>Description<span className='text-danger'>*</span></b>
+                                         <b>Instructions<span className='text-danger'>*</span></b>
                                     </label>
 
-                                    <textarea className="form-control"
-                                    id="create_budgetcycle_description"  onChange={(event)=>this.handleChange(event)}
-                                    name="description"
-                                    defaultValue={values.description}
+
+
+                                   <RichTextEditor
+                                     theme="snow"
+                                     modules={{
+                                       toolbar: [
+                                         [{ size: ["small", false, "large", "huge"] }],
+                                         ["bold", "italic", "underline", "strike"],
+                                         [{ list: "ordered" }, { list: "bullet" }],
+                                         ["clean"]
+                                       ]
+                                     }}
+                                     content={values.instructions}
+                                     handleContentChange={html =>
+                                       this.handleRichEditorChange(html)
+                                     }
+                                     placeholder="insert text here..."
                                    />
+
                                     <div className="valid-feedback"></div>
                                     <div className="invalid-feedback">
-                                    Description is required
+                                    Provide instructions
                                     </div>
                                 </div>
 
@@ -567,7 +905,7 @@ export class BudgetCyclesComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Budget Cycle</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Cycle</Button>
                 </div>
 
                 <div className="breadcrumb">
@@ -595,7 +933,7 @@ export class BudgetCyclesComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Year</th>
-                                                <th>Description</th>
+                                                <th>Instructions</th>
                                                 <th>USD Rate</th>
                                                 <th>Start Date</th>
                                                 <th>End Date</th>
@@ -614,20 +952,30 @@ export class BudgetCyclesComponent extends Component{
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            {budgetcycle.name}
+                                                            {budgetcycle?.year}
+                                                        </td>
+                                                        <td class="text-center">
+                                                          <a onClick={()=>this.viewInstructions(budgetcycle)}  className="text-primary long-view">View</a>
                                                         </td>
                                                         <td>
-                                                        {budgetcycle.description}
+                                                          {budgetcycle?.currency_conversion_rate}
+                                                        </td>
+                                                        <td>
+                                                          {utils.formatDate(budgetcycle?.start_date)}
+
+                                                        </td>
+                                                        <td>
+                                                          {utils.formatDate(budgetcycle?.end_date)}
                                                         </td>
                                                         <td>
                                                         <Form>
 
                                                              <Form.Check
-                                                                    checked={budgetcycle.status}
+                                                                    checked={budgetcycle.is_current}
                                                                     type="switch"
                                                                     id={`custom-switch${budgetcycle.id}`}
-                                                                    label={budgetcycle.status ? 'Enabled' : 'Disabled'}
-                                                                    className={budgetcycle.status ? 'text-success' : 'text-danger'}
+                                                                    label={budgetcycle.is_current ? 'Active' : 'Inactive'}
+                                                                    className={budgetcycle.is_current ? 'text-success' : 'text-danger'}
                                                                     onChange={()=> this.toggleBudgetCycle(budgetcycle)}
                                                                 />
 
@@ -717,14 +1065,20 @@ export class BudgetCyclesComponent extends Component{
     }
 
 createBudgetCycleSchema = yup.object().shape({
-        name: yup.string().required("Name is required"),
-        description: yup.string().required("Description is required"),
+        year: yup.string().required("Year is required"),
+        instructions: yup.string().required("instructions is required"),
+        start_date: yup.string().required("Start date is required"),
+        end_date: yup.string().required("End date is required"),
+        currency_conversion_rate: yup.number().required("Conversion rate is required"),
       });
 
 
 updateBudgetCycleSchema = yup.object().shape({
-        name: yup.string().required("Name is required"),
-        description: yup.string().required("Description is required"),
+          year: yup.string().required("Year is required"),
+          instructions: yup.string().required("instructions is required"),
+          start_date: yup.string().required("Start date is required"),
+          end_date: yup.string().required("End date is required"),
+          currency_conversion_rate: yup.number().required("Conversion rate is required"),
         });
 
 }
