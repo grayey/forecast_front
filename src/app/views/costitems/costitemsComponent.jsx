@@ -386,6 +386,45 @@ export class CostItemsComponent extends Component{
                         >
                              <Modal.Body>
                                 <div className="form-row">
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-12 mb-2": true,
+                                      "valid-field":
+                                          !errors.category && touched.category,
+                                      "invalid-field":
+                                          errors.category && touched.category
+                                      })}
+                                  >
+                                      <label htmlFor="costitem_category">
+                                          <b>Category</b>
+                                      </label>
+                                      <select
+                                        className="form-control"
+                                        id="costitem_category"
+                                        placeholder=""
+                                        name="category"
+                                        value={values.category}
+                                        onChange={(event)=>this.handleChange(event, 'edit')}
+                                        onBlur={handleBlur}
+                                        required
+                                        >
+                                        <option value="">Select Category</option>
+                                        {
+                                          this.state.allItemCategories.map((category)=>{
+                                          return  (<option value={category.id} key={category.id}>{category.name}({category.code})</option>)
+                                          })
+                                        }
+
+                                      </select>
+
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">
+                                      Category is required
+                                      </div>
+                                  </div>
+
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
@@ -648,7 +687,7 @@ export class CostItemsComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Item Category</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create cost item</Button>
                 </div>
 
                 <div className="breadcrumb">

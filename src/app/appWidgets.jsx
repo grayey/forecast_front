@@ -4,6 +4,14 @@ import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
 import { Dropdown, Modal } from "react-bootstrap";
 import { FaUpload, FaFileCsv, FaFileExcel } from "react-icons/fa";
+import * as utils from "@utils";
+import LaddaButton, {
+    XL,
+    EXPAND_LEFT,
+    EXPAND_RIGHT,
+    EXPAND_UP,
+    CONTRACT,
+  } from "react-ladda";
 
 
 
@@ -32,7 +40,9 @@ export const BulkTemplateDownload = (props) =>{
 const appMainService = new AppMainService();
 const [downloading, setDownloading] = useState(false);
 const [uploading, setUploading] = useState(false);
+const [showBulkModal, setBulkModal] = useState(false)
 const [downloadUrl, setDownloadUrl] = useState('');
+const [createMsg, setCreateMsg] = useState('Upload')
 const bulkTemplateComponents = {
   itemcategories:"itemcategories",
   users:"users",
@@ -54,8 +64,98 @@ const bulkTemplateComponents = {
 
   }
 
+  /**
+   *
+   * @param {*} modalName
+   * This method toggles a modal
+   */
+  const toggleModal = (event,modalName='upload_bulk')=> {
+
+      if(modalName == 'upload_bulk'){
+           return setBulkModal(!showBulkModal);
+      }
+
+
+  }
+
 
   return (
+    <>
+
+            <Modal show={showBulkModal} onHide={
+                ()=>{toggleModal('upload_bulk')}
+                } {...props} id='upload_bulk_modal'>
+                <Modal.Header closeButton>
+                <Modal.Title>Bulk Upload</Modal.Title>
+                </Modal.Header>
+
+
+                         <Modal.Body>
+                            <div className="form-row">
+                            <div
+                                className="col-md-12"
+                            >
+                            <div className="input-group mb-3">
+                              <div className="input-group-prepend">
+                                <span
+                                  className="input-group-text"
+                                  id="inputGroupFileAddon01"
+                                >
+                                  Bulk
+                                </span>
+                              </div>
+                              <div className="custom-file">
+                                <input
+                                  type="file"
+                                  className="custom-file-input"
+                                  id="inputGroupFile01"
+                                  aria-describedby="inputGroupFileAddon01"
+                                />
+                                <label
+                                  className="custom-file-label"
+                                  htmlFor="inputGroupFile01"
+                                >
+                                  Choose file
+                                </label>
+                              </div>
+                            </div>
+
+
+                                <div className="valid-feedback"></div>
+                                <div className="invalid-feedback">
+                                Description is required
+                                </div>
+                            </div>
+
+                            </div>
+                        </Modal.Body>
+
+                        <Modal.Footer>
+
+                                <LaddaButton
+                                    className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                    loading={false}
+                                    progress={0.5}
+                                    type='button'
+                                    onClick={()=>toggleModal('upload_bulk')}
+
+                                    >
+                                    Close
+                                </LaddaButton>
+
+                                <LaddaButton
+                                    className={`btn btn-${false ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                    loading={uploading}
+                                    progress={0.5}
+                                    type='button'
+                                    data-style={EXPAND_RIGHT}
+                                    >
+                                    {createMsg}
+                                </LaddaButton>
+                                </Modal.Footer>
+            </Modal>
+
+
     <div className="btn-group ml-5">
       <a className='d-none' id="download_link" href={downloadUrl} download></a>
         <Dropdown>
@@ -68,7 +168,8 @@ const bulkTemplateComponents = {
             <Dropdown.Item onClick={()=>downloadTemplate('Csv')}><FaFileCsv/> CSV</Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
-      <button className="btn btn-success">Upload Bulk Template <FaUpload/></button>
+      <button className="btn btn-success" onClick={toggleModal}>Upload Bulk Template <FaUpload/></button>
     </div>
+    </>
   )
 }
