@@ -34,7 +34,7 @@ export const post = async (url, data) => {
     const path = `${BASE_URL}/${url}`;
     return await axios.post(path, data).then(
         (response) => { return response.data; }).catch((error) => {
-            
+
             const errorResponse= error.response
             console.log(errorResponse)
             throw errorResponse;
@@ -75,31 +75,40 @@ export const del = async (url) => {
 
 }
 
-
-export const postFile = async (url, file, data = null) => {
+/**
+ * [getFile description]
+ * @param  {[type]}  url         [description]
+ * @param  {[type]}  [data=null] [description]
+ * @return {Promise}             [description]
+ * For exports
+ */
+export const getFile = async (url, data = null) => {
     const path = extractDataAsParam(`${BASE_URL}/${url}`, data);
-    return await axios.post(path, file, data).then(
-        (response) => { return response.data; }).catch((error) => {
-            const errorResponse= error.response
-            throw errorResponse;
-        }
-        )
+    return await axios.get(path, {responseType : 'arraybuffer'}).then(
+        (response) => {
+          return response.data;
+
+        }).catch((error) => {
+            throw error.response;
+        })
 
 }
 
 
-// async function post(url, data) {
-//     return fetch(path).then(res => res.json()).catch(error => error.json());
-// }
+export const postFile = async (url, file, data = null) => {
+    const path = extractDataAsParam(`${BASE_URL}/${url}`, data);
+    const formData = new FormData();
+    formData.append("file",file,file.name);
 
-// async function put(url, data) {
-//     return fetch(path).then(res => res.json()).catch(error => error.json());
-// }
+    return await axios.post(path, formData, {responseType : 'arraybuffer'}).then(
+        (response) => {
+          return response.data;
 
-// async function del(url) {
-//     return fetch(path).then(res => res.json()).catch(error => error.json());
-// }
+        }).catch((error) => {
+            throw error.response;
+        })
 
+}
 
 
 function extractDataAsParam(path, data = null) {

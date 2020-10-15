@@ -347,6 +347,64 @@ export default class AppMainService extends Component {
          return this.updateCostItem(costitem, costitem.id);
        }
 
+       /**
+        *
+        * --- VERSION CODES SECTION HERE ----
+        *
+        */
+
+
+        /**
+         * This method returns a list of all versioncodes
+         */
+        async getAllVersionCodes(){
+           const url = 'versioncodes';
+           return await apiService.get(url);
+       }
+
+
+       /**
+        *
+        * @param {*} versioncodeData
+        * this method creates a new versioncode
+        */
+       async createVersionCode(versioncodeData){
+           const url = 'versioncodes/';
+           return await apiService.post(url,versioncodeData);
+       }
+
+       /**
+        *
+        * @param {*} versioncode
+        * @param {*} id
+        * This method updates a versioncode
+        */
+       async updateVersionCode(versioncode, id){
+           const url =`versioncodes/${id}/`;
+           return await apiService.put(url,versioncode);
+
+       }
+
+       /**
+        *
+        * @param {*} versioncode
+        * This method deletes a versioncode
+        */
+       async deleteVersionCode(versioncode){
+           const url = `versioncodes/${versioncode.id}`
+           return await apiService.del(url);
+       }
+
+       /**
+        *
+        * @param {*} versioncode
+        * This method toggles a versioncode
+        */
+       async toggleVersionCode(versioncode){
+           versioncode.status = !versioncode.status
+         return this.updateVersionCode(versioncode, versioncode.id);
+       }
+
 
 
        /**
@@ -356,6 +414,18 @@ export default class AppMainService extends Component {
        async downloadTemplate(){
          const url =`itemcategories/download_template/`;
          return await apiService.get(url);
+       }
+
+/**
+ * [uploadBulkFile description]
+ * @param  {[type]}  caller_url [description]
+ * @param  {[type]}  file       [description]
+ * @return {Promise}            [description]
+ * This method uploads a bulk file
+ */
+       async uploadBulkFile(caller_url, file){
+         const url =`${caller_url}/upload_bulk_file/`;
+         return await apiService.postFile(url, file);
        }
 
 

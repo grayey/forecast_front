@@ -7,7 +7,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords, BulkTemplateDownload} from "../../appWidgets";
+import {FetchingRecords} from "../../appWidgets";
 
 
 import LaddaButton, {
@@ -19,25 +19,27 @@ import LaddaButton, {
     CONTRACT,
   } from "react-ladda";
 
-export class ItemCategoriesComponent extends Component{
+export class VersionCodesComponent extends Component{
 
     state = {
         editedIndex:0,
-        allItemCategories:[],
+        allVersionCodes:[],
         showEditModal:false,
         showCreateModal:false,
         isSaving:false,
         isFetching:true,
         saveMsg:'Save',
         updateMsg:'Update',
-        editedItemCategory: {},
-        createItemCategoryForm: {
+        editedVersionCode: {},
+        createVersionCodeForm: {
             name: "",
             code: "",
+            step: "",
           },
-          updateItemCategoryForm: {
+          updateVersionCodeForm: {
             name: "",
             code: "",
+            step:""
           },
 
     }
@@ -51,7 +53,7 @@ export class ItemCategoriesComponent extends Component{
     }
 
     componentDidMount(){
-         this.getAllItemCategories()
+         this.getAllVersionCodes()
     }
 
     /**
@@ -62,36 +64,38 @@ export class ItemCategoriesComponent extends Component{
      */
 
     handleChange = (event, form='create') => {
-        const {createItemCategoryForm, updateItemCategoryForm} = this.state
+        const {createVersionCodeForm, updateVersionCodeForm} = this.state
         if(form=='create'){
-            createItemCategoryForm[event.target.name] = event.target.value;
+            createVersionCodeForm[event.target.name] = event.target.value;
         }else if(form=='edit'){
-            updateItemCategoryForm[event.target.name] = event.target.value;
+            updateVersionCodeForm[event.target.name] = event.target.value;
         }
-        this.setState({ createItemCategoryForm, updateItemCategoryForm });
+        this.setState({ createVersionCodeForm, updateVersionCodeForm });
+    }
+
+
+    sortVersionioning = ()=>{
+      const {allVersionCodes} = this.state
+      allVersionCodes.sort((a, b) => (a.step > b.step) ? 1 : -1); // ascending
+      this.setState({allVersionCodes})
     }
 
 
 
-
-
-
-
     /**
-     * This method lists all itemcategories
+     * This method lists all versioncodes
      */
-     getAllItemCategories = async ()=>{
-         let isFetching = true;
-         this.setState({isFetching})
+     getAllVersionCodes = async ()=>{
+         let isFetching = false;
 
-        this.appMainService.getAllItemCategories().then(
-            (itemcategoriesResponse)=>{
-                isFetching = false;
-                const allItemCategories = itemcategoriesResponse;
-                this.setState({ allItemCategories, isFetching })
+        this.appMainService.getAllVersionCodes().then(
+            async(versioncodesResponse)=>{
+                const allVersionCodes = versioncodesResponse;
+                await this.setState({ allVersionCodes, isFetching })
+                this.sortVersionioning();
+                console.log('VersionCodes response', versioncodesResponse)
             }
         ).catch((error)=>{
-          isFetching = false;
             this.setState({isFetching})
             const errorNotification = {
                 type:'error',
@@ -103,22 +107,39 @@ export class ItemCategoriesComponent extends Component{
     }
 
     /**
-     * This method creates a new itemcategory
+     * This method creates a new versioncode
      */
-    createItemCategory = async ()=>{
-        const {createItemCategoryForm, allItemCategories} = this.state;
+    createVersionCode = async ()=>{
+        const {createVersionCodeForm, allVersionCodes} = this.state;
+        if(!allVersionCodes.length){
+          if(createVersionCodeForm.step !== '1'){
+            new AppNotification({
+              type:"info",
+              msg:`First version must have a step of 1.`
+            })
+          }
+          createVersionCodeForm.step = 1; // first version must be one
+        }
+        const previousStep = allVersionCodes[allVersionCodes.length - 1].step;
+        if(previousStep && previousStep + 1 !== parseInt( createVersionCodeForm.step)){
+          return new AppNotification({
+            type:"warning",
+            msg:`You have not created step ${(previousStep + 1).toString()}`
+          })
+
+        }
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
-        this.appMainService.createItemCategory(createItemCategoryForm).then(
-            (itemcategoryData)=>{
+        this.appMainService.createVersionCode(createVersionCodeForm).then(
+            (versioncodeData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
-                allItemCategories.unshift(itemcategoryData)
-                this.setState({ allItemCategories, isSaving, saveMsg })
+                allVersionCodes.push(versioncodeData)
+                this.setState({ allVersionCodes, isSaving, saveMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${itemcategoryData.name} successfully created!`
+                    msg:`${versioncodeData.name} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -140,34 +161,34 @@ export class ItemCategoriesComponent extends Component{
 
 
     /**
-     * This method updates a new itemcategory
+     * This method updates a new versioncode
      */
-    updateItemCategory = async ()=>{
+    updateVersionCode = async ()=>{
 
 
 
-        let {updateItemCategoryForm, allItemCategories, editedItemCategory} = this.state;
+        let {updateVersionCodeForm, allVersionCodes, editedVersionCode} = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
         this.setState({isSaving, updateMsg})
-        this.appMainService.updateItemCategory(updateItemCategoryForm, editedItemCategory.id).then(
-            (updatedItemCategory)=>{
-                updatedItemCategory.temp_flash = true
+        this.appMainService.updateVersionCode(updateVersionCodeForm, editedVersionCode.id).then(
+            (updatedVersionCode)=>{
+                updatedVersionCode.temp_flash = true
                 isSaving = false;
                 updateMsg = 'Update';
-                allItemCategories.splice(this.state.editedIndex, 1, updatedItemCategory)
-                this.setState({ allItemCategories, isSaving, updateMsg })
+                allVersionCodes.splice(this.state.editedIndex, 1, updatedVersionCode)
+                this.setState({ allVersionCodes, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${updatedItemCategory.name} successfully updated!`
+                    msg:`${updatedVersionCode.name} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
              setTimeout(()=>{
-                    updatedItemCategory.temp_flash = false
-                    allItemCategories.splice(this.state.editedIndex, 1, updatedItemCategory)
-                    this.setState({ allItemCategories, isSaving, updateMsg })
+                    updatedVersionCode.temp_flash = false
+                    allVersionCodes.splice(this.state.editedIndex, 1, updatedVersionCode)
+                    this.setState({ allVersionCodes, isSaving, updateMsg })
                 }, 10000);
 
             }
@@ -205,31 +226,31 @@ export class ItemCategoriesComponent extends Component{
 
     /**
      *
-     * This method sets the itemcategory to be edited
+     * This method sets the versioncode to be edited
      *  and opens the modal for edit
      *
      */
-    editItemCategory = (editedItemCategory) => {
-        const updateItemCategoryForm = {...editedItemCategory}
-        const editedIndex = this.state.allItemCategories.findIndex(itemcategory => editedItemCategory.id == itemcategory.id)
-        this.setState({editedItemCategory, editedIndex, updateItemCategoryForm});
+    editVersionCode = (editedVersionCode) => {
+        const updateVersionCodeForm = {...editedVersionCode}
+        const editedIndex = this.state.allVersionCodes.findIndex(versioncode => editedVersionCode.id == versioncode.id)
+        this.setState({editedVersionCode, editedIndex, updateVersionCodeForm});
         this.toggleModal('edit')
     }
 
 
     /**
      *
-     * @param {*} itemcategory
-     * This method toggles a itemcategory's status
+     * @param {*} versioncode
+     * This method toggles a versioncode's status
      */
-    toggleItemCategory = (itemcategory)=>{
-        const toggleMsg = itemcategory.status? "Disable":"Enable";
-        const gL = itemcategory.status? "lose":"gain"
+    toggleVersionCode = (versioncode)=>{
+        const toggleMsg = versioncode.status? "Disable":"Enable";
+        const gL = versioncode.status? "lose":"gain"
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${itemcategory.name}</b>?</small>`,
-            text: `${itemcategory.name} members will ${gL} permissions.`,
+            title: `<small>${toggleMsg}&nbsp;<b>${versioncode.name}</b>?</small>`,
+            text: `${versioncode.name} members will ${gL} permissions.`,
             icon: "warning",
             type: "question",
             showCancelButton: true,
@@ -240,17 +261,17 @@ export class ItemCategoriesComponent extends Component{
           })
           .then(result => {
             if (result.value) {
-                let { allItemCategories } = this.state
-                const toggleIndex = allItemCategories.findIndex(r => r.id == itemcategory.id)
-                // itemcategory.status = !itemcategory.status;
+                let { allVersionCodes } = this.state
+                const toggleIndex = allVersionCodes.findIndex(r => r.id == versioncode.id)
+                // versioncode.status = !versioncode.status;
 
-              this.appMainService.toggleItemCategory(itemcategory).then(
-                (toggledItemCategory)=>{
-                    allItemCategories.splice(toggleIndex, 1, toggledItemCategory)
-                    this.setState({ allItemCategories })
+              this.appMainService.toggleVersionCode(versioncode).then(
+                (toggledVersionCode)=>{
+                    allVersionCodes.splice(toggleIndex, 1, toggledVersionCode)
+                    this.setState({ allVersionCodes })
                     const successNotification = {
                         type:'success',
-                        msg:`${toggledItemCategory.name} successfully ${toggleMsg}d!`
+                        msg:`${toggledVersionCode.name} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }
@@ -268,13 +289,13 @@ export class ItemCategoriesComponent extends Component{
 
     /**
      *
-     * @param {*} itemcategory
-     * This method deletes a itemcategory
+     * @param {*} versioncode
+     * This method deletes a versioncode
      *
      */
-    deleteItemCategory = (itemcategory)=>{
+    deleteVersionCode = (versioncode)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${itemcategory.name}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${versioncode.name}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -286,14 +307,14 @@ export class ItemCategoriesComponent extends Component{
               })
               .then(result => {
                 if (result.value) {
-                let { allItemCategories } = this.state
-                  this.appMainService.deleteItemCategory(itemcategory).then(
-                    (deletedItemCategory)=>{
-                        allItemCategories = allItemCategories.filter(r=> r.id !== itemcategory.id)
-                        this.setState({ allItemCategories })
+                let { allVersionCodes } = this.state
+                  this.appMainService.deleteVersionCode(versioncode).then(
+                    (deletedVersionCode)=>{
+                        allVersionCodes = allVersionCodes.filter(r=> r.id !== versioncode.id)
+                        this.setState({ allVersionCodes })
                         const successNotification = {
                             type:'success',
-                            msg:`${itemcategory.name} successfully deleted!`
+                            msg:`${versioncode.name} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -314,11 +335,11 @@ export class ItemCategoriesComponent extends Component{
      * @param {*} modalName
      */
     resetForm = ()=> {
-        const createItemCategoryForm = {
+        const createVersionCodeForm = {
             name: "",
             description: "",
           }
-          this.setState({createItemCategoryForm})
+          this.setState({createVersionCodeForm})
 
     }
 
@@ -334,15 +355,15 @@ export class ItemCategoriesComponent extends Component{
                     } {...this.props} id='edit_modal'>
                     <Modal.Header closeButton>
                     <Modal.Title>
-                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
-                      Update {this.state.editedItemCategory.name}
+                      <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                      Update {this.state.editedVersionCode.name}
                     </Modal.Title>
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.updateItemCategoryForm}
-                    validationSchema={this.updateItemCategorySchema}
-                    onSubmit={this.updateItemCategory}
+                    initialValues={this.state.updateVersionCodeForm}
+                    validationSchema={this.updateVersionCodeSchema}
+                    onSubmit={this.updateVersionCode}
                     >
                     {({
                         values,
@@ -373,13 +394,13 @@ export class ItemCategoriesComponent extends Component{
                                         errors.name && touched.name
                                     })}
                                 >
-                                    <label htmlFor="itemcategory_name">
+                                    <label htmlFor="versioncode_name">
                                         <b>Name<span className='text-danger'>*</span></b>
                                     </label>
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="itemcategory_name"
+                                    id="versioncode_name"
                                     placeholder=""
                                     name="name"
                                     value={values.name}
@@ -401,14 +422,14 @@ export class ItemCategoriesComponent extends Component{
                                         touched.code && errors.code
                                     })}
                                 >
-                                    <label htmlFor="create_itemcategory_description">
+                                    <label htmlFor="create_version_code">
                                          <b>Category Code<span className='text-danger'>*</span></b>
                                     </label>
 
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="itemcategory_code"
+                                    id="version_code"
                                     placeholder=""
                                     name="code"
                                     value={values.code}
@@ -418,7 +439,37 @@ export class ItemCategoriesComponent extends Component{
                                     />
                                     <div className="valid-feedback"></div>
                                     <div className="invalid-feedback">
-                                    Code is required
+                                    Version Code is required
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-12 mb-2": true,
+                                    "valid-field":
+                                        touched.step && !errors.step,
+                                    "invalid-field":
+                                        touched.step && errors.step
+                                    })}
+                                >
+                                    <label htmlFor="create_version_code_step">
+                                         <b>Step (No.)<span className='text-danger'>*</span></b>
+                                    </label>
+
+                                    <input
+                                    type="number"
+                                    className="form-control"
+                                    id="update_version_code_step"
+                                    placeholder=""
+                                    name="step"
+                                    value={values.step}
+                                    onChange={(event)=>this.handleChange(event, "edit")}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">
+                                    Step (No.) is required
                                     </div>
                                 </div>
 
@@ -439,7 +490,7 @@ export class ItemCategoriesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.updateItemCategorySchema, this.state.updateItemCategoryForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.updateVersionCodeSchema, this.state.updateVersionCodeForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -464,14 +515,15 @@ export class ItemCategoriesComponent extends Component{
                     } {...this.props} id='create_modal'>
                     <Modal.Header closeButton>
                     <Modal.Title>
-                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
-                      Create Item Category</Modal.Title>
+                      <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                      Create Versioning
+                    </Modal.Title>
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.createItemCategoryForm}
-                    validationSchema={this.createItemCategorySchema}
-                    onSubmit={this.createItemCategory}
+                    initialValues={this.state.createVersionCodeForm}
+                    validationSchema={this.createVersionCodeSchema}
+                    onSubmit={this.createVersionCode}
                     >
                     {({
                         values,
@@ -501,14 +553,14 @@ export class ItemCategoriesComponent extends Component{
                                         errors.name && touched.name
                                     })}
                                 >
-                                    <label htmlFor="itemcategory_name">
+                                    <label htmlFor="versioncode_name">
                                         <b>Name<span className='text-danger'>*</span></b>
                                     </label>
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="itemcategory_name"
-                                    placeholder=""
+                                    id="versioncode_name"
+                                    placeholder="eg. Version 1"
                                     name="name"
                                     value={values.name}
                                     onChange={(event)=>this.handleChange(event)}
@@ -529,15 +581,15 @@ export class ItemCategoriesComponent extends Component{
                                         touched.code && errors.code
                                     })}
                                 >
-                                    <label htmlFor="create_itemcategory_description">
-                                         <b>Category Code<span className='text-danger'>*</span></b>
+                                    <label htmlFor="create_version_code">
+                                         <b>Version Code<span className='text-danger'>*</span></b>
                                     </label>
 
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="itemcategory_code"
-                                    placeholder=""
+                                    id="version_code"
+                                    placeholder="e.g BV1"
                                     name="code"
                                     value={values.code}
                                     onChange={(event)=>this.handleChange(event)}
@@ -546,7 +598,37 @@ export class ItemCategoriesComponent extends Component{
                                     />
                                     <div className="valid-feedback"></div>
                                     <div className="invalid-feedback">
-                                    Code is required
+                                    Version Code is required
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-12 mb-2": true,
+                                    "valid-field":
+                                        touched.step && !errors.step,
+                                    "invalid-field":
+                                        touched.step && errors.step
+                                    })}
+                                >
+                                    <label htmlFor="create_version_code_step">
+                                         <b>Step (No.)<span className='text-danger'>*</span></b>
+                                    </label>
+
+                                    <input
+                                    type="number"
+                                    className="form-control"
+                                    id="create_version_code_step"
+                                    placeholder="e.g 1"
+                                    name="step"
+                                    value={values.step}
+                                    onChange={(event)=>this.handleChange(event)}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">
+                                    Step (No.) is required
                                     </div>
                                 </div>
 
@@ -567,7 +649,7 @@ export class ItemCategoriesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.createItemCategorySchema, this.state.createItemCategoryForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.createVersionCodeSchema, this.state.createVersionCodeForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -588,22 +670,16 @@ export class ItemCategoriesComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Item Category</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Versioning</Button>
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>Item Categories</h1>
+                    <h1>Versioning</h1>
                     <ul>
                         <li><a href="#">List</a></li>
                         <li>View</li>
                     </ul>
-
-                    <div className="d-inline pl-5">
-                      <BulkTemplateDownload caller="itemcategories" refresh={this.getAllItemCategories}/>
-                    </div>
                 </div>
-
-
 
                 <div className="separator-breadcrumb border-top"></div>
                 <div className="row mb-4">
@@ -611,8 +687,8 @@ export class ItemCategoriesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">Item Categories</h4>
-                                <p>List of item categories.</p>
+                                <h4 className="card-title mb-3">Versioning</h4>
+                                <p>List of possible budget cycle versions.</p>
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
@@ -622,7 +698,8 @@ export class ItemCategoriesComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Name</th>
-                                                <th>Code</th>
+                                                  <th>Code</th>
+                                                <th>Step</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
@@ -631,59 +708,59 @@ export class ItemCategoriesComponent extends Component{
                                         </thead>
                                         <tbody>
                                         {
-                                          this.state.allItemCategories.length ?  this.state.allItemCategories.map( (itemcategory, index)=>{
+                                          this.state.allVersionCodes.length ?  this.state.allVersionCodes.map( (versioncode, index)=>{
                                                 return (
-                                                    <tr key={itemcategory.id} className={itemcategory.temp_flash ? 'bg-success text-white':''}>
+                                                    <tr key={versioncode.id} className={versioncode.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            {itemcategory.name}
+                                                            {versioncode.name}
                                                         </td>
                                                         <td>
-                                                        {itemcategory.code}
+                                                        {versioncode.code}
+                                                        </td>
+                                                        <td>
+                                                        {versioncode.step}
                                                         </td>
                                                         <td>
                                                         <Form>
 
                                                              <Form.Check
-                                                                    checked={itemcategory.status}
+                                                                    checked={versioncode.status}
                                                                     type="switch"
-                                                                    id={`custom-switch${itemcategory.id}`}
-                                                                    label={itemcategory.status ? 'Enabled' : 'Disabled'}
-                                                                    className={itemcategory.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleItemCategory(itemcategory)}
+                                                                    id={`custom-switch${versioncode.id}`}
+                                                                    label={versioncode.status ? 'Enabled' : 'Disabled'}
+                                                                    className={versioncode.status ? 'text-success' : 'text-danger'}
+                                                                    onChange={()=> this.toggleVersionCode(versioncode)}
                                                                 />
 
 
                                                             </Form>
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(itemcategory.created_at)}
+                                                        {utils.formatDate(versioncode.created_at)}
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(itemcategory.updated_at)}
+                                                        {utils.formatDate(versioncode.updated_at)}
                                                         </td>
 
                                                         <td>
-                                                        <Dropdown key={itemcategory.id}>
+                                                        <Dropdown key={versioncode.id}>
                                                             <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
                                                             <Dropdown.Item onClick={()=> {
-                                                                this.editItemCategory(itemcategory);
+                                                                this.editVersionCode(versioncode);
                                                             }} className='border-bottom'>
                                                                 <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                             </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteItemCategory(itemcategory);}
+                                                            {/*  <Dropdown.Item className='text-danger' onClick={
+                                                                ()=>{this.deleteVersionCode(versioncode);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
+                                                            </Dropdown.Item>  */}
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 
@@ -696,7 +773,7 @@ export class ItemCategoriesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='7'>
+                                                    <td className='text-center' colSpan='8'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -709,6 +786,7 @@ export class ItemCategoriesComponent extends Component{
                                                 <th>#</th>
                                                 <th>Name</th>
                                                 <th>Code</th>
+                                                <th>Step</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
@@ -737,15 +815,17 @@ export class ItemCategoriesComponent extends Component{
 
     }
 
-createItemCategorySchema = yup.object().shape({
-        name: yup.string().required("Name is required"),
+createVersionCodeSchema = yup.object().shape({
+        name: yup.string().required("Vaersion name is required"),
         code: yup.string().required("Code is required"),
+        step: yup.string().required("Step is required"),
       });
 
 
-updateItemCategorySchema = yup.object().shape({
-        name: yup.string().required("Name is required"),
-        code: yup.string().required("Code is required"),
+updateVersionCodeSchema = yup.object().shape({
+    name: yup.string().required("Version name is required"),
+    code: yup.string().required("Code is required"),
+    step: yup.string().required("Step is required"),
         });
 
 }
@@ -753,4 +833,4 @@ updateItemCategorySchema = yup.object().shape({
 
 
 
-export default ItemCategoriesComponent;
+export default VersionCodesComponent

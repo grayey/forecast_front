@@ -23,6 +23,8 @@ import rolesRoutes from "./views/roles/rolesRoutes";
 import processingRoutes from "./views/processing/processing.routes";
 import itemCategoriesRoutes from "./views/itemcategories/itemCategoriesRoutes";
 import costItemRoutes from "./views/costitems/costitemsRoutes";
+import versionCodesRoutes from "./views/versioncodes/versionCodesRoutes";
+
 
 
 
@@ -52,6 +54,7 @@ const routes = [
       ...processingRoutes,
       ...itemCategoriesRoutes,
       ...costItemRoutes,
+      ...versionCodesRoutes,
       ...uiKitsRoutes,
       ...formsRoutes,
       ...widgetsRoute,

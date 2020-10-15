@@ -218,10 +218,11 @@ export class BudgetCyclesComponent extends Component{
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
-             setTimeout(()=>{
+             setTimeout(async ()=>{
                     updatedBudgetCycle.temp_flash = false
                     allBudgetCycles.splice(this.state.editedIndex, 1, updatedBudgetCycle)
-                    this.setState({ allBudgetCycles, isSaving, updateMsg })
+                    await this.setState({ allBudgetCycles, isSaving, updateMsg })
+                    this.filterYears();
                 }, 10000);
 
             }
@@ -255,6 +256,7 @@ export class BudgetCyclesComponent extends Component{
         }
 
         this.setState({ showEditModal, showCreateModal, showInstructionsModal })
+      
     }
 
 
@@ -933,6 +935,7 @@ export class BudgetCyclesComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Year</th>
+                                                  <th>Version</th>
                                                 <th>Instructions</th>
                                                 <th>USD Rate</th>
                                                 <th>Start Date</th>
@@ -954,6 +957,9 @@ export class BudgetCyclesComponent extends Component{
                                                         <td>
                                                             {budgetcycle?.year}
                                                         </td>
+                                                        <td>
+                                                          {budgetcycle?.active_version?.name} ({budgetcycle?.active_version?.code})
+                                                        </td>
                                                         <td class="text-center">
                                                           <a onClick={()=>this.viewInstructions(budgetcycle)}  className="text-primary long-view">View</a>
                                                         </td>
@@ -967,6 +973,7 @@ export class BudgetCyclesComponent extends Component{
                                                         <td>
                                                           {utils.formatDate(budgetcycle?.end_date)}
                                                         </td>
+
                                                         <td>
                                                         <Form>
 
@@ -1020,7 +1027,7 @@ export class BudgetCyclesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='10'>
+                                                    <td className='text-center' colSpan='11'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -1032,6 +1039,7 @@ export class BudgetCyclesComponent extends Component{
                                             <tr>
                                               <th>#</th>
                                               <th>Year</th>
+                                                <th>Version</th>
                                               <th>Description</th>
                                               <th>USD Rate</th>
                                               <th>Start Date</th>
