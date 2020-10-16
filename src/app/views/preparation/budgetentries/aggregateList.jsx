@@ -2,7 +2,7 @@ import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
-import ProcessingService from "../../../services/processing.service";
+import PreparationService from "../../../services/preparation.service";
 import AppMainService from "../../../services/appMainService";
 import * as utils from "@utils";
 import { Formik } from "formik";
@@ -22,11 +22,11 @@ import LaddaButton, {
     CONTRACT,
   } from "react-ladda";
 
-export class BudgetCyclesComponent extends Component{
+export class DepartmentAggregatesComponent extends Component{
 
     state = {
         editedIndex:0,
-        allBudgetCycles:[],
+        allDepartmentAggregates:[],
         showEditModal:false,
         showCreateModal:false,
         showInstructionsModal:false,
@@ -35,16 +35,16 @@ export class BudgetCyclesComponent extends Component{
         firstVersion:{},
         saveMsg:'Save',
         updateMsg:'Update',
-        editedBudgetCycle: {},
-        viewedBudgetCycle:{},
-        createBudgetCycleForm: {
+        editedDepartmentAggregate: {},
+        viewedDepartmentAggregate:{},
+        createDepartmentAggregateForm: {
             year: "",
             start_date: "",
             end_date: "",
             currency_conversion_rate: "",
             instructions: "",
           },
-          updateBudgetCycleForm: {
+          updateDepartmentAggregateForm: {
             year: "",
             start_date: "",
             end_date: "",
@@ -54,18 +54,18 @@ export class BudgetCyclesComponent extends Component{
           availableYears:[]
 
     }
-    processingService;
+    preparationService;
 
 
 
     constructor(props){
         super(props)
-        this.processingService = new ProcessingService();
+        this.preparationService = new PreparationService();
         this.appMainService = new AppMainService();
     }
 
     componentDidMount(){
-         this.getAllBudgetCycles();
+         this.getAllDepartmentAggregates();
          this.getAllVersionCodes();
     }
 
@@ -77,23 +77,23 @@ export class BudgetCyclesComponent extends Component{
      */
 
     handleChange = (event, form='create') => {
-        const {createBudgetCycleForm, updateBudgetCycleForm} = this.state
+        const {createDepartmentAggregateForm, updateDepartmentAggregateForm} = this.state
         if(form=='create'){
-            createBudgetCycleForm[event.target.name] = event.target.value;
+            createDepartmentAggregateForm[event.target.name] = event.target.value;
         }else if(form=='edit'){
-            updateBudgetCycleForm[event.target.name] = event.target.value;
+            updateDepartmentAggregateForm[event.target.name] = event.target.value;
         }
-        this.setState({ createBudgetCycleForm, updateBudgetCycleForm });
+        this.setState({ createDepartmentAggregateForm, updateDepartmentAggregateForm });
     }
 
     handleRichEditorChange = (html, form='create') => {
-      const {createBudgetCycleForm, updateBudgetCycleForm} = this.state
+      const {createDepartmentAggregateForm, updateDepartmentAggregateForm} = this.state
       if(form=='create'){
-        createBudgetCycleForm['instructions'] = html;
+        createDepartmentAggregateForm['instructions'] = html;
       }else{
-        updateBudgetCycleForm['instructions'] = html;
+        updateDepartmentAggregateForm['instructions'] = html;
       }
-      this.setState({ createBudgetCycleForm, updateBudgetCycleForm });
+      this.setState({ createDepartmentAggregateForm, updateDepartmentAggregateForm });
 
     }
 
@@ -117,18 +117,16 @@ export class BudgetCyclesComponent extends Component{
 
 
     /**
-     * This method lists all budgetcycles
+     * This method lists all departmentaggregates
      */
-     getAllBudgetCycles = async ()=>{
+     getAllDepartmentAggregates = async ()=>{
          let isFetching = false;
 
-        this.processingService.getAllBudgetCycles().then(
-            async (budgetcyclesResponse)=>{
-              const allBudgetCycles = budgetcyclesResponse;
-              await  this.setState({ allBudgetCycles, isFetching }); // so allBudgetCycles is set
-              this.filterYears();
+        this.preparationService.getAllDepartmentAggregates().then(
+            async (departmentaggregatesResponse)=>{
+              const allDepartmentAggregates = departmentaggregatesResponse;
+              await  this.setState({ allDepartmentAggregates, isFetching }); // so allDepartmentAggregates is set
 
-                console.log('BudgetCycles response', budgetcyclesResponse)
             }
         ).catch((error)=>{
             this.setState({isFetching})
@@ -162,32 +160,32 @@ export class BudgetCyclesComponent extends Component{
      */
 
     filterYears = async ()=>{
-      const { allBudgetCycles } = this.state;
+      const { allDepartmentAggregates } = this.state;
       const futureYears = this.getFutureYears(moment().year());
-      const budgetYears = allBudgetCycles.map(budgetCycle => +budgetCycle.year);
+      const budgetYears = allDepartmentAggregates.map(departmentAggregate => +departmentAggregate.year);
       const availableYears = futureYears.filter(yr => !budgetYears.includes(+yr)).sort();
       this.setState({availableYears});
     }
 
     /**
-     * This method creates a new budgetcycle
+     * This method creates a new departmentaggregate
      */
-    createBudgetCycle = async ()=>{
-        const {createBudgetCycleForm, allBudgetCycles, firstVersion} = this.state;
+    createDepartmentAggregate = async ()=>{
+        const {createDepartmentAggregateForm, allDepartmentAggregates, firstVersion} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
-        this.processingService.createBudgetCycle(createBudgetCycleForm).then(
-            async (budgetcycleData) => {
+        this.preparationService.createDepartmentAggregate(createDepartmentAggregateForm).then(
+            async (departmentaggregateData) => {
                 isSaving = false;
                 saveMsg = 'Save';
-                budgetcycleData['active_version'] = firstVersion //making sure
-                allBudgetCycles.unshift(budgetcycleData)
-              await this.setState({ allBudgetCycles, isSaving, saveMsg })
-                this.filterYears();
+                departmentaggregateData['active_version'] = firstVersion //making sure
+                allDepartmentAggregates.unshift(departmentaggregateData)
+              await this.setState({ allDepartmentAggregates, isSaving, saveMsg })
+
                 const successNotification = {
                     type:'success',
-                    msg:`${budgetcycleData.year} successfully created!`
+                    msg:`${departmentaggregateData.year} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -208,41 +206,40 @@ export class BudgetCyclesComponent extends Component{
     }
 
 
-    viewInstructions = (viewedBudgetCycle) => {
-      this.setState({viewedBudgetCycle});
+    viewInstructions = (viewedDepartmentAggregate) => {
+      this.setState({viewedDepartmentAggregate});
       this.toggleModal('instructions');
 
     }
 
 
     /**
-     * This method updates a new budgetcycle
+     * This method updates a new departmentaggregate
      */
-    updateBudgetCycle = async ()=>{
+    updateDepartmentAggregate = async ()=>{
 
-        let {updateBudgetCycleForm, allBudgetCycles, editedBudgetCycle} = this.state;
+        let {updateDepartmentAggregateForm, allDepartmentAggregates, editedDepartmentAggregate} = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
         this.setState({isSaving, updateMsg})
-        this.processingService.updateBudgetCycle(updateBudgetCycleForm, editedBudgetCycle.id).then(
-            (updatedBudgetCycle)=>{
-                updatedBudgetCycle.temp_flash = true
+        this.preparationService.updateDepartmentAggregate(updateDepartmentAggregateForm, editedDepartmentAggregate.id).then(
+            (updatedDepartmentAggregate)=>{
+                updatedDepartmentAggregate.temp_flash = true
                 isSaving = false;
                 updateMsg = 'Update';
-                allBudgetCycles.splice(this.state.editedIndex, 1, updatedBudgetCycle)
-                this.setState({ allBudgetCycles, isSaving, updateMsg })
+                allDepartmentAggregates.splice(this.state.editedIndex, 1, updatedDepartmentAggregate)
+                this.setState({ allDepartmentAggregates, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`Budget cycle ${updatedBudgetCycle.year} successfully updated!`
+                    msg:`Budget cycle ${updatedDepartmentAggregate.year} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
              setTimeout(async ()=>{
-                    updatedBudgetCycle.temp_flash = false
-                    allBudgetCycles.splice(this.state.editedIndex, 1, updatedBudgetCycle)
-                    await this.setState({ allBudgetCycles, isSaving, updateMsg })
-                    this.filterYears();
+                    updatedDepartmentAggregate.temp_flash = false
+                    allDepartmentAggregates.splice(this.state.editedIndex, 1, updatedDepartmentAggregate)
+                    await this.setState({ allDepartmentAggregates, isSaving, updateMsg })
                 }, 10000);
 
             }
@@ -283,35 +280,35 @@ export class BudgetCyclesComponent extends Component{
 
     /**
      *
-     * This method sets the budgetcycle to be edited
+     * This method sets the departmentaggregate to be edited
      *  and opens the modal for edit
      *
      */
-    editBudgetCycle = (editedBudgetCycle) => {
-        const updateBudgetCycleForm = {...editedBudgetCycle}
+    editDepartmentAggregate = (editedDepartmentAggregate) => {
+        const updateDepartmentAggregateForm = {...editedDepartmentAggregate}
         const {availableYears} = this.state;
         //
-        availableYears.push(+editedBudgetCycle.year);
+        availableYears.push(+editedDepartmentAggregate.year);
         availableYears.sort();
         //
-        const editedIndex = this.state.allBudgetCycles.findIndex(budgetcycle => editedBudgetCycle.id == budgetcycle.id)
-        this.setState({editedBudgetCycle, editedIndex, updateBudgetCycleForm, availableYears});
+        const editedIndex = this.state.allDepartmentAggregates.findIndex(departmentaggregate => editedDepartmentAggregate.id == departmentaggregate.id)
+        this.setState({editedDepartmentAggregate, editedIndex, updateDepartmentAggregateForm, availableYears});
         this.toggleModal('edit')
     }
 
 
     /**
      *
-     * @param {*} budgetcycle
-     * This method toggles a budgetcycle's status
+     * @param {*} departmentaggregate
+     * This method toggles a departmentaggregate's status
      */
-    toggleBudgetCycle = (budgetcycle)=>{
-        const toggleMsg = budgetcycle.is_current? "Disable":"Enable";
-        const gL = budgetcycle.is_current? ".":", and notifications will be sent out";
+    toggleDepartmentAggregate = (departmentaggregate)=>{
+        const toggleMsg = departmentaggregate.is_current? "Disable":"Enable";
+        const gL = departmentaggregate.is_current? ".":", and notifications will be sent out";
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${budgetcycle.year}</b>?</small>`,
+            title: `<small>${toggleMsg}&nbsp;<b>${departmentaggregate.year}</b>?</small>`,
             text: `Capture will be ${toggleMsg}d${gL}`,
             icon: "warning",
             type: "question",
@@ -323,17 +320,17 @@ export class BudgetCyclesComponent extends Component{
           })
           .then(result => {
             if (result.value) {
-                let { allBudgetCycles } = this.state
-                const toggleIndex = allBudgetCycles.findIndex(r => r.id == budgetcycle.id)
-                // budgetcycle.status = !budgetcycle.status;
+                let { allDepartmentAggregates } = this.state
+                const toggleIndex = allDepartmentAggregates.findIndex(r => r.id == departmentaggregate.id)
+                // departmentaggregate.status = !departmentaggregate.status;
 
-              this.processingService.toggleBudgetCycle(budgetcycle).then(
-                (toggledBudgetCycle)=>{
-                    allBudgetCycles.splice(toggleIndex, 1, toggledBudgetCycle)
-                    this.setState({ allBudgetCycles })
+              this.preparationService.toggleDepartmentAggregate(departmentaggregate).then(
+                (toggledDepartmentAggregate)=>{
+                    allDepartmentAggregates.splice(toggleIndex, 1, toggledDepartmentAggregate)
+                    this.setState({ allDepartmentAggregates })
                     const successNotification = {
                         type:'success',
-                        msg:`Budget cycle ${toggledBudgetCycle.year} successfully ${toggleMsg}d!`
+                        msg:`Budget cycle ${toggledDepartmentAggregate.year} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }
@@ -351,13 +348,13 @@ export class BudgetCyclesComponent extends Component{
 
     /**
      *
-     * @param {*} budgetcycle
-     * This method deletes a budgetcycle
+     * @param {*} departmentaggregate
+     * This method deletes a departmentaggregate
      *
      */
-    deleteBudgetCycle = (budgetcycle)=>{
+    deleteDepartmentAggregate = (departmentaggregate)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${budgetcycle.year}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${departmentaggregate.year}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -369,15 +366,14 @@ export class BudgetCyclesComponent extends Component{
               })
               .then(result => {
                 if (result.value) {
-                let { allBudgetCycles } = this.state
-                  this.processingService.deleteBudgetCycle(budgetcycle).then(
-                    async (deletedBudgetCycle) => {
-                        allBudgetCycles = allBudgetCycles.filter(r=> r.id !== budgetcycle.id)
-                      await this.setState({ allBudgetCycles });
-                      this.filterYears();
+                let { allDepartmentAggregates } = this.state
+                  this.preparationService.deleteDepartmentAggregate(departmentaggregate).then(
+                    async (deletedDepartmentAggregate) => {
+                        allDepartmentAggregates = allDepartmentAggregates.filter(r=> r.id !== departmentaggregate.id)
+                      await this.setState({ allDepartmentAggregates });
                         const successNotification = {
                             type:'success',
-                            msg:`Budget cycle ${budgetcycle.year} successfully deleted!`
+                            msg:`Budget cycle ${departmentaggregate.year} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -398,11 +394,11 @@ export class BudgetCyclesComponent extends Component{
      * @param {*} modalName
      */
     resetForm = ()=> {
-        const createBudgetCycleForm = {
+        const createDepartmentAggregateForm = {
             name: "",
             description: "",
           }
-          this.setState({createBudgetCycleForm})
+          this.setState({createDepartmentAggregateForm})
 
     }
 
@@ -421,13 +417,13 @@ export class BudgetCyclesComponent extends Component{
 
                                       <Modal.Title>
                                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
-                                        Instructions for <b>{this.state?.viewedBudgetCycle?.year}</b>
+                                        Instructions for <b>{this.state?.viewedDepartmentAggregate?.year}</b>
                                     </Modal.Title>
                                       </Modal.Header>
 
                                                <Modal.Body>
 
-                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedBudgetCycle.instructions}} />
+                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedDepartmentAggregate.instructions}} />
 
                                                </Modal.Body>
 
@@ -465,14 +461,14 @@ export class BudgetCyclesComponent extends Component{
                                                       <Modal.Title>
                                                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
 
-                                                        Update budget cycle <b>{this.state.editedBudgetCycle.year}</b>
+                                                        Update budget cycle <b>{this.state.editedDepartmentAggregate.year}</b>
                                                     </Modal.Title>
                                                       </Modal.Header>
 
                                                       <Formik
-                                                      initialValues={this.state.updateBudgetCycleForm}
-                                                      validationSchema={this.updateBudgetCycleSchema}
-                                                      onSubmit={this.updateBudgetCycle}
+                                                      initialValues={this.state.updateDepartmentAggregateForm}
+                                                      validationSchema={this.updateDepartmentAggregateSchema}
+                                                      onSubmit={this.updateDepartmentAggregate}
                                                       >
                                                       {({
                                                           values,
@@ -502,13 +498,13 @@ export class BudgetCyclesComponent extends Component{
                                                                           errors.year && touched.year
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="budgetcycle_name">
+                                                                      <label htmlFor="departmentaggregate_name">
                                                                           <b>Year<span className='text-danger'>*</span></b>
                                                                       </label>
 
                                                                     <select
                                                                       className="form-control"
-                                                                      id="budgetcycle_name"
+                                                                      id="departmentaggregate_name"
                                                                       placeholder=""
                                                                       name="year"
                                                                       value={values.year}
@@ -537,7 +533,7 @@ export class BudgetCyclesComponent extends Component{
                                                                           errors.currency_conversion_rate && touched.currency_conversion_rate
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="budgetcycle_name">
+                                                                      <label htmlFor="departmentaggregate_name">
                                                                           <b>[Currency] Rate<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -567,7 +563,7 @@ export class BudgetCyclesComponent extends Component{
                                                                           errors.start_date && touched.start_date
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="budgetcycle_name">
+                                                                      <label htmlFor="departmentaggregate_name">
                                                                           <b>Start Date<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -596,7 +592,7 @@ export class BudgetCyclesComponent extends Component{
                                                                           errors.end_date && touched.end_date
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="budgetcycle_name">
+                                                                      <label htmlFor="departmentaggregate_name">
                                                                           <b>End Date<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -626,7 +622,7 @@ export class BudgetCyclesComponent extends Component{
                                                                           touched.instructions && errors.instructions
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="edit_budgetcycle_description">
+                                                                      <label htmlFor="edit_departmentaggregate_description">
                                                                            <b>Instructions<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -672,7 +668,7 @@ export class BudgetCyclesComponent extends Component{
                                                                       </LaddaButton>
 
                                                                       <LaddaButton
-                                                                          className={`btn btn-${utils.isValid(this.updateBudgetCycleSchema, this.state.editBudgetCycleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                                                          className={`btn btn-${utils.isValid(this.updateDepartmentAggregateSchema, this.state.editDepartmentAggregateForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                                                           loading={this.state.isSaving}
                                                                           progress={0.5}
                                                                           type='submit'
@@ -704,9 +700,9 @@ export class BudgetCyclesComponent extends Component{
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.createBudgetCycleForm}
-                    validationSchema={this.createBudgetCycleSchema}
-                    onSubmit={this.createBudgetCycle}
+                    initialValues={this.state.createDepartmentAggregateForm}
+                    validationSchema={this.createDepartmentAggregateSchema}
+                    onSubmit={this.createDepartmentAggregate}
                     >
                     {({
                         values,
@@ -736,13 +732,13 @@ export class BudgetCyclesComponent extends Component{
                                         errors.year && touched.year
                                     })}
                                 >
-                                    <label htmlFor="budgetcycle_name">
+                                    <label htmlFor="departmentaggregate_name">
                                         <b>Year<span className='text-danger'>*</span></b>
                                     </label>
 
                                   <select
                                     className="form-control"
-                                    id="budgetcycle_name"
+                                    id="departmentaggregate_name"
                                     placeholder=""
                                     name="year"
                                     value={values.year}
@@ -771,7 +767,7 @@ export class BudgetCyclesComponent extends Component{
                                         errors.currency_conversion_rate && touched.currency_conversion_rate
                                     })}
                                 >
-                                    <label htmlFor="budgetcycle_name">
+                                    <label htmlFor="departmentaggregate_name">
                                         <b>[Currency] Rate<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -801,7 +797,7 @@ export class BudgetCyclesComponent extends Component{
                                         errors.start_date && touched.start_date
                                     })}
                                 >
-                                    <label htmlFor="budgetcycle_name">
+                                    <label htmlFor="departmentaggregate_name">
                                         <b>Start Date<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -830,7 +826,7 @@ export class BudgetCyclesComponent extends Component{
                                         errors.end_date && touched.end_date
                                     })}
                                 >
-                                    <label htmlFor="budgetcycle_name">
+                                    <label htmlFor="departmentaggregate_name">
                                         <b>End Date<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -860,7 +856,7 @@ export class BudgetCyclesComponent extends Component{
                                         touched.instructions && errors.instructions
                                     })}
                                 >
-                                    <label htmlFor="create_budgetcycle_description">
+                                    <label htmlFor="create_departmentaggregate_description">
                                          <b>Instructions<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -906,7 +902,7 @@ export class BudgetCyclesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.createBudgetCycleSchema, this.state.createBudgetCycleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -927,11 +923,11 @@ export class BudgetCyclesComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Cycle</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Entries</Button>
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>Budget Cycles</h1>
+                    <h1>Budget Entries</h1>
                     <ul>
                         <li><a href="#">List</a></li>
                         <li>View</li>
@@ -944,8 +940,8 @@ export class BudgetCyclesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">Budget Cycles</h4>
-                                <p>List of budget cycles.</p>
+                                <h4 className="card-title mb-3">Budget Entries</h4>
+                                <p>List of budget entries.</p>
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
@@ -968,67 +964,67 @@ export class BudgetCyclesComponent extends Component{
                                         </thead>
                                         <tbody>
                                         {
-                                          this.state.allBudgetCycles.length ?  this.state.allBudgetCycles.map( (budgetcycle, index)=>{
+                                          this.state.allDepartmentAggregates.length ?  this.state.allDepartmentAggregates.map( (departmentaggregate, index)=>{
                                                 return (
-                                                    <tr key={budgetcycle.id} className={budgetcycle.temp_flash ? 'bg-success text-white':''}>
+                                                    <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            {budgetcycle?.year}
+                                                            {departmentaggregate?.year}
                                                         </td>
                                                         <td>
-                                                          {budgetcycle?.active_version?.name} ({budgetcycle?.active_version?.code})
+                                                          {departmentaggregate?.active_version?.name} ({departmentaggregate?.active_version?.code})
                                                         </td>
                                                         <td class="text-center">
-                                                          <a onClick={()=>this.viewInstructions(budgetcycle)}  className="text-primary long-view">View</a>
+                                                          <a onClick={()=>this.viewInstructions(departmentaggregate)}  className="text-primary long-view">View</a>
                                                         </td>
                                                         <td>
-                                                          {budgetcycle?.currency_conversion_rate}
+                                                          {departmentaggregate?.currency_conversion_rate}
                                                         </td>
                                                         <td>
-                                                          {utils.formatDate(budgetcycle?.start_date)}
+                                                          {utils.formatDate(departmentaggregate?.start_date)}
 
                                                         </td>
                                                         <td>
-                                                          {utils.formatDate(budgetcycle?.end_date)}
+                                                          {utils.formatDate(departmentaggregate?.end_date)}
                                                         </td>
 
                                                         <td>
                                                         <Form>
 
                                                              <Form.Check
-                                                                    checked={budgetcycle.is_current}
+                                                                    checked={departmentaggregate.is_current}
                                                                     type="switch"
-                                                                    id={`custom-switch${budgetcycle.id}`}
-                                                                    label={budgetcycle.is_current ? 'Active' : 'Inactive'}
-                                                                    className={budgetcycle.is_current ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleBudgetCycle(budgetcycle)}
+                                                                    id={`custom-switch${departmentaggregate.id}`}
+                                                                    label={departmentaggregate.is_current ? 'Active' : 'Inactive'}
+                                                                    className={departmentaggregate.is_current ? 'text-success' : 'text-danger'}
+                                                                    onChange={()=> this.toggleDepartmentAggregate(departmentaggregate)}
                                                                 />
 
 
                                                             </Form>
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(budgetcycle.created_at)}
+                                                        {utils.formatDate(departmentaggregate.created_at)}
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(budgetcycle.updated_at)}
+                                                        {utils.formatDate(departmentaggregate.updated_at)}
                                                         </td>
 
                                                         <td>
-                                                        <Dropdown key={budgetcycle.id}>
+                                                        <Dropdown key={departmentaggregate.id}>
                                                             <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
                                                             <Dropdown.Item onClick={()=> {
-                                                                this.editBudgetCycle(budgetcycle);
+                                                                this.editDepartmentAggregate(departmentaggregate);
                                                             }} className='border-bottom'>
                                                                 <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                             </Dropdown.Item>
                                                             <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteBudgetCycle(budgetcycle);}
+                                                                ()=>{this.deleteDepartmentAggregate(departmentaggregate);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
                                                             </Dropdown.Item>
@@ -1092,7 +1088,7 @@ export class BudgetCyclesComponent extends Component{
 
     }
 
-createBudgetCycleSchema = yup.object().shape({
+createDepartmentAggregateSchema = yup.object().shape({
         year: yup.string().required("Year is required"),
         instructions: yup.string().required("instructions is required"),
         start_date: yup.string().required("Start date is required"),
@@ -1101,7 +1097,7 @@ createBudgetCycleSchema = yup.object().shape({
       });
 
 
-updateBudgetCycleSchema = yup.object().shape({
+updateDepartmentAggregateSchema = yup.object().shape({
           year: yup.string().required("Year is required"),
           instructions: yup.string().required("instructions is required"),
           start_date: yup.string().required("Start date is required"),
@@ -1114,4 +1110,4 @@ updateBudgetCycleSchema = yup.object().shape({
 
 
 
-export default BudgetCyclesComponent
+export default DepartmentAggregatesComponent

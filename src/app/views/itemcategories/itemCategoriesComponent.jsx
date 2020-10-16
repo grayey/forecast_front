@@ -95,9 +95,9 @@ export class ItemCategoriesComponent extends Component{
             this.setState({isFetching})
             const errorNotification = {
                 type:'error',
-                msg:utils.processErrors(error)
             }
             new AppNotification(errorNotification)
+            msg:utils.processErrors(error)
             console.log('Error', error)
         })
     }

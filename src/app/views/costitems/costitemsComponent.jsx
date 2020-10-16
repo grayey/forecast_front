@@ -108,7 +108,7 @@ export class CostItemsComponent extends Component{
      * This method creates a new costitem
      */
     createCostItem = async ()=>{
-        const {createCostItemForm, allCostItems} = this.state;
+        const {createCostItemForm, allCostItems, allItemCategories} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
@@ -116,6 +116,7 @@ export class CostItemsComponent extends Component{
             (costitemData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
+                costitemData['category'] = allItemCategories.find(c => c.id == costitemData.category)
                 allCostItems.unshift(costitemData)
                 this.setState({ allCostItems, isSaving, saveMsg })
                 const successNotification = {
@@ -722,7 +723,7 @@ export class CostItemsComponent extends Component{
                                                 <th>#</th>
                                                 <th>Name</th>
                                                 <th>Code</th>
-                                                <th>**Category</th>
+                                                <th>Category</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
@@ -744,7 +745,7 @@ export class CostItemsComponent extends Component{
                                                         {costitem.code}
                                                         </td>
                                                         <td>
-                                                        {costitem.category}
+                                                        {costitem?.category?.name} ({costitem?.category?.code})
                                                         </td>
                                                         <td>
                                                         <Form>

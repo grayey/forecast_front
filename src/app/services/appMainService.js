@@ -305,6 +305,18 @@ export default class AppMainService extends Component {
        }
 
 
+         /**
+          * This method returns a list of all costitems by category
+          */
+         async getCostItemsByCategory(categoryId){
+            const url = `costitems/${categoryId}/by-category`;
+            return await apiService.get(url);
+        }
+
+
+
+
+
        /**
         *
         * @param {*} costitemData

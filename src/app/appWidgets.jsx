@@ -216,8 +216,8 @@ export const BulkTemplateDownload = (props) =>{
       <div className="btn-group ml-5">
         <a className='d-none' id="download_link" href={downloadUrl} download></a>
           <Dropdown>
-            <Dropdown.Toggle variant="warning" className="text-white">
-              Download Bulk Template
+            <Dropdown.Toggle variant="info_custom" className="text-white">
+              Download bulk template
             </Dropdown.Toggle>
             <Dropdown.Menu>
               <Dropdown.Item onClick={()=>downloadTemplate('Excel')}><FaFileExcel/> Excel</Dropdown.Item>
@@ -225,7 +225,7 @@ export const BulkTemplateDownload = (props) =>{
               <Dropdown.Item onClick={()=>downloadTemplate('Csv')}><FaFileCsv/> CSV</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-        <button className="btn btn-success" onClick={toggleModal}>Upload Bulk Template <FaUpload/></button>
+        <button className="btn btn-success" onClick={toggleModal}>Upload bulk records <FaUpload/></button>
       </div>
       </>
     )
