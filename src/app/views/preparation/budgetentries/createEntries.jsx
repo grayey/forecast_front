@@ -13,6 +13,7 @@ import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes } from "react-icons/fa";
 import Select from 'react-select';
+import { Link, Redirect } from "react-router-dom";
 
 
 import LaddaButton, {
@@ -30,6 +31,7 @@ export class BudgetEntriesComponent extends Component{
   preparationService;
 
     state = {
+        navigate:false,
         editedIndex:0,
         allBudgetEntries:[],
         allItemCategories:[],
@@ -148,8 +150,6 @@ export class BudgetEntriesComponent extends Component{
           selectedCostitem = eventValue;
 
         }
-        console.log(event, fieldName)
-
         this.setState({ createDepartmentAggregateForm, selectedCategory, selectedCostitem });
 
     }
@@ -522,27 +522,46 @@ export class BudgetEntriesComponent extends Component{
     /**
      * This method creates a new departmentaggregate
      */
-    createDepartmentAggregate = async ()=>{
-        const {createDepartmentAggregateForm, allBudgetEntries, firstVersion} = this.state;
+    saveBudgetEntries = async ()=>{
+        let { allBudgetEntries, totals, navigate} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
-        this.preparationService.createDepartmentAggregate(createDepartmentAggregateForm).then(
+        const aggregateData = {
+          department:1,
+          budgetcycle:1,
+          capturer:1,
+          total_functional_naira:totals.in_naira,
+          total_functional_currency:totals.in_currency,
+          total_naira_portion:totals.naira_part,
+          total_currency_portion:totals.currency_part,
+          entries:[]
+        }
+        const allEntries = [...allBudgetEntries].map((be)=>{
+          delete be.category;
+          delete be.totals;
+          const entry = {
+            ...be,
+            costitem:be.costitem.id,
+          }
+          return entry;
+        });
+        aggregateData['entries'] = allEntries;
+        console.log(aggregateData)
+
+        this.preparationService.createDepartmentAggregate(aggregateData).then(
             async (departmentaggregateData) => {
                 isSaving = false;
                 saveMsg = 'Save';
-                departmentaggregateData['active_version'] = firstVersion //making sure
-                allBudgetEntries.unshift(departmentaggregateData)
-              await this.setState({ allBudgetEntries, isSaving, saveMsg })
-
                 const successNotification = {
                     type:'success',
                     msg:`${departmentaggregateData.year} successfully created!`
                 }
                 new AppNotification(successNotification)
-                this.toggleModal();
-                this.resetForm();
+                navigate = true;
+                await this.setState({ navigate })
 
+                // window.location.reload();
             }
         ).catch(
             (error)=>{
@@ -771,7 +790,9 @@ export class BudgetEntriesComponent extends Component{
 
     render(){
 
-        return (
+      const { navigate } = this.state;
+
+        return navigate ? <Redirect to="/preparation/budget-entries"/> : (
 
             <>
                 <div className="specific">
@@ -988,6 +1009,7 @@ export class BudgetEntriesComponent extends Component{
                                    onChange={(event)=>this.handleMultiSelectChange(event,'category')}
                                    options={this.state.allItemCategories}
                                    placeholder="Search categories"
+                                   noOptionsMessage ={ () => "No categories" }
 
                                />
 
@@ -1016,6 +1038,8 @@ export class BudgetEntriesComponent extends Component{
                                      onChange={(event)=>this.handleMultiSelectChange(event,'costitem')}
                                      options={this.state.allCostItems}
                                      placeholder="Search cost items"
+                                     noOptionsMessage={ () => "No cost items" }
+
                                  />
 
                                 <div className="valid-feedback"></div>
@@ -1285,8 +1309,6 @@ export class BudgetEntriesComponent extends Component{
 
                         <div className=" ml-4 mt-5">
 
-
-
                             <LaddaButton
                                 className={`btn btn-sm btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'secondary_custom'} border-0 mr-2 mb-2 position-relative`}
                                 loading={this.state.isSaving}
@@ -1301,17 +1323,7 @@ export class BudgetEntriesComponent extends Component{
 
                       </div>
 
-
-
-
                     </div>
-
-
-
-
-
-
-
                   </div>
 
                 </div>
@@ -1507,7 +1519,7 @@ export class BudgetEntriesComponent extends Component{
                                             (
                                                 <tr>
                                                     <td className='text-center' colSpan='13'>
-                                                    <FetchingRecords isFetching={this.state.isFetching}/>
+                                                    <FetchingRecords emptyMsg="No entries added." isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
                                             )
@@ -1552,7 +1564,8 @@ export class BudgetEntriesComponent extends Component{
                                                   className={`btn btn-${this.state.allBudgetEntries.length > 0 ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                                   loading={this.state.isSaving}
                                                   progress={0.5}
-                                                  type='submit'
+                                                  type='button'
+                                                  onClick={this.saveBudgetEntries}
                                                   data-style={EXPAND_RIGHT}
                                                   disabled={this.state.allBudgetEntries.length == 0}
                                                   >
