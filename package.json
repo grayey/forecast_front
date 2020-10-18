@@ -58,6 +58,7 @@
     "react-router-config": "^5.0.1",
     "react-router-dom": "^5.0.0",
     "react-scripts": "^3.3.0",
+    "react-select": "^3.1.0",
     "react-step-wizard": "^5.3.0",
     "react-tag-input": "^6.4.1",
     "react-vis": "^1.11.7",

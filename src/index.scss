@@ -27,3 +27,68 @@ button:disabled{
   // align-self: flex-start;
   // display: none;
 }
+
+tr.line_entries th,td{
+font-size: 12px;
+padding-bottom: 0 !important;
+}
+
+.line_entries_footer{
+  border-top: 2px black solid;
+  border-bottom: 2px black solid
+}
+
+.entries_footer{
+  // border-bottom: 1px black solid !important;
+
+}
+
+.dash{
+  border-top:1px solid black;
+  margin-top:20px
+}
+.dash-2{
+  border-top:0.5px solid black;
+  border-bottom:0.5px solid black;
+  height:2px
+}
+.line_edit{
+  border-top: 2px solid rgb(23,162,184) !important;
+}
+.form_sticky{
+  z-index: 400;
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+}
+.layout-sidebar-large .main-header .logo img {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+    display: block;
+    z-index: 500
+}
+
+.layout-sidebar-large .sidebar-left-secondary.open {
+    left: 120px;
+    z-index: 450;
+    width: 220px;
+    padding: 0.75rem 0;
+    transition: all 0.24s ease-in-out;
+    background: #fff;
+}
+
+.layout-sidebar-large .sidebar-left-secondary {
+    left: 120px;
+    z-index: 455;
+    width: 220px;
+    padding: 0.75rem 0;
+    transition: all 0.24s ease-in-out;
+    background: #fff;
+}
+
+
+.css-9gakcf-option{ // forces the dropdown list options to be visible
+  background-color: white !important;
+  color: black !important;
+}

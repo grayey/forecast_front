@@ -165,7 +165,7 @@ export function initCodeViewer() {
 export function formatDate(date){
 
   return moment(date).format('Do MMM, YYYY')
-    
+
 }
 
 export function processErrors(error){
@@ -184,12 +184,17 @@ export function processErrors(error){
   }else{
     errorMessage = 'Server has gone away!. Please try again in a bit.'
   }
-  
+
   return errorMessage;
 
 }
 
+export function formatNumber(numberValue, toDecimal=true, no_places = 2){
+  let val = numberValue || 0;
+  let stringValue = toDecimal ? parseFloat(val).toFixed(no_places) : val;
+  return stringValue.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+}
+
 export function isValid(schema,initialValues){
     return schema.isValidSync(initialValues);
- 
-} 
+}
