@@ -191,10 +191,10 @@ export function processErrors(error){
 
 export function formatNumber(numberValue, toDecimal=true, no_places = 2){
   let val = numberValue || 0;
-  let stringValue = toDecimal ? parseFloat(val).toFixed(no_places) : val;
+  let stringValue = toDecimal ? parseFloat(val).toFixed(no_places) : val.toString();
   return stringValue.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
-}
 
+}
 export function isValid(schema,initialValues){
     return schema.isValidSync(initialValues);
 }

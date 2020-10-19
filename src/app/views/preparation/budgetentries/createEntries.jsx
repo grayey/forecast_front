@@ -115,7 +115,7 @@ export class BudgetEntriesComponent extends Component{
     componentDidMount(){
       if(this.props.updateEntries){
         this.getAllBudgetEntriesByDepartmentSlug();
-      
+
       }
          // this.getAllVersionCodes();
          this.getAllItemCategories();
@@ -233,6 +233,20 @@ export class BudgetEntriesComponent extends Component{
         toggleFields.DOLLAR = eventValue == 'DOLLAR';
         this.reCalculateCurrencyPortions();
         this.setState({ toggleFields });
+  }
+
+
+  formatEntry = (entry) =>{
+    const {costitem } = entry;
+    const { category } = costitem;
+    delete costitem.category;
+    const clean_entry = {
+      costitem,
+      category,
+      ...entry
+    }
+
+    return clean_entry;
   }
 
   /**
@@ -541,12 +555,20 @@ export class BudgetEntriesComponent extends Component{
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
          let isFetching = true;
          const slug = this.props.querySlug;
+         let { totals } = this.state
         this.preparationService.getAllBudgetEntriesByDepartmentSlug(slug).then(
             async (budgetentriesResponse)=>{
                isFetching = false;
 
-              const allBudgetEntries = budgetentriesResponse;
-              await  this.setState({ allBudgetEntries, isFetching }); // so allBudgetEntries is set
+              const allBudgetEntries = budgetentriesResponse.map((entry)=>{
+                totals.naira_part += entry.naira_portion
+                totals.currency_part += entry.currency_portion
+                totals.in_naira += entry.total_naira;
+                totals.in_currency += entry.total_currency;
+                return this.formatEntry(entry);
+              });
+              console.log(allBudgetEntries, "AKKSLLS")
+              await  this.setState({ allBudgetEntries, isFetching, totals }); // so allBudgetEntries is set
 
             }
         ).catch((error)=>{
@@ -1499,9 +1521,17 @@ export class BudgetEntriesComponent extends Component{
                                                <th className="text-right">
                                                  Total in USD ($)
                                                </th>
-                                               <th className="text-rightx">
-                                                 Action
-                                               </th>
+
+
+                                               {
+                                                  this.props.updateEntries && viewOrEditSelections.is_view ? null
+                                                 : (
+                                                   <th className="text-rightx">
+                                                     Action
+                                                   </th>
+                                                 )
+                                               }
+
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1550,22 +1580,29 @@ export class BudgetEntriesComponent extends Component{
                                                           {utils.formatNumber(departmentaggregate?.total_currency)}
                                                         </td>
 
-                                                        <td>
-
-                                                          <span className="cursor-pointer text-success mr-3"
-                                                              onClick={()=> {this.editDepartmentAggregate(departmentaggregate, index)}
-                                                            }
-                                                            >
-                                                            <i className="nav-icon i-Pen-2 font-weight-bold"></i>
-                                                          </span>
-                                                          <span className="cursor-pointer text-danger mr-2" onClick={()=>{
-                                                              this.deleteDepartmentAggregate(departmentaggregate, index)}
-                                                            }>
-                                                            <i className="nav-icon i-Close-Window font-weight-bold"></i>
-                                                          </span>
+                                                        {
+                                                           this.props.updateEntries && viewOrEditSelections.is_view ? null
+                                                          : (
+                                                            <td>
 
 
-                                                        </td>
+                                                              <span className="cursor-pointer text-success mr-3"
+                                                                  onClick={()=> {this.editDepartmentAggregate(departmentaggregate, index)}
+                                                                }
+                                                                >
+                                                                <i className="nav-icon i-Pen-2 font-weight-bold"></i>
+                                                              </span>
+                                                              <span className="cursor-pointer text-danger mr-2" onClick={()=>{
+                                                                  this.deleteDepartmentAggregate(departmentaggregate, index)}
+                                                                }>
+                                                                <i className="nav-icon i-Close-Window font-weight-bold"></i>
+                                                              </span>
+
+
+                                                            </td>
+                                                          )
+                                                        }
+
 
                                                     </tr>
                                                 )
@@ -1615,6 +1652,9 @@ export class BudgetEntriesComponent extends Component{
 
 
                                             </th>
+                                            {
+                                              this.props.updateEntries && viewOrEditSelections.is_view ?
+                                              null : (
                                             <th className="text-right">
                                               <LaddaButton
                                                   className={`btn btn-${this.state.allBudgetEntries.length > 0 ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
@@ -1628,6 +1668,8 @@ export class BudgetEntriesComponent extends Component{
                                                   {this.state.saveMsg}
                                               </LaddaButton>
                                             </th>
+                                          )
+                                        }
 
                                             </tr>
 
@@ -1670,9 +1712,14 @@ export class BudgetEntriesComponent extends Component{
                                                <th className="text-right">
                                                  Total in USD ($)
                                                </th>
+                                               {
+                                                 this.props.updateEntries && viewOrEditSelections.is_view ?
+                                                 null : (
                                                <th className="text-right">
                                                  Action
                                                </th>
+                                             )
+                                           }
                                             </tr>
                                         </tfoot>
                                     </table>
