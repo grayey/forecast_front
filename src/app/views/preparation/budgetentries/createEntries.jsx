@@ -11,7 +11,7 @@ import AppNotification from "../../../appNotifications";
 import {FetchingRecords, BulkTemplateDownload} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes } from "react-icons/fa";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit } from "react-icons/fa";
 import Select from 'react-select';
 import { Link, Redirect } from "react-router-dom";
 
@@ -32,6 +32,12 @@ export class BudgetEntriesComponent extends Component{
 
     state = {
         navigate:false,
+        updateEntries:false,
+        viewOrEditSelections:{
+          is_view:false,
+          is_edit:false,
+          isViewOrEdit:false
+        },
         editedIndex:0,
         allBudgetEntries:[],
         allItemCategories:[],
@@ -43,7 +49,7 @@ export class BudgetEntriesComponent extends Component{
         entryDescription:"",
         nairaOrCurrencyAmount:0,
         isSaving:false,
-        isFetching:true,
+        isFetching:false,
         fetchingCostitems:false,
         firstVersion:{},
         usdConversionRate: 365,  // Just testing. This ideally should be set to null
@@ -107,10 +113,15 @@ export class BudgetEntriesComponent extends Component{
     }
 
     componentDidMount(){
-         this.getAllBudgetEntries();
+      if(this.props.updateEntries){
+        this.getAllBudgetEntriesByDepartmentSlug();
+      
+      }
          // this.getAllVersionCodes();
          this.getAllItemCategories();
     }
+
+
 
     /**
      *
@@ -492,22 +503,54 @@ export class BudgetEntriesComponent extends Component{
 
 
 
+    viewOrEditButton = ()=>{
+      let { viewOrEditSelections } = this.state;
+
+      return this.props.updateEntries ?(
+        <div className="btn-group">
+          <button className={`btn btn-lg btn-${viewOrEditSelections.is_view ? "success shadow":"info_custom"}`} onClick={()=>this.toggleViewOrEdit('view')}>
+            View { viewOrEditSelections.is_view ? <FaEye/> : null}
+          </button>
+        <button className={`btn btn-lg btn-${viewOrEditSelections.is_edit ? "success shadow":"info"}`} onClick={()=>this.toggleViewOrEdit('edit')}>
+          Edit { viewOrEditSelections.is_edit ? <FaEdit/> : null}
+        </button>
+        </div>
+      ) : null
+    }
+
+    toggleViewOrEdit = (mode)=>{
+        let { viewOrEditSelections } = this.state;
+        let {is_view, is_edit} = viewOrEditSelections;
+        if(mode == 'view'){
+          is_view = true;
+          is_edit = false;
+        }else{
+          is_view = false;
+          is_edit = true;
+        }
+
+        viewOrEditSelections = {...viewOrEditSelections,is_view, is_edit }
+        this.setState({ viewOrEditSelections })
+    }
 
 
 
     /**
      * This method lists all budgetentries
      */
-     getAllBudgetEntries = async ()=>{
-         let isFetching = false;
-
-        this.preparationService.getAllBudgetEntries().then(
+     getAllBudgetEntriesByDepartmentSlug = async ()=>{
+         let isFetching = true;
+         const slug = this.props.querySlug;
+        this.preparationService.getAllBudgetEntriesByDepartmentSlug(slug).then(
             async (budgetentriesResponse)=>{
+               isFetching = false;
+
               const allBudgetEntries = budgetentriesResponse;
               await  this.setState({ allBudgetEntries, isFetching }); // so allBudgetEntries is set
 
             }
         ).catch((error)=>{
+          isFetching = false;
             this.setState({isFetching})
             const errorNotification = {
                 type:'error',
@@ -523,7 +566,7 @@ export class BudgetEntriesComponent extends Component{
      * This method creates a new departmentaggregate
      */
     saveBudgetEntries = async ()=>{
-        let { allBudgetEntries, totals, navigate} = this.state;
+        let { allBudgetEntries, totals, navigate, updateEntries} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
@@ -555,13 +598,12 @@ export class BudgetEntriesComponent extends Component{
                 saveMsg = 'Save';
                 const successNotification = {
                     type:'success',
-                    msg:`${departmentaggregateData.year} successfully created!`
+                    msg:`Budget entries successfully ${updateEntries ? 'updated' : 'created'}!`
                 }
                 new AppNotification(successNotification)
                 navigate = true;
                 await this.setState({ navigate })
 
-                // window.location.reload();
             }
         ).catch(
             (error)=>{
@@ -790,7 +832,7 @@ export class BudgetEntriesComponent extends Component{
 
     render(){
 
-      const { navigate } = this.state;
+      const { navigate, viewOrEditSelections } = this.state;
 
         return navigate ? <Redirect to="/preparation/budget-entries"/> : (
 
@@ -924,9 +966,13 @@ export class BudgetEntriesComponent extends Component{
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>Create Entries</h1>
+                    <h1>{this.props.updateEntries ? this.viewOrEditButton() : "Create" } Entries</h1>
                     <ul>
-                      <li><a href="#">Bulk insert</a></li>
+                      <li>
+                        <a href="#">
+                        Bulk  {this.props.updateEntries ? "update" : "insert" }
+                      </a>
+                    </li>
                         <li><a href="#">Import</a></li>
                         <li>Add lines</li>
                     </ul>
@@ -938,405 +984,415 @@ export class BudgetEntriesComponent extends Component{
 
                 <div className="separator-breadcrumb border-top"></div>
 
-              <div className="form_sticky">
+
                 {
-                  this.state.editFormMode ? (
-                    <div>
-                      <b>Currently editing line:</b> <span className="badge badge-primary">{this.state.editedIndex + 1}</span>
-                    </div>
-                  ): null
-                }
-
-                <Formik
-                initialValues={this.state.createDepartmentAggregateForm}
-                validationSchema={this.createDepartmentAggregateSchema}
-                enableReinitialize
-                onSubmit={ async(values, actions) => {
-                  const insertEntry = await this.addNewEntry();
-                  if(insertEntry){
-                    actions.resetForm({
-                      values:this.state.createDepartmentAggregateForm
-                    });
-                  }
-
-
-                }
-              }
-                >
-                {({
-                    values,
-                    errors,
-                    touched,
-                    handleChange,
-                    handleBlur,
-                    handleSubmit,
-                    isSubmitting,
-                    resetForm
-                }) => {
-
-                    return (
-                    <form
-                        className="needs-validation "
-                        onSubmit={handleSubmit}
-                        noValidate
-                    >
-
-              <div className="row mb-2">
-                <div className={`card w-100 ${this.state.editFormMode ? 'shadow-lg line_edit':'shadow'}`}>
-
-                  <div className="card-body">
-
-                    <div className="form-row">
-                      <div className="col-md-11 pr-2">
-                        <div className="form-row border-bottom pb-2">
-
-                          <div
-                              className={utils.classList({
-                              "col-md-3 mb-2": true,
-                              "valid-field":
-                                  !errors.category && touched.category,
-                              "invalid-field":
-                                  errors.category && touched.category
-                              })}
-                          >
-                              <label htmlFor="category">
-                                  <b>Item Category<span className='text-danger'>*</span></b>
-                              </label>
-
-                              <Select
-
-                                   value={this.state.selectedCategory}
-                                   onChange={(event)=>this.handleMultiSelectChange(event,'category')}
-                                   options={this.state.allItemCategories}
-                                   placeholder="Search categories"
-                                   noOptionsMessage ={ () => "No categories" }
-
-                               />
-
-
-
-                              <div className="valid-feedback"></div>
-                              <div className="invalid-feedback">Category is required</div>
+                  this.props.updateEntries && viewOrEditSelections.is_view ?
+                  null : (
+                    <div className="form_sticky">
+                      {
+                        this.state.editFormMode ? (
+                          <div>
+                            <b>Currently editing line:</b> <span className="badge badge-primary">{this.state.editedIndex + 1}</span>
                           </div>
-
-                            <div
-                                className={utils.classList({
-                                "col-md-3 mb-2": true,
-                                "valid-field":
-                                    !errors.costitem && touched.costitem,
-                                "invalid-field":
-                                    errors.costitem && touched.costitem
-                                })}
-                            >
-                                <label htmlFor="costitem">
-                                    <b>Cost Item<span className='text-danger'>*</span></b> {this.state.fetchingCostitems ? <FaSpinner className="spin" /> : null }
-                                </label>
-
-                                <Select
-
-                                     value={this.state.selectedCostitem}
-                                     onChange={(event)=>this.handleMultiSelectChange(event,'costitem')}
-                                     options={this.state.allCostItems}
-                                     placeholder="Search cost items"
-                                     noOptionsMessage={ () => "No cost items" }
-
-                                 />
-
-                                <div className="valid-feedback"></div>
-                                <div className="invalid-feedback">Cost item is required</div>
-                            </div>
-
-                            <div
-                                className={utils.classList({
-                                "col-md-2 mb-2": true,
-                                "valid-field":
-                                    !errors.currency && touched.currency,
-                                "invalid-field":
-                                    errors.currency && touched.currency
-                                })}
-                            >
-                                <label htmlFor="departmentaggregate_name">
-                                    <b>Currency<span className='text-danger'>*</span></b>
-                                </label>
+                        ): null
+                      }
 
 
 
-                                <select
-                                  className="form-control"
-                                  id="currency"
-                                  placeholder=""
-                                  name="currency"
-                                  value={values.currency}
-                                  onChange={(event)=>this.handleChange(event)}
-                                  onBlur={handleBlur}
-                                  required
-                                  >
-                                  <option value="">Select</option>
-                                  <option value="NAIRA">Naira</option>
-                                  <option value="DOLLAR">Dollar</option>
-                                  <option value="NAIRA_DOLLAR">Naira/Dollar</option>
 
-                                </select>
-
-                                <div className="valid-feedback"></div>
-                                <div className="invalid-feedback">Currency is required</div>
-                            </div>
-
-                            <div
-                                className={utils.classList({
-                                "col-md-2 mb-2": true,
-                                "valid-field":
-                                    !errors.unit_value && touched.unit_value,
-                                "invalid-field":
-                                    errors.unit_value && touched.unit_value
-                                })}
-                            >
-                                <label htmlFor="unit_value">
-                                    <b>Unit Value<span className='text-danger'>*</span></b>
-                                </label>
-
-                                <input
-                                type="number"
-                                className="form-control"
-                                id="unit_value"
-                                placeholder=""
-                                step="0.0001"
-                                name="unit_value"
-                                value={values.unit_value}
-                                onChange={(event)=>{this.handleChange(event); this.reCalculateCurrencyPortions()}}
-                                onBlur={handleBlur}
-                                required
-                                />
-
-                                <div className="valid-feedback"></div>
-                                <div className="invalid-feedback">Unit Value is required</div>
-                            </div>
-
-                            <div
-                                className={utils.classList({
-                                "col-md-2 mb-2": true,
-                                "valid-field":
-                                    !errors.quantity && touched.quantity,
-                                "invalid-field":
-                                    errors.quantity && touched.quantity
-                                })}
-                            >
-                                <label htmlFor="departmentaggregate_name">
-                                    <b>Quantity<span className='text-danger'>*</span></b>
-                                </label>
-
-                                <input
-                                type="number"
-                                className="form-control"
-                                id="quantity"
-                                placeholder=""
-                                name="quantity"
-                                value={values.quantity}
-                                onChange={(event)=>{this.handleChange(event); this.reCalculateCurrencyPortions()}}
-                                onBlur={handleBlur}
-                                required
-                                />
-
-                                <div className="valid-feedback"></div>
-                                <div className="invalid-feedback">Quantity is required</div>
-                            </div>
+                      <Formik
+                      initialValues={this.state.createDepartmentAggregateForm}
+                      validationSchema={this.createDepartmentAggregateSchema}
+                      enableReinitialize
+                      onSubmit={ async(values, actions) => {
+                        const insertEntry = await this.addNewEntry();
+                        if(insertEntry){
+                          actions.resetForm({
+                            values:this.state.createDepartmentAggregateForm
+                          });
+                        }
 
 
+                      }
+                    }
+                      >
+                      {({
+                          values,
+                          errors,
+                          touched,
+                          handleChange,
+                          handleBlur,
+                          handleSubmit,
+                          isSubmitting,
+                          resetForm
+                      }) => {
 
-                            </div>
+                          return (
+                          <form
+                              className="needs-validation "
+                              onSubmit={handleSubmit}
+                              noValidate
+                          >
 
+                    <div className="row mb-2">
+                      <div className={`card w-100 ${this.state.editFormMode ? 'shadow-lg line_edit':'shadow'}`}>
 
-                            <div className="form-row pt-2">
+                        <div className="card-body">
 
-                                {
-                                  this?.state?.toggleFields?.NAIRA ?
-                                  (
-                                    <div
-                                        className={utils.classList({
-                                        "col-md-2 mb-2": true,
-                                        "valid-field":
-                                            !errors.naira_portion  && touched.naira_portion,
-                                        "invalid-field":
-                                            errors.naira_portion && touched.naira_portion
-                                        })}
-                                    >
-                                        <label htmlFor="naira_portion">
-                                            <b>Naira Part (&#x20a6;)<span className='text-danger'>*</span></b>
-                                        </label>
-
-
-
-                                        <input
-                                        type="number"
-                                        className="form-control"
-                                        id="naira_portion"
-                                        placeholder=""
-                                        name="naira_portion"
-                                        value={values.naira_portion}
-                                        onChange={(event)=>this.handleChange(event)}
-                                        onBlur={handleBlur}
-                                        step="0.0001"
-                                        required
-                                        />
-
-                                        <div className="valid-feedback"></div>
-                                        <div className="invalid-feedback">Naira Portion is required</div>
-                                    </div>
-                                  ) : null
-                                }
-                                {
-                                  this?.state?.toggleFields?.DOLLAR ?
-                                  (
-                                    <div
-                                        className={utils.classList({
-                                        "col-md-2 mb-2": true,
-                                        "valid-field":
-                                            !errors.currency_portion && touched.currency_portion,
-                                        "invalid-field":
-                                            errors.currency_portion && touched.currency_portion
-                                        })}
-                                    >
-                                        <label htmlFor="currency_portion">
-                                            <b>Dollar (USD) Part ($)<span className='text-danger'>*</span></b>
-                                        </label>
-
-                                        <input
-                                        type="number"
-                                        className="form-control"
-                                        id="currency_portion"
-                                        placeholder=""
-                                        step="0.0001"
-                                        name="currency_portion"
-                                        value={values.currency_portion}
-                                        onChange={(event)=>this.handleChange(event)}
-                                        onBlur={handleBlur}
-                                        required
-                                        />
-
-                                        <div className="valid-feedback"></div>
-                                        <div className="invalid-feedback">Dollar portion is required</div>
-                                    </div>
-                                  ): null
-
-                                }
-
-
-
+                          <div className="form-row">
+                            <div className="col-md-11 pr-2">
+                              <div className="form-row border-bottom pb-2">
 
                                 <div
                                     className={utils.classList({
                                     "col-md-3 mb-2": true,
                                     "valid-field":
-                                        !errors.entity && touched.entity,
+                                        !errors.category && touched.category,
                                     "invalid-field":
-                                        errors.entity && touched.entity
+                                        errors.category && touched.category
                                     })}
                                 >
-                                    <label htmlFor="entity">
-                                        <b>Entry type<span className='text-danger'>*</span></b>
+                                    <label htmlFor="category">
+                                        <b>Item Category<span className='text-danger'>*</span></b>
                                     </label>
 
-                                    <select
+                                    <Select
+
+                                         value={this.state.selectedCategory}
+                                         onChange={(event)=>this.handleMultiSelectChange(event,'category')}
+                                         options={this.state.allItemCategories}
+                                         placeholder="Search categories"
+                                         noOptionsMessage ={ () => "No categories" }
+
+                                     />
+
+
+
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">Category is required</div>
+                                </div>
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-3 mb-2": true,
+                                      "valid-field":
+                                          !errors.costitem && touched.costitem,
+                                      "invalid-field":
+                                          errors.costitem && touched.costitem
+                                      })}
+                                  >
+                                      <label htmlFor="costitem">
+                                          <b>Cost Item<span className='text-danger'>*</span></b> {this.state.fetchingCostitems ? <FaSpinner className="spin" /> : null }
+                                      </label>
+
+                                      <Select
+
+                                           value={this.state.selectedCostitem}
+                                           onChange={(event)=>this.handleMultiSelectChange(event,'costitem')}
+                                           options={this.state.allCostItems}
+                                           placeholder="Search cost items"
+                                           noOptionsMessage={ () => "No cost items" }
+
+                                       />
+
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">Cost item is required</div>
+                                  </div>
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-2 mb-2": true,
+                                      "valid-field":
+                                          !errors.currency && touched.currency,
+                                      "invalid-field":
+                                          errors.currency && touched.currency
+                                      })}
+                                  >
+                                      <label htmlFor="departmentaggregate_name">
+                                          <b>Currency<span className='text-danger'>*</span></b>
+                                      </label>
+
+
+
+                                      <select
+                                        className="form-control"
+                                        id="currency"
+                                        placeholder=""
+                                        name="currency"
+                                        value={values.currency}
+                                        onChange={(event)=>this.handleChange(event)}
+                                        onBlur={handleBlur}
+                                        required
+                                        >
+                                        <option value="">Select</option>
+                                        <option value="NAIRA">Naira</option>
+                                        <option value="DOLLAR">Dollar</option>
+                                        <option value="NAIRA_DOLLAR">Naira/Dollar</option>
+
+                                      </select>
+
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">Currency is required</div>
+                                  </div>
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-2 mb-2": true,
+                                      "valid-field":
+                                          !errors.unit_value && touched.unit_value,
+                                      "invalid-field":
+                                          errors.unit_value && touched.unit_value
+                                      })}
+                                  >
+                                      <label htmlFor="unit_value">
+                                          <b>Unit Value<span className='text-danger'>*</span></b>
+                                      </label>
+
+                                      <input
+                                      type="number"
                                       className="form-control"
-                                      id="entity"
+                                      id="unit_value"
                                       placeholder=""
-                                      name="entity"
-                                      value={values.entity}
-                                      onChange={(event)=>this.handleChange(event)}
+                                      step="0.0001"
+                                      name="unit_value"
+                                      value={values.unit_value}
+                                      onChange={(event)=>{this.handleChange(event); this.reCalculateCurrencyPortions()}}
                                       onBlur={handleBlur}
                                       required
-                                      >
-                                      <option value="">Select</option>
-                                      <option value="PRINCIPAL">Principal</option>
+                                      />
+
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">Unit Value is required</div>
+                                  </div>
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-2 mb-2": true,
+                                      "valid-field":
+                                          !errors.quantity && touched.quantity,
+                                      "invalid-field":
+                                          errors.quantity && touched.quantity
+                                      })}
+                                  >
+                                      <label htmlFor="departmentaggregate_name">
+                                          <b>Quantity<span className='text-danger'>*</span></b>
+                                      </label>
+
+                                      <input
+                                      type="number"
+                                      className="form-control"
+                                      id="quantity"
+                                      placeholder=""
+                                      name="quantity"
+                                      value={values.quantity}
+                                      onChange={(event)=>{this.handleChange(event); this.reCalculateCurrencyPortions()}}
+                                      onBlur={handleBlur}
+                                      required
+                                      />
+
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">Quantity is required</div>
+                                  </div>
 
 
-                                    </select>
 
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">Entity is required</div>
-                                </div>
+                                  </div>
 
-                                <div
-                                    className={utils.classList({
-                                    "col-md-4 mb-2": true,
-                                    "valid-field":
-                                        !errors.description && touched.description,
-                                    "invalid-field":
-                                        errors.description && touched.description
-                                    })}
-                                >
-                                    <label htmlFor="departmentaggregate_name">
-                                        <b>Description<span className='text-danger'>*</span></b>
-                                    </label>
 
-                                    <input
-                                    type="text"
-                                    className="form-control"
-                                    id="description"
-                                    placeholder=""
-                                    name="description"
-                                    value={values.description}
-                                    onChange={(event)=>this.handleChange(event)}
-                                    onBlur={handleBlur}
-                                    required
-                                    />
+                                  <div className="form-row pt-2">
 
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">Description is required</div>
-                                </div>
-                                <div className="col-md-1 pt-4">
-                                  {
-                                    this.state.editFormMode ? (
-                                      <LaddaButton
-                                          className={`btn mt-2 btn-sm btn-danger border-0 mr-2 mb-2 position-relative`}
-                                          progress={0.5}
-                                          data-style={CONTRACT}
-                                          type="button"
-                                          onClick={this.cancelEdit}
+                                      {
+                                        this?.state?.toggleFields?.NAIRA ?
+                                        (
+                                          <div
+                                              className={utils.classList({
+                                              "col-md-2 mb-2": true,
+                                              "valid-field":
+                                                  !errors.naira_portion  && touched.naira_portion,
+                                              "invalid-field":
+                                                  errors.naira_portion && touched.naira_portion
+                                              })}
                                           >
-                                          Cancel edit <FaTimes/>
-                                      </LaddaButton>
-                                    ): null
-                                  }
+                                              <label htmlFor="naira_portion">
+                                                  <b>Naira Part (&#x20a6;)<span className='text-danger'>*</span></b>
+                                              </label>
 
-                                </div>
 
-                                </div>
 
-                      </div>
+                                              <input
+                                              type="number"
+                                              className="form-control"
+                                              id="naira_portion"
+                                              placeholder=""
+                                              name="naira_portion"
+                                              value={values.naira_portion}
+                                              onChange={(event)=>this.handleChange(event)}
+                                              onBlur={handleBlur}
+                                              step="0.0001"
+                                              required
+                                              />
 
-                      <div className="col-md-1 border-left pt-3">
+                                              <div className="valid-feedback"></div>
+                                              <div className="invalid-feedback">Naira Portion is required</div>
+                                          </div>
+                                        ) : null
+                                      }
+                                      {
+                                        this?.state?.toggleFields?.DOLLAR ?
+                                        (
+                                          <div
+                                              className={utils.classList({
+                                              "col-md-2 mb-2": true,
+                                              "valid-field":
+                                                  !errors.currency_portion && touched.currency_portion,
+                                              "invalid-field":
+                                                  errors.currency_portion && touched.currency_portion
+                                              })}
+                                          >
+                                              <label htmlFor="currency_portion">
+                                                  <b>Dollar (USD) Part ($)<span className='text-danger'>*</span></b>
+                                              </label>
 
-                        <div className=" ml-4 mt-5">
+                                              <input
+                                              type="number"
+                                              className="form-control"
+                                              id="currency_portion"
+                                              placeholder=""
+                                              step="0.0001"
+                                              name="currency_portion"
+                                              value={values.currency_portion}
+                                              onChange={(event)=>this.handleChange(event)}
+                                              onBlur={handleBlur}
+                                              required
+                                              />
 
-                            <LaddaButton
-                                className={`btn btn-sm btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'secondary_custom'} border-0 mr-2 mb-2 position-relative`}
-                                loading={this.state.isSaving}
-                                progress={0.5}
-                                type='submit'
-                                data-style={EXPAND_RIGHT}
-                                >
-                                {this.state.editFormMode ? 'Update' : 'Add'} <FaArrowDown/>
-                            </LaddaButton>
+                                              <div className="valid-feedback"></div>
+                                              <div className="invalid-feedback">Dollar portion is required</div>
+                                          </div>
+                                        ): null
 
+                                      }
+
+
+
+
+                                      <div
+                                          className={utils.classList({
+                                          "col-md-3 mb-2": true,
+                                          "valid-field":
+                                              !errors.entity && touched.entity,
+                                          "invalid-field":
+                                              errors.entity && touched.entity
+                                          })}
+                                      >
+                                          <label htmlFor="entity">
+                                              <b>Entry type<span className='text-danger'>*</span></b>
+                                          </label>
+
+                                          <select
+                                            className="form-control"
+                                            id="entity"
+                                            placeholder=""
+                                            name="entity"
+                                            value={values.entity}
+                                            onChange={(event)=>this.handleChange(event)}
+                                            onBlur={handleBlur}
+                                            required
+                                            >
+                                            <option value="">Select</option>
+                                            <option value="PRINCIPAL">Principal</option>
+
+
+                                          </select>
+
+                                          <div className="valid-feedback"></div>
+                                          <div className="invalid-feedback">Entity is required</div>
+                                      </div>
+
+                                      <div
+                                          className={utils.classList({
+                                          "col-md-4 mb-2": true,
+                                          "valid-field":
+                                              !errors.description && touched.description,
+                                          "invalid-field":
+                                              errors.description && touched.description
+                                          })}
+                                      >
+                                          <label htmlFor="departmentaggregate_name">
+                                              <b>Description<span className='text-danger'>*</span></b>
+                                          </label>
+
+                                          <input
+                                          type="text"
+                                          className="form-control"
+                                          id="description"
+                                          placeholder=""
+                                          name="description"
+                                          value={values.description}
+                                          onChange={(event)=>this.handleChange(event)}
+                                          onBlur={handleBlur}
+                                          required
+                                          />
+
+                                          <div className="valid-feedback"></div>
+                                          <div className="invalid-feedback">Description is required</div>
+                                      </div>
+                                      <div className="col-md-1 pt-4">
+                                        {
+                                          this.state.editFormMode ? (
+                                            <LaddaButton
+                                                className={`btn mt-2 btn-sm btn-danger border-0 mr-2 mb-2 position-relative`}
+                                                progress={0.5}
+                                                data-style={CONTRACT}
+                                                type="button"
+                                                onClick={this.cancelEdit}
+                                                >
+                                                Cancel <FaTimes/>
+                                            </LaddaButton>
+                                          ): null
+                                        }
+
+                                      </div>
+
+                                      </div>
+
+                            </div>
+
+                            <div className="col-md-1 border-left pt-3">
+
+                              <div className=" ml-4 mt-5">
+
+                                  <LaddaButton
+                                      className={`btn btn-sm btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'secondary_custom'} border-0 mr-2 mb-2 position-relative`}
+                                      loading={this.state.isSaving}
+                                      progress={0.5}
+                                      type='submit'
+                                      data-style={EXPAND_RIGHT}
+                                      >
+                                      {this.state.editFormMode ? 'Update' : 'Add'} <FaArrowDown/>
+                                  </LaddaButton>
+
+                              </div>
+
+                            </div>
+
+                          </div>
                         </div>
 
                       </div>
+                    </div>
+                    </form>
+                    );
+                    }}
+
+                    </Formik>
+
+
 
                     </div>
-                  </div>
-
-                </div>
-              </div>
-              </form>
-              );
-              }}
-
-              </Formik>
+                  )}
 
 
-
-              </div>
 
 
 

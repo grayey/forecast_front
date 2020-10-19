@@ -92,3 +92,15 @@ padding-bottom: 0 !important;
   background-color: white !important;
   color: black !important;
 }
+
+
+.table td.no_padding, .table tr.no_top {
+    padding: 0 0.75rem 0.75rem 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+
+}
+
+tr.divide_row th, tr.divide_row td {
+  border-bottom: 1px solid black;
+}

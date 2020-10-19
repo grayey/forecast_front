@@ -11,6 +11,8 @@ import AppNotification from "../../../appNotifications";
 import {FetchingRecords} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
+import { Link, Redirect, NavLink } from "react-router-dom";
+
 
 
 import LaddaButton, {
@@ -25,6 +27,11 @@ import LaddaButton, {
 export class DepartmentAggregatesComponent extends Component{
 
     state = {
+        navigate: false,
+        navigationUrls:{
+          create:true,
+          view_entries:false
+        },
         editedIndex:0,
         allDepartmentAggregates:[],
         showEditModal:false,
@@ -33,6 +40,11 @@ export class DepartmentAggregatesComponent extends Component{
         isSaving:false,
         isFetching:true,
         firstVersion:{},
+        entryTypes:[
+          "PRINCIPAL",
+
+        ], //dummy entry type
+        groupedEntries:[],
         saveMsg:'Save',
         updateMsg:'Update',
         editedDepartmentAggregate: {},
@@ -124,8 +136,8 @@ export class DepartmentAggregatesComponent extends Component{
 
         this.preparationService.getAllDepartmentAggregates().then(
             async (departmentaggregatesResponse)=>{
-              const allDepartmentAggregates = departmentaggregatesResponse;
-              await  this.setState({ allDepartmentAggregates, isFetching }); // so allDepartmentAggregates is set
+              const allDepartmentAggregates = this.buildGroupedEntries(departmentaggregatesResponse).reverse();
+              await  this.setState({ allDepartmentAggregates, isFetching });
 
             }
         ).catch((error)=>{
@@ -152,6 +164,40 @@ export class DepartmentAggregatesComponent extends Component{
       }
       return futureYears;
 
+    }
+
+
+
+    buildGroupedEntries = (allDepartmentAggregates) =>{
+
+      const { entryTypes } = this.state;
+      allDepartmentAggregates.forEach((aggregate) =>{
+        aggregate['summary'] = {};
+        const entries = aggregate['entries']
+        entryTypes.forEach((entryType)=>{
+          aggregate['summary'][entryType] = this.buildEntriesByType(entries, entryType)
+        })
+      })
+
+      return allDepartmentAggregates;
+    }
+
+    buildEntriesByType = (entries, entryType)=>{
+      const summaryItem = {
+        total_naira_part:0,
+        total_currency_part:0,
+        total_in_naira:0,
+        total_in_currency:0,
+      };
+      entries.forEach((entry)=>{
+        if(entry.entity == entryType){
+          summaryItem.total_naira_part += entry.naira_portion
+          summaryItem.total_currency_part += entry.currency_portion
+          summaryItem.total_in_naira+= entry.total_naira
+          summaryItem.total_in_currency += entry.total_currency
+        }
+      })
+      return summaryItem;
     }
 
     /**
@@ -403,8 +449,12 @@ export class DepartmentAggregatesComponent extends Component{
     }
 
     render(){
+      const { navigate, navigationUrls } = this.state;
+      const { create_entries, view_entries}  = navigationUrls
 
-        return (
+
+
+        return navigate ? <Redirect to="/preparation/budget-entries/create" /> : (
 
             <>
                 <div className="specific">
@@ -923,7 +973,7 @@ export class DepartmentAggregatesComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Entries</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
                 </div>
 
                 <div className="breadcrumb">
@@ -946,19 +996,16 @@ export class DepartmentAggregatesComponent extends Component{
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
                             <div className="table-responsive">
-                                    <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
+                                    <table className="display table tabel-lg table-striped " id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
-                                                <th>Year</th>
-                                                  <th>Version</th>
-                                                <th>Instructions</th>
-                                                <th>USD Rate</th>
-                                                <th>Start Date</th>
-                                                <th>End Date</th>
+
+                                              <th >Version</th>
+                                                <th>Department</th>
+                                              <th colSpan="3" className="text-center">Summary</th>
+                                                <th>Progress</th>
                                                 <th>Status</th>
-                                                <th>Date Created</th>
-                                                <th>Date Updated</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -966,51 +1013,124 @@ export class DepartmentAggregatesComponent extends Component{
                                         {
                                           this.state.allDepartmentAggregates.length ?  this.state.allDepartmentAggregates.map( (departmentaggregate, index)=>{
                                                 return (
-                                                    <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white':''}>
+                                                    <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white divide_row':'divide_row'}>
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            {departmentaggregate?.year}
+                                                          <NavLink to={`/preparation/budget-entries/${departmentaggregate?.slug}`}>
+                                                            {departmentaggregate?.budgetcycle?.year} &nbsp; {departmentaggregate?.budgetcycle?.active_version?.name} ({departmentaggregate?.budgetcycle?.active_version?.code})
+                                                          </NavLink>
                                                         </td>
                                                         <td>
-                                                          {departmentaggregate?.active_version?.name} ({departmentaggregate?.active_version?.code})
+                                                          {departmentaggregate?.department?.name} ({departmentaggregate?.department?.code})
+
                                                         </td>
-                                                        <td class="text-center">
-                                                          <a onClick={()=>this.viewInstructions(departmentaggregate)}  className="text-primary long-view">View</a>
-                                                        </td>
-                                                        <td>
-                                                          {departmentaggregate?.currency_conversion_rate}
-                                                        </td>
-                                                        <td>
-                                                          {utils.formatDate(departmentaggregate?.start_date)}
+                                                        <td colSpan="3" className="no_padding">
+                                                          <table className="w-100">
+                                                            <thead>
+                                                              <tr className="no_top">
+                                                                <th>
+                                                                  Entry Type
+                                                                </th>
+                                                                <th className="text-right">
+                                                                   Naira part (&#x20a6;)
+                                                                </th>
+                                                                <th className="text-right">
+                                                                   USD part ($)
+                                                                </th>
+                                                                <th className="text-right">
+                                                                   Total in Naira (&#x20a6;)
+                                                                </th>
+                                                                <th className="text-right">
+                                                                   Total in USD ($)
+                                                                </th>
+                                                              </tr>
+                                                            </thead>
+
+                                                            <tbody>
+                                                              {
+                                                                Object.keys(departmentaggregate?.summary).map((key)=>{
+                                                                  const summary = departmentaggregate.summary[key]
+                                                                return  (
+                                                                  <tr key={`${key}${index}`}>
+                                                                    <td>
+                                                                      {key}
+                                                                    </td>
+
+                                                                    <td className="text-right">
+                                                                      {
+                                                                        utils.formatNumber(summary?.total_naira_part)
+                                                                      }
+                                                                    </td>
+
+                                                                    <td className="text-right">
+                                                                      {
+                                                                        utils.formatNumber(summary?.total_currency_part)
+                                                                      }
+                                                                    </td>
+                                                                    <td className="text-right">
+                                                                      {
+                                                                        utils.formatNumber(summary?.total_in_naira)
+                                                                      }
+                                                                    </td>
+                                                                    <td className="text-right">
+                                                                      {
+                                                                        utils.formatNumber(summary?.total_in_currency)
+                                                                      }
+                                                                    </td>
+                                                                  </tr>
+                                                                );
+
+                                                                })
+                                                              }
+
+                                                            </tbody>
+                                                            <tfoot>
+                                                              <tr>
+                                                                <th>
+                                                                  Totals:
+                                                                </th>
+                                                                <th className="text-right">
+                                                                  {utils.formatNumber(departmentaggregate?.total_naira_portion)}
+                                                                </th>
+                                                                <th className="text-right">
+                                                                    {
+                                                                      utils.formatNumber(departmentaggregate?.total_currency_portion)
+                                                                    }
+                                                                </th>
+                                                                <th className="text-right">
+                                                                    {
+                                                                      utils.formatNumber(departmentaggregate?.total_functional_naira)
+                                                                    }
+                                                                </th>
+                                                                <th className="text-right">
+                                                                  {
+                                                                    utils.formatNumber(departmentaggregate?.total_functional_currency)
+                                                                  }
+
+                                                                </th>
+                                                              </tr>
+                                                            </tfoot>
+
+                                                          </table>
 
                                                         </td>
                                                         <td>
-                                                          {utils.formatDate(departmentaggregate?.end_date)}
-                                                        </td>
 
-                                                        <td>
-                                                        <Form>
+                                                        PROGRESS
 
-                                                             <Form.Check
-                                                                    checked={departmentaggregate.is_current}
-                                                                    type="switch"
-                                                                    id={`custom-switch${departmentaggregate.id}`}
-                                                                    label={departmentaggregate.is_current ? 'Active' : 'Inactive'}
-                                                                    className={departmentaggregate.is_current ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleDepartmentAggregate(departmentaggregate)}
-                                                                />
-
-
-                                                            </Form>
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(departmentaggregate.created_at)}
+                                                          <span className={`badge badge-${departmentaggregate?.entries_status == 0 ?
+                                                               'secondary_custom' : departmentaggregate?.entries_status == 1 ? "info_custom":"success" }`}>
+
+                                                               {`${departmentaggregate?.entries_status == 0 ?
+                                                                    'DRAFT' : departmentaggregate?.entries_status == 1 ? "SUBMITTED":"APPROVED" }`}
+                                                          </span>
+
                                                         </td>
-                                                        <td>
-                                                        {utils.formatDate(departmentaggregate.updated_at)}
-                                                        </td>
+
 
                                                         <td>
                                                         <Dropdown key={departmentaggregate.id}>
@@ -1043,7 +1163,7 @@ export class DepartmentAggregatesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='11'>
+                                                    <td className='text-center' colSpan='10'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -1054,15 +1174,11 @@ export class DepartmentAggregatesComponent extends Component{
                                         <tfoot>
                                             <tr>
                                               <th>#</th>
-                                              <th>Year</th>
-                                                <th>Version</th>
-                                              <th>Description</th>
-                                              <th>USD Rate</th>
-                                              <th>Start Date</th>
-                                              <th>End Date</th>
+                                            <th>Description</th>
+                                              <th>Department</th>
+                                            <th colSpan="3" className="text-center">Summary</th>
+                                              <th>Progress</th>
                                               <th>Status</th>
-                                              <th>Date Created</th>
-                                              <th>Date Updated</th>
                                               <th>Action</th>
                                             </tr>
                                         </tfoot>

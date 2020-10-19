@@ -74,6 +74,11 @@ export default class PreparationService {
    return await apiService.get(url);
   }
 
+  async getAllBudgetEntriesByDepartmentSlug(slug){
+    const url = `departmentaggregates/${slug}/by-slug`;
+    return await apiService.get(url);
+  }
+
 
   /**
   *
