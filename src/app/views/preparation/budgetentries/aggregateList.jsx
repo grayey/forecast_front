@@ -1018,7 +1018,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                          <NavLink to={`/preparation/budget-entries/${departmentaggregate?.slug}`}>
+                                                          <NavLink className="underline" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
                                                             {departmentaggregate?.budgetcycle?.year} &nbsp; {departmentaggregate?.budgetcycle?.active_version?.name} ({departmentaggregate?.budgetcycle?.active_version?.code})
                                                           </NavLink>
                                                         </td>
@@ -1122,11 +1122,11 @@ export class DepartmentAggregatesComponent extends Component{
 
                                                         </td>
                                                         <td>
-                                                          <span className={`badge badge-${departmentaggregate?.entries_status == 0 ?
-                                                               'secondary_custom' : departmentaggregate?.entries_status == 1 ? "info_custom":"success" }`}>
+                                                          <span className={`badge badge-${departmentaggregate.entries_status == 0 ?
+                                                               'secondary_custom' : departmentaggregate.entries_status == 1 ? "info_custom":"success" }`}>
 
-                                                               {`${departmentaggregate?.entries_status == 0 ?
-                                                                    'DRAFT' : departmentaggregate?.entries_status == 1 ? "SUBMITTED":"APPROVED" }`}
+                                                               {`${departmentaggregate.entries_status == 0 ?
+                                                                    'DRAFT' : departmentaggregate.entries_status == 1 ? "SUBMITTED":"APPROVED" }`}
                                                           </span>
 
                                                         </td>

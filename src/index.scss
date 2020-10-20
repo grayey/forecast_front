@@ -94,6 +94,7 @@ padding-bottom: 0 !important;
 }
 
 
+
 .table td.no_padding, .table tr.no_top {
     padding: 0 0.75rem 0.75rem 0.75rem;
     vertical-align: top;
@@ -103,4 +104,8 @@ padding-bottom: 0 !important;
 
 tr.divide_row th, tr.divide_row td {
   border-bottom: 1px solid black;
+}
+
+a.underline{
+  text-decoration: underline;
 }

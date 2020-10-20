@@ -3,6 +3,7 @@ import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-boot
 import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
+import ProcessingService from "../../../services/processing.service";
 import AppMainService from "../../../services/appMainService";
 import * as utils from "@utils";
 import { Formik } from "formik";
@@ -11,9 +12,14 @@ import AppNotification from "../../../appNotifications";
 import {FetchingRecords, BulkTemplateDownload} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit } from "react-icons/fa";
+import { connect } from "react-redux";
+import { Link, Redirect, withRouter } from "react-router-dom";
+import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv } from "react-icons/fa";
 import Select from 'react-select';
-import { Link, Redirect } from "react-router-dom";
+
+
+
 
 
 import LaddaButton, {
@@ -29,19 +35,21 @@ export class BudgetEntriesComponent extends Component{
 
 
   preparationService;
+  processingService;
 
     state = {
         navigate:false,
-        updateEntries:false,
+        updateentries:false,
         viewOrEditSelections:{
-          is_view:false,
+          is_view:true,
+          is_view_only:true,
           is_edit:false,
-          isViewOrEdit:false
         },
         editedIndex:0,
         allBudgetEntries:[],
         allItemCategories:[],
         allCostItems:[],
+
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
@@ -52,11 +60,12 @@ export class BudgetEntriesComponent extends Component{
         isFetching:false,
         fetchingCostitems:false,
         firstVersion:{},
-        usdConversionRate: 365,  // Just testing. This ideally should be set to null
+        usdConversionRate: null,
         saveMsg:'Save',
         updateMsg:'Update',
         editedDepartmentAggregate: {},
         viewedDepartmentAggregate:{},
+        activeBudgetCycle:{},
         createDepartmentAggregateForm: {
           unit_value: "",
           quantity:"",
@@ -110,16 +119,33 @@ export class BudgetEntriesComponent extends Component{
         super(props)
         this.preparationService = new PreparationService();
         this.appMainService = new AppMainService();
+        this.processingService = new ProcessingService();
     }
 
     componentDidMount(){
-      if(this.props.updateEntries){
+      if(this.props.updateentries){
         this.getAllBudgetEntriesByDepartmentSlug();
-
       }
-         // this.getAllVersionCodes();
+
+        this.setActiveBudgetCycle();
          this.getAllItemCategories();
     }
+
+
+
+
+
+    componentWillReceiveProps = (nextProps) => {
+      const { activeBudgetCycle }  = nextProps.active_budget_cycle;
+      if(this.props.active_budget_cycle.activeBudgetCycle.id !== activeBudgetCycle.id){
+        this.setState({ navigate : true });
+      }
+
+    }
+
+
+
+
 
 
 
@@ -139,7 +165,7 @@ export class BudgetEntriesComponent extends Component{
             if(eventName == 'category'){
                this.getCostItemsByCategory(eventValue);
             }
-            if(eventName =='currency' ){
+            if(eventName =='currency'){
               await this.setCurrency(eventValue);
             }
         }else if(form=='edit'){
@@ -337,10 +363,9 @@ export class BudgetEntriesComponent extends Component{
     this.setState({ totals })
   }
 
-  viewInstructions = (viewedDepartmentAggregate) => {
-    this.setState({viewedDepartmentAggregate});
+  viewInstructions = () => {
+    // this.setState({viewedDepartmentAggregate});
     this.toggleModal('instructions');
-
   }
 
   /**
@@ -426,6 +451,30 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
+    getBudgetCycleById = async () =>{
+      const budgetCycleId = 66;
+      this.processingService.getBudgetCycleById(budgetCycleId).then(
+          (budgetCycleResponse)=>{
+            const activeBudgetCycle =  budgetCycleResponse;
+            const usdConversionRate = activeBudgetCycle.currency_conversion_rate
+              this.setState({ activeBudgetCycle, usdConversionRate })
+          }
+      ).catch((error)=>{
+          const errorNotification = {
+              type:'error',
+              msg:utils.processErrors(error)
+          }
+          new AppNotification(errorNotification)
+          console.log('Error', error)
+      })
+    }
+
+    setActiveBudgetCycle = () =>{
+      console.log("thshhsh", this.props);
+      const { activeBudgetCycle } =  this.props.active_budget_cycle;
+      const usdConversionRate = activeBudgetCycle.currency_conversion_rate
+        this.setState({ activeBudgetCycle, usdConversionRate })
+    }
 
 
     /**
@@ -519,15 +568,21 @@ export class BudgetEntriesComponent extends Component{
 
     viewOrEditButton = ()=>{
       let { viewOrEditSelections } = this.state;
+      const { is_view_only } = viewOrEditSelections;
 
-      return this.props.updateEntries ?(
+      return this.props.updateentries ?(
         <div className="btn-group">
           <button className={`btn btn-lg btn-${viewOrEditSelections.is_view ? "success shadow":"info_custom"}`} onClick={()=>this.toggleViewOrEdit('view')}>
             View { viewOrEditSelections.is_view ? <FaEye/> : null}
           </button>
-        <button className={`btn btn-lg btn-${viewOrEditSelections.is_edit ? "success shadow":"info"}`} onClick={()=>this.toggleViewOrEdit('edit')}>
-          Edit { viewOrEditSelections.is_edit ? <FaEdit/> : null}
-        </button>
+          {
+            is_view_only ? null :(
+              <button className={`btn btn-lg btn-${viewOrEditSelections.is_edit ? "success shadow":"info"}`} onClick={()=>this.toggleViewOrEdit('edit')}>
+                Edit { viewOrEditSelections.is_edit ? <FaEdit/> : null}
+              </button>
+            )
+          }
+
         </div>
       ) : null
     }
@@ -543,7 +598,9 @@ export class BudgetEntriesComponent extends Component{
           is_edit = true;
         }
 
-        viewOrEditSelections = {...viewOrEditSelections,is_view, is_edit }
+        viewOrEditSelections = {... viewOrEditSelections,is_view, is_edit }
+
+
         this.setState({ viewOrEditSelections })
     }
 
@@ -553,22 +610,28 @@ export class BudgetEntriesComponent extends Component{
      * This method lists all budgetentries
      */
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
-         let isFetching = true;
-         const slug = this.props.querySlug;
-         let { totals } = this.state
+         const slug = this.props.queryslug;
+         let { totals, usdConversionRate, viewedDepartmentAggregate, activeBudgetCycle, isFetching } = this.state
+          isFetching = true;
+         this.setState({ isFetching })
         this.preparationService.getAllBudgetEntriesByDepartmentSlug(slug).then(
-            async (budgetentriesResponse)=>{
+            async (departmentAggregatesResponse)=>{
                isFetching = false;
-
-              const allBudgetEntries = budgetentriesResponse.map((entry)=>{
-                totals.naira_part += entry.naira_portion
-                totals.currency_part += entry.currency_portion
-                totals.in_naira += entry.total_naira;
-                totals.in_currency += entry.total_currency;
+               viewedDepartmentAggregate = departmentAggregatesResponse;
+              const { entries, total_currency_portion, total_naira_portion,
+                  total_functional_naira, total_functional_currency, budgetcycle, capturer } = viewedDepartmentAggregate;
+              const allBudgetEntries = entries.map((entry)=>{
                 return this.formatEntry(entry);
               });
-              console.log(allBudgetEntries, "AKKSLLS")
-              await  this.setState({ allBudgetEntries, isFetching, totals }); // so allBudgetEntries is set
+              totals.naira_part = total_naira_portion
+              totals.currency_part = total_currency_portion
+              totals.in_naira = total_functional_naira;
+              totals.in_currency = total_functional_currency;
+              usdConversionRate = budgetcycle.currency_conversion_rate
+              await  this.setState({ allBudgetEntries, isFetching, totals,
+                 viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle:budgetcycle }); // so allBudgetEntries is set
+
+              this.setViewMode();
 
             }
         ).catch((error)=>{
@@ -583,12 +646,25 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
+    setViewMode = ()=>{
+        const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
+        const { entries_status, department, capturer, budgetcycle } = viewedDepartmentAggregate;
+        viewOrEditSelections.is_view_only = false  // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
+        // Or userRole is not a capture role
+        // (entries_status || !budgetcycle.is_current)
+
+        viewOrEditSelections.is_view = viewOrEditSelections.is_view_only; // if we're not in view only, then we're in edit mode  by default
+        viewOrEditSelections.is_edit = !viewOrEditSelections.is_view;
+
+        this.setState({ viewOrEditSelections })
+    }
+
 
     /**
      * This method creates a new departmentaggregate
      */
     saveBudgetEntries = async ()=>{
-        let { allBudgetEntries, totals, navigate, updateEntries} = this.state;
+        let { allBudgetEntries, totals, navigate, viewedDepartmentAggregate } = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
@@ -614,13 +690,13 @@ export class BudgetEntriesComponent extends Component{
         aggregateData['entries'] = allEntries;
         console.log(aggregateData)
 
-        this.preparationService.createDepartmentAggregate(aggregateData).then(
+        this.preparationService.saveDepartmentAggregate(aggregateData, viewedDepartmentAggregate.id).then(
             async (departmentaggregateData) => {
                 isSaving = false;
                 saveMsg = 'Save';
                 const successNotification = {
                     type:'success',
-                    msg:`Budget entries successfully ${updateEntries ? 'updated' : 'created'}!`
+                    msg:`Budget entries successfully ${this.props.updateentries ? 'updated' : 'created'}!`
                 }
                 new AppNotification(successNotification)
                 navigate = true;
@@ -818,18 +894,26 @@ export class BudgetEntriesComponent extends Component{
                   allBudgetEntries.splice(entryIdex, 1);
                   this.reduceTotal(departmentaggregate);
                    this.setState({ allBudgetEntries });
+                   const successNotification = {
+                       type:'success',
+                       msg:`Budget entry ${entryIdex+1} successfully deleted!`
+                   }
+                   new AppNotification(successNotification)
                   return this.checkDeleteDuringEdit(entryIdex);
                 }
 
-                  this.preparationService.deleteDepartmentAggregate(departmentaggregate).then(
+                  this.preparationService.deleteBudgetEntry(departmentaggregate).then(
                     async (deletedDepartmentAggregate) => {
                         allBudgetEntries = allBudgetEntries.filter(r=> r.id !== departmentaggregate.id)
-                      await this.setState({ allBudgetEntries });
+
                         const successNotification = {
                             type:'success',
-                            msg:`Budget cycle ${departmentaggregate.year} successfully deleted!`
+                            msg:`Budget entry ${entryIdex+1} successfully deleted!`
                         }
                         new AppNotification(successNotification)
+                        this.checkDeleteDuringEdit(entryIdex)
+                        this.reduceTotal(departmentaggregate);
+                        await this.setState({ allBudgetEntries });
                     }
                 ).catch(
                     (error)=>{
@@ -876,13 +960,16 @@ export class BudgetEntriesComponent extends Component{
 
                                       <Modal.Title>
                                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
-                                        Instructions for <b>{this.state?.viewedDepartmentAggregate?.year}</b>
+                                        Year <b>{this.state?.activeBudgetCycle?.year}</b> Instructions
                                     </Modal.Title>
                                       </Modal.Header>
 
                                                <Modal.Body>
+                                                 <div className="card-headerx border-bottom">
+                                                   <h5><b>USD Rate:</b> &#x20a6;{utils.formatNumber(this.state.usdConversionRate)}</h5>
+                                                 </div>
 
-                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedDepartmentAggregate.instructions}} />
+                                                 <div className="mt-1" dangerouslySetInnerHTML={{__html: this.state.activeBudgetCycle?.instructions}} />
 
                                                </Modal.Body>
 
@@ -945,7 +1032,7 @@ export class BudgetEntriesComponent extends Component{
                                        <div className="col-md-6">
                                          <label><b>Total amount in Naira (&#x20a6;)</b></label>
                                          <input value={this.state.percentageSliptForm.total_naira_amount} name="total_naira_amount"  onChange={this.handlePercentageSplitChange} className="form-control" type="number" step="0.01"/>
-                                         <small className="text-primary">Rate: 1USD = &#x20a6;365</small>
+                                         <small className="text-primary">Rate: 1USD = &#x20a6;{utils.formatNumber(this.state.usdConversionRate)}</small>
                                      </div>
 
                                      </div>
@@ -984,31 +1071,40 @@ export class BudgetEntriesComponent extends Component{
                                   </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } ><i className='i-Add'></i> View  instructions</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><i className='i-Add'></i> View  instructions</Button>
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>{this.props.updateEntries ? this.viewOrEditButton() : "Create" } Entries</h1>
+                    <h1>{this.props.updateentries ? this.viewOrEditButton() : "Create" } Entries</h1>
                     <ul>
                       <li>
                         <a href="#">
-                        Bulk  {this.props.updateEntries ? "update" : "insert" }
+                        Bulk  {this.props.updateentries ? "update" : "insert" }
                       </a>
                     </li>
                         <li><a href="#">Import</a></li>
                         <li>Add lines</li>
                     </ul>
 
+                    {
+                       this.props.updateentries && viewOrEditSelections.is_view ? (
+                         <div className="mt-3 ml-4">
+                           <h5><b>Department:</b> {this.state.viewedDepartmentAggregate?.department?.name} ({this.state.viewedDepartmentAggregate?.department?.code})</h5>
+                         </div>
+                       )
+                      : (
+
                     <div className="d-inline pl-5">
-                      <BulkTemplateDownload caller="itemcategories" refresh={this.getAllItemCategories}/>
+                      <BulkTemplateDownload caller="budgetentries" refresh={this.getAllItemCategories}/>
                     </div>
+                  )}
                 </div>
 
                 <div className="separator-breadcrumb border-top"></div>
 
 
                 {
-                  this.props.updateEntries && viewOrEditSelections.is_view ?
+                  this.props.updateentries && viewOrEditSelections.is_view ?
                   null : (
                     <div className="form_sticky">
                       {
@@ -1424,6 +1520,28 @@ export class BudgetEntriesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="cardx text-left">
                             <div className="card-body">
+
+                              {
+                                 this.props.updateentries && viewOrEditSelections.is_view ? (
+                                   <div className="pb-2">
+
+                                     <div className="float-right">
+                                       <Dropdown>
+                                         <Dropdown.Toggle variant="info_custom" className="text-white">
+                                          Export <FaArrowDown/>
+                                         </Dropdown.Toggle>
+                                         <Dropdown.Menu>
+                                           <Dropdown.Item onClick={()=>console.log('Excel')}><FaFileExcel/> Excel</Dropdown.Item>
+                                           <Dropdown.Divider />
+                                           <Dropdown.Item onClick={()=>console.log('CSV')}><FaFileCsv/> CSV</Dropdown.Item>
+                                         </Dropdown.Menu>
+                                       </Dropdown>
+                                     </div>
+
+                                   </div>
+                                 )
+                                : (
+
                               <div className="float-right">
                                 <div className="input-group mb-3">
                                   <div className="input-group-prepend">
@@ -1454,9 +1572,10 @@ export class BudgetEntriesComponent extends Component{
                                   </div>
                                 </div>
                               </div>
+                            )}
 
                             <div className="float-left">
-                                <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"/> &nbsp;&nbsp;<b><span className='text-danger'>*</span>Conversion rate: 1USD = &#x20a6;365</b>
+                                <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"/> &nbsp;&nbsp;<b><span className='text-danger'>*</span>Conversion rate: 1USD = &#x20a6;{utils.formatNumber(this.state.usdConversionRate)}</b>
                             </div>
 
 
@@ -1524,7 +1643,7 @@ export class BudgetEntriesComponent extends Component{
 
 
                                                {
-                                                  this.props.updateEntries && viewOrEditSelections.is_view ? null
+                                                  this.props.updateentries && viewOrEditSelections.is_view ? null
                                                  : (
                                                    <th className="text-rightx">
                                                      Action
@@ -1581,7 +1700,7 @@ export class BudgetEntriesComponent extends Component{
                                                         </td>
 
                                                         {
-                                                           this.props.updateEntries && viewOrEditSelections.is_view ? null
+                                                           this.props.updateentries && viewOrEditSelections.is_view ? null
                                                           : (
                                                             <td>
 
@@ -1653,7 +1772,7 @@ export class BudgetEntriesComponent extends Component{
 
                                             </th>
                                             {
-                                              this.props.updateEntries && viewOrEditSelections.is_view ?
+                                              this.props.updateentries && viewOrEditSelections.is_view ?
                                               null : (
                                             <th className="text-right">
                                               <LaddaButton
@@ -1713,7 +1832,7 @@ export class BudgetEntriesComponent extends Component{
                                                  Total in USD ($)
                                                </th>
                                                {
-                                                 this.props.updateEntries && viewOrEditSelections.is_view ?
+                                                 this.props.updateentries && viewOrEditSelections.is_view ?
                                                  null : (
                                                <th className="text-right">
                                                  Action
@@ -1775,5 +1894,15 @@ updateDepartmentAggregateSchema = yup.object().shape({
 
 
 
+const mapStateToProps = state => ({
+    active_budget_cycle:state.budgetCycle,
+});
 
-export default BudgetEntriesComponent
+const mapDispatchToProps = {
+  getactivebudgetcycle,
+};
+
+
+export default withRouter(
+  connect(mapStateToProps,mapDispatchToProps)(BudgetEntriesComponent)
+);

@@ -1,6 +1,9 @@
 
 import React, { Component } from "react";
 import { BudgetEntriesComponent } from "./createEntries";
+import { connect } from "react-redux";
+import { Link, Redirect, withRouter } from "react-router-dom";
+import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
 
 
 class ListEntriesComponent extends Component {
@@ -10,6 +13,7 @@ class ListEntriesComponent extends Component {
   constructor(props) {
     super(props);
     this.querySlug = this.props.match.params.slug;
+
   }
 
 
@@ -17,8 +21,8 @@ class ListEntriesComponent extends Component {
   render(){
 
     return (
+      <BudgetEntriesComponent updateentries="true" queryslug={this.querySlug}  {...this.props}/>
 
-      <BudgetEntriesComponent updateEntries={true} querySlug={this.querySlug}/>
 
       )
   }
@@ -27,4 +31,15 @@ class ListEntriesComponent extends Component {
 
 }
 
-export default ListEntriesComponent;
+const mapStateToProps = state => ({
+    active_budget_cycle:state.budgetCycle,
+});
+
+const mapDispatchToProps = {
+  getactivebudgetcycle,
+};
+
+
+export default withRouter(
+  connect(mapStateToProps,mapDispatchToProps)(ListEntriesComponent)
+);

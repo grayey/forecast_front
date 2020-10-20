@@ -26,9 +26,10 @@ export default class PreparationService {
     * @param {*} departmentaggregateData
     * this method creates a new departmentaggregate
     */
-    async createDepartmentAggregate(departmentaggregateData){
-     const url = 'departmentaggregates/';
-     return await apiService.post(url,departmentaggregateData);
+    async saveDepartmentAggregate(departmentaggregateData, id=""){
+     const url = `departmentaggregates/${id  ? id+"/" : ""}`;
+     const action = id ? "put":"post";
+     return  await apiService[action](url,departmentaggregateData);
     }
 
     /**

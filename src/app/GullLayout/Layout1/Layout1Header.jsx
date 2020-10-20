@@ -11,14 +11,28 @@ import {
   setLayoutSettings,
   setDefaultSettings
 } from "app/redux/actions/LayoutActions";
-import { logoutUser } from "app/redux/actions/UserActions";
-import { withRouter } from "react-router-dom";
 
+import { logoutUser } from "app/redux/actions/UserActions";
+import { setactivebudgetcycle, getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
+import { withRouter } from "react-router-dom";
 import { merge } from "lodash";
 import MegaMenu from "@gull/components/MegaMenu";
 
+import ProcessingService from "../../services/processing.service";
+import * as utils from "@utils";
+import AppNotification from "../../appNotifications";
+
 class Layout1Header extends Component {
+
+  processingService;
+
+  constructor(props){
+    super(props);
+    this.processingService = new ProcessingService();
+  }
   state = {
+
+    allBudgetCycles:[],
     shorcutMenuList: [
       {
         icon: "i-Shop-4",
@@ -124,9 +138,17 @@ class Layout1Header extends Component {
     );
   };
 
+  componentDidMount() {
+    this.props.getactivebudgetcycle();
+  }
+
+  handleBudgetCycleSelection = (event) => {
+    this.props.setactivebudgetcycle(event.target.value)
+  }
+
   render() {
     let { shorcutMenuList = [], notificationList = [] } = this.state;
-
+    let { allCurrentCycles, activeBudgetCycle } = this.props.bugetcycleData;
     return (
       <div className="main-header">
         <div className="logo">
@@ -159,6 +181,33 @@ class Layout1Header extends Component {
               onFocus={this.handleSearchBoxOpen}
             />
             <i className="search-icon text-muted i-Magnifi-Glass1"></i>
+          </div>
+
+          <div className="ml-5">
+
+            <div className="input-group mt-1 ml-2">
+              <div className="input-group-prepend">
+                <span className="input-group-text bg-success text-white">
+                  Select Budget Cycle
+                </span>
+              </div>
+              <select className="form-control" defaultValue={this?.props?.active_budget_cycle?.activeBudgetCycle?.id} onChange={this.handleBudgetCycleSelection}>
+                {
+                  allCurrentCycles.map((cycle)=>{
+                    return (
+                      <option key={cycle.id} value={cycle.id}>
+                        {cycle.year}
+                      </option>
+                    )
+                  })
+                }
+              </select>
+
+              <div className="input-group-append">
+                <button className="btn btn-success">Go</button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -284,13 +333,16 @@ const mapStateToProps = state => ({
   setLayoutSettings: PropTypes.func.isRequired,
   logoutUser: PropTypes.func.isRequired,
   user: state.user,
-  settings: state.layout.settings
+  settings: state.layout.settings,
+  bugetcycleData: state.budgetCycle
 });
 
 export default withRouter(
   connect(mapStateToProps, {
     setLayoutSettings,
     setDefaultSettings,
+    setactivebudgetcycle,
+    getactivebudgetcycle,
     logoutUser
   })(Layout1Header)
 );

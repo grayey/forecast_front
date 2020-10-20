@@ -21,6 +21,14 @@ async getAllBudgetCycles(){
 
 
 /**
+ * This method returns a list of all budgetcycles
+ */
+async getBudgetCycleById(budgetCycleId){
+   const url = `budgetcycles/${budgetCycleId}`;
+   return await apiService.get(url);
+}
+
+/**
 *
 * @param {*} budgetcycleData
 * this method creates a new budgetcycle
