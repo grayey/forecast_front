@@ -6,7 +6,7 @@ import {
 
 
 const initialState = {
-  activeBudgetCycle: {},
+  activeBudgetCycle: JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) || {},
   allCurrentCycles:[],
 };
 

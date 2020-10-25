@@ -105,7 +105,7 @@ export class BudgetCyclesComponent extends Component{
             async(versioncodesResponse)=>{
                 // const allVersionCodes = versioncodesResponse;
                 const firstVersion = versioncodesResponse.find(v => v.step == 1);
-                this.setState({firstVersion})
+                this.setState({ firstVersion })
             }
         ).catch((error)=>{
           console.error('Version Error', error)

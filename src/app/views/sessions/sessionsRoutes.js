@@ -8,14 +8,22 @@ const ForgotPassword = lazy(() => import("./ForgotPassword"));
 
 const Error404 = lazy(() => import("./Error"));
 
+const UserDepartments = lazy(() => import("./UserDepartments"));
+
+
 const sessionsRoutes = [
+  {
+    exact: true,
+    path: "/",
+    component: Signin
+  },
+  {
+    path:"/user-departments",
+    component:UserDepartments
+  },
   {
     path: "/session/signup",
     component: Signup
-  },
-  {
-    path: "/session/signin",
-    component: Signin
   },
   {
     path: "/session/forgot-password",

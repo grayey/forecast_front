@@ -20,8 +20,8 @@ const SigninSchema = yup.object().shape({
 
 class Signin extends Component {
   state = {
-    email: "watson@example.com",
-    password: "12345678"
+    email: "",
+    password: ""
   };
 
   handleChange = event => {
@@ -38,10 +38,10 @@ class Signin extends Component {
       <div
         className="auth-layout-wrap"
         style={{
-          backgroundImage: "url(/assets/images/photo-wide-4.jpg)"
+          backgroundImage: "url(/assets/images/user-depts_bg.png)"
         }}
       >
-        <div className="auth-content">
+        <div className="auth-content shadow-lg">
           <div className="card o-hidden">
             <div className="row">
               <div className="col-md-6">
@@ -121,8 +121,12 @@ class Signin extends Component {
                   backgroundImage: "url(/assets/images/photo-long-3.jpg)"
                 }}
               >
-                <div className="pr-3 auth-right">
-                  <Link
+                <div className="auth-right">
+
+
+
+                    <h4 className="text-white"><b>Budget Management System</b></h4>
+                  {/* <Link
                     to="/session/signup"
                     className="btn btn-rounded btn-outline-primary btn-outline-email btn-block btn-icon-text"
                   >
@@ -134,7 +138,8 @@ class Signin extends Component {
                   </Button>
                   <Button className="btn btn-rounded btn-block btn-icon-text btn-outline-facebook">
                     <i className="i-Facebook-2"></i> Sign up with Facebook
-                  </Button>
+                  </Button> */}
+
                 </div>
               </div>
             </div>

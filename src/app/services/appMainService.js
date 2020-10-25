@@ -173,6 +173,70 @@ export default class AppMainService extends Component {
     }
 
 
+
+    /**
+     * This method returns a list of all users
+     */
+   async getAllUsers(){
+       const url = 'users';
+       return await apiService.get(url);
+   }
+
+   async getUserById(userId){
+       const url = `users/${userId}`;
+       return await apiService.get(url);
+   }
+
+   async getUserLoginInfo(userId){
+       const url = `users/${userId}/login-info/`;
+       return await apiService.get(url);
+   }
+
+
+
+   /**
+    *
+    * @param {*} userData
+    * this method creates a new user
+    */
+   async createUser(userData){
+       const url = 'users/';
+       return await apiService.post(url,userData);
+   }
+
+   /**
+    *
+    * @param {*} user
+    * @param {*} id
+    * This method updates a user
+    */
+   async updateUser(user, id){
+       const url =`users/${id}/`;
+       return await apiService.put(url,user);
+
+   }
+
+   /**
+    *
+    * @param {*} user
+    * This method deletes a user
+    */
+   async deleteUser(user){
+       const url = `users/${user.id}`
+       return await apiService.del(url);
+   }
+
+   /**
+    *
+    * @param {*} user
+    * This method toggles a user
+    */
+   async toggleUser(user){
+       user.status = !user.status
+     return this.updateUser(user, user.id);
+   }
+
+
      /**
      *
      * --- DEPARTMENTS SECTION HERE ----

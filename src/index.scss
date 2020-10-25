@@ -109,3 +109,17 @@ tr.divide_row th, tr.divide_row td {
 a.underline{
   text-decoration: underline;
 }
+
+.hover{
+  cursor: pointer;
+}
+
+.skewX{
+  transform: skewX(45deg);
+}
+
+.auth-right{
+  background:
+  -webkit-linear-gradient(rgba(135, 60, 255, 1), rgba(135, 60, 255, 0.0) 0%),
+ -webkit-linear-gradient(-52deg, rgba(36,47,106, 0.9) 57%, rgb(23,162,184) 0%);
+}

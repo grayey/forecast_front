@@ -16,10 +16,12 @@ export const setactivebudgetcycle = budgetCycleId => dispatch => {
           type: SET_ACTIVE_BUDGET_CYCLE,
           data: budgetCycleResponse
         });
+        localStorage.setItem('ACTIVE_BUDGET_CYCLE',JSON.stringify(budgetCycleResponse));
         const successNotification = {
             type:'success',
             msg:`Budget cycle selection reset to ${budgetCycleResponse.year}.`
         }
+        console.log("Action log", budgetCycleResponse)
         new AppNotification(successNotification)
       }
   ).catch((error)=>{
@@ -50,7 +52,8 @@ export const getactivebudgetcycle = () => dispatch => {
             type:'success',
             msg:`Active lists refreshed.`
         }
-        new AppNotification(successNotification)
+        new AppNotification(successNotification);
+
       }).catch((error)=>{
       const errorNotification = {
           type:'error',

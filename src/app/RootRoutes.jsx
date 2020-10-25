@@ -20,6 +20,7 @@ import ecommerceRoutes from "./views/app/ecommerce/ecommerceRoutes";
 import contactRoutes from "./views/app/contact/contactRoutes";
 import departmentRoutes from "./views/departments/departmentsRoute";
 import rolesRoutes from "./views/roles/rolesRoutes";
+import usersRoutes from "./views/users/usersRoutes";
 import processingRoutes from "./views/processing/processing.routes";
 import preparationRoutes from "./views/preparation/preparation.routes";
 import itemCategoriesRoutes from "./views/itemcategories/itemCategoriesRoutes";
@@ -52,6 +53,7 @@ const routes = [
       ...dashboardRoutes,
       ...departmentRoutes,
       ...rolesRoutes,
+      ...usersRoutes,
       ...processingRoutes,
       ...preparationRoutes,
       ...itemCategoriesRoutes,

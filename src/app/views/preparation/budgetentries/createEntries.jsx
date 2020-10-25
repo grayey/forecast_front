@@ -5,11 +5,12 @@ import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
 import ProcessingService from "../../../services/processing.service";
 import AppMainService from "../../../services/appMainService";
+import jwtAuthService from "../../../services/jwtAuthService";
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords, BulkTemplateDownload} from "../../../appWidgets";
+import { FetchingRecords, BulkTemplateDownload } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
@@ -36,6 +37,7 @@ export class BudgetEntriesComponent extends Component{
 
   preparationService;
   processingService;
+  selectedBudgetCycle;
 
     state = {
         navigate:false,
@@ -49,7 +51,7 @@ export class BudgetEntriesComponent extends Component{
         allBudgetEntries:[],
         allItemCategories:[],
         allCostItems:[],
-
+        aggregateList:[],
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
@@ -120,28 +122,39 @@ export class BudgetEntriesComponent extends Component{
         this.preparationService = new PreparationService();
         this.appMainService = new AppMainService();
         this.processingService = new ProcessingService();
+        this.selectedBudgetCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : null;
+        if(!this.selectedBudgetCycle){
+          new AppNotification({
+              type:"error",
+              msg:"No budget cycle selected!"
+            })
+            window.history.back();
+        }
     }
 
-    componentDidMount(){
+    componentDidMount = async ()=>{
       if(this.props.updateentries){
-        this.getAllBudgetEntriesByDepartmentSlug();
+      await  this.getAllBudgetEntriesByDepartmentSlug();
       }
-
-        this.setActiveBudgetCycle();
+        await this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
          this.getAllItemCategories();
-    }
-
-
-
-
-
-    componentWillReceiveProps = (nextProps) => {
-      const { activeBudgetCycle }  = nextProps.active_budget_cycle;
-      if(this.props.active_budget_cycle.activeBudgetCycle.id !== activeBudgetCycle.id){
-        this.setState({ navigate : true });
-      }
+         this.setActiveBudgetCycle();
 
     }
+
+
+
+
+
+    // componentWillReceiveProps = (nextProps) => {
+    //   const { activeBudgetCycle }  = nextProps.active_budget_cycle;
+    //   if(this.props.active_budget_cycle.activeBudgetCycle.id !== activeBudgetCycle.id){
+    //
+    //     console.log("OLD PROPS", this.props.active_budget_cycle, "NEW PROPS", nextProps)
+    //     this.setState({ navigate : true });
+    //   }
+    //
+    // }
 
 
 
@@ -470,9 +483,8 @@ export class BudgetEntriesComponent extends Component{
     }
 
     setActiveBudgetCycle = () =>{
-      console.log("thshhsh", this.props);
       const { activeBudgetCycle } =  this.props.active_budget_cycle;
-      const usdConversionRate = activeBudgetCycle.currency_conversion_rate
+      const usdConversionRate = activeBudgetCycle.currency_conversion_rate;
         this.setState({ activeBudgetCycle, usdConversionRate })
     }
 
@@ -611,7 +623,8 @@ export class BudgetEntriesComponent extends Component{
      */
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
          const slug = this.props.queryslug;
-         let { totals, usdConversionRate, viewedDepartmentAggregate, activeBudgetCycle, isFetching } = this.state
+         let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching } = this.state
+         let activeBudgetCycle  = this.selectedBudgetCycle ? this.selectedBudgetCycle : {}
           isFetching = true;
          this.setState({ isFetching })
         this.preparationService.getAllBudgetEntriesByDepartmentSlug(slug).then(
@@ -620,6 +633,9 @@ export class BudgetEntriesComponent extends Component{
                viewedDepartmentAggregate = departmentAggregatesResponse;
               const { entries, total_currency_portion, total_naira_portion,
                   total_functional_naira, total_functional_currency, budgetcycle, capturer } = viewedDepartmentAggregate;
+                  if(budgetcycle.id !== activeBudgetCycle.id){
+                  return  this.setState({navigate:true})
+                  }
               const allBudgetEntries = entries.map((entry)=>{
                 return this.formatEntry(entry);
               });
@@ -629,7 +645,7 @@ export class BudgetEntriesComponent extends Component{
               totals.in_currency = total_functional_currency;
               usdConversionRate = budgetcycle.currency_conversion_rate
               await  this.setState({ allBudgetEntries, isFetching, totals,
-                 viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle:budgetcycle }); // so allBudgetEntries is set
+                 viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle }); // so allBudgetEntries is set
 
               this.setViewMode();
 
@@ -650,7 +666,7 @@ export class BudgetEntriesComponent extends Component{
         const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
         const { entries_status, department, capturer, budgetcycle } = viewedDepartmentAggregate;
         viewOrEditSelections.is_view_only = false  // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
-        // Or userRole is not a capture role
+        // Or userRole is not a capture role // departmentHasbegun capture
         // (entries_status || !budgetcycle.is_current)
 
         viewOrEditSelections.is_view = viewOrEditSelections.is_view_only; // if we're not in view only, then we're in edit mode  by default
@@ -664,14 +680,16 @@ export class BudgetEntriesComponent extends Component{
      * This method creates a new departmentaggregate
      */
     saveBudgetEntries = async ()=>{
-        let { allBudgetEntries, totals, navigate, viewedDepartmentAggregate } = this.state;
+        let { allBudgetEntries, totals, navigate, activeBudgetCycle, viewedDepartmentAggregate } = this.state;
+        activeBudgetCycle  = activeBudgetCycle  || this.selectedBudgetCycle;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
+        const { role, department } = jwtAuthService.getActiveDepartmentRole();
         const aggregateData = {
-          department:1,
-          budgetcycle:1,
-          capturer:1,
+          department:department.id,
+          budgetcycle:activeBudgetCycle.id,
+          capturer:role.id,
           total_functional_naira:totals.in_naira,
           total_functional_currency:totals.in_currency,
           total_naira_portion:totals.naira_part,
@@ -716,7 +734,42 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
+    getAllDepartmentAggregatesByBudgetCycleAndDepartment = async() =>{
 
+      let isFetching = true;
+      let { aggregateList, navigate } = this.state;
+      const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
+      const budgetCycleId = activeBudgetCycle.id;
+      const departmentId = 5;
+      this.setState({ isFetching })
+
+     this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, departmentId).then(
+         async (departmentaggregatesResponse)=>{
+            isFetching = false;
+            aggregateList = departmentaggregatesResponse;
+            if(aggregateList.length && !this.props.updateentries){
+              this.setState({ navigate:true });
+              new AppNotification(
+                {
+                  type:"info",
+                  msg:`Your department has begun capture for ${activeBudgetCycle.year}!`
+                }
+              )
+            }
+           await  this.setState({ aggregateList, isFetching, navigate });
+
+         }
+     ).catch((error)=>{
+        isFetching = false;
+         this.setState({isFetching})
+         const errorNotification = {
+             type:'error',
+             msg:utils.processErrors(error)
+         }
+         new AppNotification(errorNotification)
+         console.log('Error', error)
+     })
+    }
 
 
 

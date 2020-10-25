@@ -23,13 +23,9 @@ export const navigations = [
   {
     name: "Preparation",
     description: "Budget entries & aggregates",
-    type: "dropDown",
+    type: "link",
     icon: "i-Computer-Secure",
-
-    sub: [
-      { icon: "i-Email", name: "Budget Entries", path: "/preparation/budget-entries", type: "link" },
-      { icon: "i-Speach-Bubble-3", name: "Create Entries", path: "/preparation/budget-entries/create", type: "link" },
-    ]
+    path: "/preparation/budget-entries",
   },
 
   {

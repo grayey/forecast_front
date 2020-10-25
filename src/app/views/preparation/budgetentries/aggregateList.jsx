@@ -4,6 +4,7 @@ import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-boot
 import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
 import AppMainService from "../../../services/appMainService";
+import jwtAuthService from "../../../services/jwtAuthService";
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
@@ -11,7 +12,8 @@ import AppNotification from "../../../appNotifications";
 import {FetchingRecords} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
-import { Link, Redirect, NavLink } from "react-router-dom";
+import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
+import { connect } from "react-redux";
 
 
 
@@ -77,9 +79,17 @@ export class DepartmentAggregatesComponent extends Component{
     }
 
     componentDidMount(){
-         this.getAllDepartmentAggregates();
+      // this.getAllDepartmentAggregates();
+         this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
          this.getAllVersionCodes();
     }
+
+    // componentWillReceiveProps(nextProps){
+    //   const { activeBudgetCycle } = nextProps.active_budget_cycle;
+    //   if(activeBudgetCycle.id != this.props.active_budget_cycle.id){
+    //     this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
+    //   }
+    // }
 
     /**
      *
@@ -126,6 +136,32 @@ export class DepartmentAggregatesComponent extends Component{
 
 
 
+    getAllDepartmentAggregatesByBudgetCycleAndDepartment = async() =>{
+
+      let isFetching = true;
+      const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
+      const budgetCycleId = activeBudgetCycle.id;
+      const { department } = jwtAuthService.getActiveDepartmentRole();
+      this.setState({ isFetching })
+     this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, department.id).then(
+         async (departmentaggregatesResponse)=>{
+            isFetching = false;
+
+           const allDepartmentAggregates = this.buildGroupedEntries(departmentaggregatesResponse).reverse();
+           await  this.setState({ allDepartmentAggregates, isFetching });
+
+         }
+     ).catch((error)=>{
+        isFetching = false;
+         this.setState({isFetching})
+         const errorNotification = {
+             type:'error',
+             msg:utils.processErrors(error)
+         }
+         new AppNotification(errorNotification)
+         console.log('Error', error)
+     })
+    }
 
 
     /**
@@ -972,9 +1008,15 @@ export class DepartmentAggregatesComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
-                </div>
+           {
+             this.state.allDepartmentAggregates.length ? null :(
+               <div className='float-right'>
+                   <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
+               </div>
+             )
+
+           }
+
 
                 <div className="breadcrumb">
                     <h1>Budget Entries</h1>
@@ -1223,7 +1265,12 @@ updateDepartmentAggregateSchema = yup.object().shape({
 
 }
 
+const mapStateToProps = (state) => ({
+  active_budget_cycle:state.budgetCycle,
+  active_department:state.department
+});
 
 
-
-export default DepartmentAggregatesComponent
+export default withRouter(
+  connect(mapStateToProps)(DepartmentAggregatesComponent)
+);

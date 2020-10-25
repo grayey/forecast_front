@@ -1,5 +1,10 @@
 import { Store } from '../redux/Store';
 
+
+
+
+
+
 export const signin = (data) => {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -34,6 +39,9 @@ export const signout = () => {
         }, 1000);
     })
 }
+
+
+
 
 let authenticated = true;
 

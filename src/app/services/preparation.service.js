@@ -20,6 +20,11 @@ export default class PreparationService {
      return await apiService.get(url);
     }
 
+    async getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, departmentId){
+     const url = `departmentaggregates/${budgetCycleId}/budget-cycle/${departmentId}`;
+     return await apiService.get(url);
+    }
+
 
     /**
     *

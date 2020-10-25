@@ -19,6 +19,8 @@ import { merge } from "lodash";
 import MegaMenu from "@gull/components/MegaMenu";
 
 import ProcessingService from "../../services/processing.service";
+import jwtAuthService from "../../services/jwtAuthService";
+
 import * as utils from "@utils";
 import AppNotification from "../../appNotifications";
 
@@ -32,6 +34,10 @@ class Layout1Header extends Component {
   }
   state = {
 
+    activeBudgetCycle:{},
+    activeUser:{},
+    activeDepartmentRole:{},
+    userDepartmentRoles:[],
     allBudgetCycles:[],
     shorcutMenuList: [
       {
@@ -138,17 +144,88 @@ class Layout1Header extends Component {
     );
   };
 
-  componentDidMount() {
-    this.props.getactivebudgetcycle();
+  componentDidMount = async() => {
+    let { activeDepartmentRole, userDepartmentRoles, activeUser } = this.state;
+    await this.getactivebudgetcycle();
+    activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+    userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
+    activeUser = jwtAuthService.getUser();
+    this.setState({ activeDepartmentRole, userDepartmentRoles, activeUser })
+    // const { activeBudgetCycle } = this.props.bugetcycleData;
+    // this.props.setactivebudgetcycle(activeBudgetCycle.id)
   }
+
+  // componentWillReceiveProps(nextProps){
+  //   const { activeBudgetCycle } = this.props.bugetcycleData;
+  //   if(nextProps.bugetcycleData.activeBudgetCycle.id !== activeBudgetCycle.id){
+  //     this.setState({ activeBudgetCycle })
+  //   }
+  // }
 
   handleBudgetCycleSelection = (event) => {
-    this.props.setactivebudgetcycle(event.target.value)
+    this.setactivebudgetcycle(event.target.value);
+
   }
 
+  getactivebudgetcycle = () => {
+    this.processingService.getAllBudgetCycles().then(
+        (budgetCycleResponse)=>{
+          const allBudgetCycles = budgetCycleResponse.filter((cycle)=>{
+            return cycle.is_current;
+          })
+
+          allBudgetCycles.reverse();
+          const activeBudgetCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : allBudgetCycles[0];
+
+          localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(activeBudgetCycle));
+        this.setState({ allBudgetCycles, activeBudgetCycle })
+
+        }).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        // new AppNotification(errorNotification)
+    })
+  }
+
+  setactivebudgetcycle = (budgetCycleId)  => {
+    this.processingService.getBudgetCycleById(budgetCycleId).then(
+        (budgetCycleResponse)=>{
+          localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(budgetCycleResponse));
+          // const successNotification = {
+          //     type:'success',
+          //     msg:`Budget cycle selection reset to ${budgetCycleResponse.year}.`
+          // }
+          // new AppNotification(successNotification)
+          window.location.reload();
+        }
+    ).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        new AppNotification(errorNotification)
+    })
+
+  }
+
+  setActiveDepartment = (event, departmentRole)=>{
+    event.preventDefault();
+    const { activeDepartmentRole } = this.state;
+    if(activeDepartmentRole.id == departmentRole.id){//no need to reload
+      return;
+    }
+    jwtAuthService.setActiveDepartmentRole(departmentRole);
+    window.location.reload();
+
+
+  }
+
+
+
   render() {
-    let { shorcutMenuList = [], notificationList = [] } = this.state;
-    let { allCurrentCycles, activeBudgetCycle } = this.props.bugetcycleData;
+    let { shorcutMenuList = [], notificationList = [], allBudgetCycles, activeBudgetCycle, activeDepartmentRole, userDepartmentRoles,activeUser } = this.state;
     return (
       <div className="main-header">
         <div className="logo">
@@ -191,11 +268,14 @@ class Layout1Header extends Component {
                   Select Budget Cycle
                 </span>
               </div>
-              <select className="form-control" defaultValue={this?.props?.active_budget_cycle?.activeBudgetCycle?.id} onChange={this.handleBudgetCycleSelection}>
+              <select className="form-control" value={activeBudgetCycle?.id} onChange={this.handleBudgetCycleSelection}>
+                <option value="">
+                  Select
+                </option>
                 {
-                  allCurrentCycles.map((cycle)=>{
+                  allBudgetCycles.map((cycle)=>{
                     return (
-                      <option key={cycle.id} value={cycle.id}>
+                      <option key={cycle.id} value={cycle.id} >
                         {cycle.year}
                       </option>
                     )
@@ -229,11 +309,15 @@ class Layout1Header extends Component {
             </Dropdown.Toggle>
             <Dropdown.Menu>
               <div className="menu-icon-grid">
-                {shorcutMenuList.map(menu => (
-                  <Link key={menu.text} to={menu.link}>
-                    <i className={menu.icon}></i> {menu.text}
-                  </Link>
-                ))}
+
+                {
+                  userDepartmentRoles.map(dr => (
+                    <Link key={dr.slug} to="#" className={dr.id == activeDepartmentRole.id ? "bg-success text-white" : ""} onClick={
+                        (event)=>this.setActiveDepartment(event,dr)}>
+                      <i className="i-Shop-4"></i> <small>{dr.department.name}</small> as <small>{dr.role.name}</small>
+                    </Link>
+                  ))
+                }
               </div>
             </Dropdown.Menu>
           </Dropdown>
@@ -296,7 +380,8 @@ class Layout1Header extends Component {
               </DropdownToggle>
               <DropdownMenu>
                 <div className="dropdown-header">
-                  <i className="i-Lock-User mr-1"></i> Timothy Carlson
+                  <i className="i-Lock-User mr-1"></i>
+                  {activeUser?.first_name} {activeUser?.last_name}
                 </div>
                 <Link to="/" className="dropdown-item cursor-pointer">
                   Account settings

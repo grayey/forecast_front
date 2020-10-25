@@ -1,8 +1,10 @@
 import axios from "axios";
 import localStorageService from "./localStorageService";
+import * as apiService  from "./apiService";
+import jwt_decode from "jwt-decode";
 
 class JwtAuthService {
-  
+
   user = {
     userId: "1",
     role: 'ADMIN',
@@ -13,17 +15,7 @@ class JwtAuthService {
     token: "faslkhfh423oiu4h4kj432rkj23h432u49ufjaklj423h4jkhkjh"
   }
 
-  loginWithEmailAndPassword = (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve(this.user);
-      }, 1000);
-    }).then(data => {
-      this.setSession(data.token);
-      this.setUser(data);
-      return data;
-    });
-  };
+
 
   loginWithToken = () => {
     return new Promise((resolve, reject) => {
@@ -37,27 +29,79 @@ class JwtAuthService {
     });
   };
 
-  
+
 
   logout = () => {
     this.setSession(null);
     this.removeUser();
   }
 
+
+  // MAIN LOGIN METHOD
+  //
+   app_login =  (data) => {
+    const url = 'token-jwt/';
+    return apiService.post(url, data);
+  }
+
+  loginWithEmailAndPassword = (email, password) => {
+    const loginData = { username:email, password };
+    return this.app_login(loginData).then(data => {
+      console.log("Login response dtat", data)
+      const { access, refresh } = data;
+      this.setSession(access);
+      // this.setUser(data);
+      return access;
+    }).catch(error =>{
+      throw error;
+    });
+  };
+
+  decode_token = (token) =>{
+    return jwt_decode(token);
+  }
+
   setSession = token => {
     if (token) {
-      localStorage.setItem("jwt_token", token);
-      axios.defaults.headers.common["Authorization"] = "Bearer " + token;
+      localStorage.setItem("bms_user_token", token);
+      axios.defaults.headers.common["Authorization"] = "Token " + token;
     } else {
-      localStorage.removeItem("jwt_token");
+      localStorage.removeItem("bms_user_token");
       delete axios.defaults.headers.common["Authorization"];
     }
   };
-  setUser = (user) => {    
-    localStorageService.setItem("auth_user", user);
+
+  setUser = (user) => {
+    localStorageService.setItem("bms_auth_user", user);
+  }
+
+  getUser = () => {
+    return localStorageService.getItem("bms_auth_user");
   }
   removeUser = () => {
-    localStorage.removeItem("auth_user");
+    localStorage.removeItem("bms_auth_user");
+  }
+
+  setActiveDepartmentRole = (department) => {
+    localStorageService.setItem("bms_user_active_department_role",department);
+  }
+
+  getActiveDepartmentRole = () => {
+    return localStorageService.getItem("bms_user_active_department_role");
+  }
+  removeActiveDepartment = () => {
+    localStorage.removeItem("bms_user_active_department_role");
+  }
+
+
+  setUserDepartmentRoles = (departmentRoles) => {
+    localStorageService.setItem("bms_user_department_roles", departmentRoles);
+  }
+  getUserDepartmentRoles = () => {
+    return localStorageService.getItem("bms_user_department_roles");
+  }
+  removeUserDepartmentRoles = () => {
+    localStorage.removeItem("bms_user_department_roles");
   }
 }
 
