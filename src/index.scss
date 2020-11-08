@@ -43,6 +43,10 @@ padding-bottom: 0 !important;
 
 }
 
+th.text-muted{
+  color: darkgrey !important;
+}
+
 .dash{
   border-top:1px solid black;
   margin-top:20px
@@ -52,9 +56,34 @@ padding-bottom: 0 !important;
   border-bottom:0.5px solid black;
   height:2px
 }
+
+.dash-mid{
+  border-top:1px dashed black;
+  margin-top:20px
+}
+
+.dash-mid-2{
+  border-top:0.5px dashed black;
+  border-bottom:0.5px dashed black;
+  height:2px
+}
 .line_edit{
   border-top: 2px solid rgb(23,162,184) !important;
 }
+.sub_row,.sub_row th{
+  border-bottom:2px solid darkgrey !important;
+
+}
+
+.inner_cell, .inner_cell td{
+  padding-left: 0 !important;
+  margin-left:  0 !important;
+
+}
+table table {
+  width: 100% !important;
+}
+
 .form_sticky{
   z-index: 400;
   position: -webkit-sticky; /* Safari */
@@ -122,4 +151,20 @@ a.underline{
   background:
   -webkit-linear-gradient(rgba(135, 60, 255, 1), rgba(135, 60, 255, 0.0) 0%),
  -webkit-linear-gradient(-52deg, rgba(36,47,106, 0.9) 57%, rgb(23,162,184) 0%);
+}
+
+
+.full-screen{
+  height: 100vh;
+  align-items:center;
+}
+
+.css-df17o1{
+  background:
+  -webkit-linear-gradient(rgba(135, 60, 255, 1), rgba(135, 60, 255, 0.0) 0%),
+ -webkit-linear-gradient(-52deg, rgba(36,47,106, 0.9) 55%, rgb(23,162,184) 0%) !important;
+}
+
+.small-spin{
+  font-size: 5px !important;
 }

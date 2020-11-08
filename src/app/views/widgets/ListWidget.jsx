@@ -435,6 +435,7 @@ class ListWidget extends Component {
           </Col>
 
           <Col lg={4} md={4} sm={4} xs={12} className="mb-4">
+
             <div className="card h-100">
               <div className="card-body">
                 <div className="ul-widget__head pb-20 v-margin">
@@ -522,6 +523,8 @@ class ListWidget extends Component {
                 </div>
               </div>
             </div>
+
+
           </Col>
 
           <Col lg={4} md={4} sm={4} xs={12} className="mb-4">

@@ -125,10 +125,14 @@ export class BudgetCyclesComponent extends Component{
         this.processingService.getAllBudgetCycles().then(
             async (budgetcyclesResponse)=>{
               const allBudgetCycles = budgetcyclesResponse;
+              allBudgetCycles.forEach((cycle)=>{
+                const { budgetversions } = cycle;
+                cycle.active_version = budgetversions.find(version=>version.is_active);
+              })
               await  this.setState({ allBudgetCycles, isFetching }); // so allBudgetCycles is set
               this.filterYears();
 
-                console.log('BudgetCycles response', budgetcyclesResponse)
+                console.log('BudgetCycles response', allBudgetCycles)
             }
         ).catch((error)=>{
             this.setState({isFetching})
@@ -220,13 +224,15 @@ export class BudgetCyclesComponent extends Component{
      */
     updateBudgetCycle = async ()=>{
 
-        let {updateBudgetCycleForm, allBudgetCycles, editedBudgetCycle} = this.state;
+        let { updateBudgetCycleForm, allBudgetCycles, editedBudgetCycle } = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
-        this.setState({isSaving, updateMsg})
+        this.setState({isSaving, updateMsg});
+        const { active_version } = editedBudgetCycle;
         this.processingService.updateBudgetCycle(updateBudgetCycleForm, editedBudgetCycle.id).then(
             (updatedBudgetCycle)=>{
-                updatedBudgetCycle.temp_flash = true
+                updatedBudgetCycle.temp_flash = true;
+                updatedBudgetCycle['active_version'] = active_version;
                 isSaving = false;
                 updateMsg = 'Update';
                 allBudgetCycles.splice(this.state.editedIndex, 1, updatedBudgetCycle)
@@ -308,7 +314,7 @@ export class BudgetCyclesComponent extends Component{
     toggleBudgetCycle = (budgetcycle)=>{
         const toggleMsg = budgetcycle.is_current? "Disable":"Enable";
         const gL = budgetcycle.is_current? ".":", and notifications will be sent out";
-
+        const { active_version } = budgetcycle;
 
         swal.fire({
             title: `<small>${toggleMsg}&nbsp;<b>${budgetcycle.year}</b>?</small>`,
@@ -329,6 +335,7 @@ export class BudgetCyclesComponent extends Component{
 
               this.processingService.toggleBudgetCycle(budgetcycle).then(
                 (toggledBudgetCycle)=>{
+                  toggledBudgetCycle['active_version'] = active_version;
                     allBudgetCycles.splice(toggleIndex, 1, toggledBudgetCycle)
                     this.setState({ allBudgetCycles })
                     const successNotification = {
@@ -955,7 +962,7 @@ export class BudgetCyclesComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Year</th>
-                                                  <th>Version</th>
+                                              <th>Active Version</th>
                                                 <th>Instructions</th>
                                                 <th>USD Rate</th>
                                                 <th>Start Date</th>
@@ -969,6 +976,8 @@ export class BudgetCyclesComponent extends Component{
                                         <tbody>
                                         {
                                           this.state.allBudgetCycles.length ?  this.state.allBudgetCycles.map( (budgetcycle, index)=>{
+                                            const { active_version } = budgetcycle;
+                                            const { version_code } = active_version;
                                                 return (
                                                     <tr key={budgetcycle.id} className={budgetcycle.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
@@ -978,7 +987,7 @@ export class BudgetCyclesComponent extends Component{
                                                             {budgetcycle?.year}
                                                         </td>
                                                         <td>
-                                                          {budgetcycle?.active_version?.name} ({budgetcycle?.active_version?.code})
+                                                          {version_code?.name || active_version?.name} ({version_code?.code || active_version?.code})
                                                         </td>
                                                         <td class="text-center">
                                                           <a onClick={()=>this.viewInstructions(budgetcycle)}  className="text-primary long-view">View</a>

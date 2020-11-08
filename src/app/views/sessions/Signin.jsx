@@ -6,6 +6,10 @@ import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
+import AppMainService from "../../services/appMainService";
+import * as encryptionService from "../../services/encryption.service";
+import LoadingOverlay from 'react-loading-overlay';
+import queryString from "query-string";
 
 const SigninSchema = yup.object().shape({
   email: yup
@@ -21,8 +25,60 @@ const SigninSchema = yup.object().shape({
 class Signin extends Component {
   state = {
     email: "",
-    password: ""
+    password: "",
+    app_settings:{
+      SYSTEM_AUTHENTICATION:{},
+      SYSTEM_ALIASES:{}
+    },
+    loadingSettings:true
   };
+  appMainService;
+
+  constructor(props){
+      super(props);
+      this.appMainService = new AppMainService();
+
+  }
+
+async componentDidMount(){
+
+  let { loadingSettings } = this.state;
+
+  const urlParams = queryString.parse(this.props.location.search);
+
+  console.log(urlParams, "dsjhjhjdfhjfdhj")
+
+  if(!Object.keys(urlParams).length){
+    await this.getAppSettings();
+  }
+  else{
+    const user = await this.getUserFromParams(urlParams);
+     this.props.loginWithEmailAndPassword(user);
+    // loadingSettings = false;
+    this.setState({ loadingSettings })
+
+  }
+}
+
+getUserFromParams = (urlParams) => {
+
+// decryptparrams
+
+let {usn, usac } = urlParams;
+usn.replace(/" "/g,"+")
+usac.replace(/" "/g,"+")
+
+const email = encryptionService.decryptData(usn);
+const password = encryptionService.decryptData(usac);
+console.log({email, password})
+
+
+return {
+  email:"er@er.com",
+  password:"password123"
+}
+
+}
 
   handleChange = event => {
     event.persist();
@@ -33,8 +89,59 @@ class Signin extends Component {
     this.props.loginWithEmailAndPassword(value);
   };
 
+  getAppSettings = async () => {
+    const applied= true;
+    let { loadingSettings } = this.state;
+    loadingSettings = true;
+    await this.setState({ loadingSettings })
+        this.appMainService.getAppSettings().then(
+          async (app_settings) => {
+            const { SYSTEM_AUTHENTICATION, SERVER_URL }  = app_settings;
+            loadingSettings = SYSTEM_AUTHENTICATION == "ACTIVE_DIRECTORY";
+            if(loadingSettings){
+              window.location.href = `${SERVER_URL}/ad/logon`;
+            }
+
+            this.setState({ loadingSettings, app_settings });
+
+            console.log("app_settings", app_settings)
+          }).catch((error)=>{
+            loadingSettings = false;
+            this.setState({ loadingSettings })
+
+      })
+  }
+
+  setAppSettings = (appSettingsResponse)=> {
+    let { app_settings } = this.state;
+    appSettingsResponse.forEach((setting)=>{
+      const { NAME } = setting;
+       app_settings[NAME] = setting
+    })
+    this.setState({app_settings});
+
+    console.log("APP SETTINGS Response",app_settings );
+
+  }
+
   render() {
-    return (
+
+    const { loadingSettings } = this.state;
+
+    return loadingSettings ?
+      (
+        <LoadingOverlay
+          active={loadingSettings}
+          spinner
+          text='Authenticating ...'>
+            <div className="full-screen">
+              <img src="/assets/images/logo.png" alt="Logo" className="modal-logox"  />
+
+            </div>
+        </LoadingOverlay>
+      )
+
+    : (
       <div
         className="auth-layout-wrap"
         style={{

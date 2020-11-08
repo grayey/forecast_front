@@ -56,6 +56,7 @@ export class BudgetEntriesComponent extends Component{
         showSplitModal:false,
         showInstructionsModal:false,
         showDescriptionAlert:false,
+        descriptionLine:0,
         entryDescription:"",
         nairaOrCurrencyAmount:0,
         isSaving:false,
@@ -68,6 +69,7 @@ export class BudgetEntriesComponent extends Component{
         editedDepartmentAggregate: {},
         viewedDepartmentAggregate:{},
         activeBudgetCycle:{},
+        activeDepartmentRole:{},
         createDepartmentAggregateForm: {
           unit_value: "",
           quantity:"",
@@ -133,6 +135,8 @@ export class BudgetEntriesComponent extends Component{
     }
 
     componentDidMount = async ()=>{
+      const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+      await this.setState({ activeDepartmentRole });
       if(this.props.updateentries){
       await  this.getAllBudgetEntriesByDepartmentSlug();
       }
@@ -296,8 +300,10 @@ export class BudgetEntriesComponent extends Component{
   addNewEntry = async () =>{
     // return false;
     let { createDepartmentAggregateForm, allItemCategories, editedIndex,
-      allCostItems, allBudgetEntries, usdConversionRate, toggleFields, totals, editFormMode } = this.state;
+      allCostItems, allBudgetEntries, usdConversionRate, toggleFields, totals, editFormMode, activeBudgetCycle } = this.state;
     let {naira_portion, currency_portion,} = createDepartmentAggregateForm;
+    const {active_version } = activeBudgetCycle;
+    const version = active_version.id;
     let total_naira, total_currency;
     if(!naira_portion && !currency_portion){
       new AppNotification({
@@ -329,7 +335,7 @@ export class BudgetEntriesComponent extends Component{
     }
 
     const new_entry = {
-      ...createDepartmentAggregateForm, category, costitem, naira_portion, currency_portion, total_naira, total_currency, totals
+      ...createDepartmentAggregateForm, category, costitem, naira_portion, currency_portion, total_naira, total_currency, totals, version
     };
 
     editFormMode ? allBudgetEntries.splice(editedIndex,1, new_entry) :allBudgetEntries.unshift(new_entry); // if in editFormMode, just replace
@@ -623,7 +629,7 @@ export class BudgetEntriesComponent extends Component{
      */
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
          const slug = this.props.queryslug;
-         let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching } = this.state
+         let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching, activeDepartmentRole } = this.state
          let activeBudgetCycle  = this.selectedBudgetCycle ? this.selectedBudgetCycle : {}
           isFetching = true;
          this.setState({ isFetching })
@@ -631,9 +637,11 @@ export class BudgetEntriesComponent extends Component{
             async (departmentAggregatesResponse)=>{
                isFetching = false;
                viewedDepartmentAggregate = departmentAggregatesResponse;
+
               const { entries, total_currency_portion, total_naira_portion,
-                  total_functional_naira, total_functional_currency, budgetcycle, capturer } = viewedDepartmentAggregate;
-                  if(budgetcycle.id !== activeBudgetCycle.id){
+                  total_functional_naira, total_functional_currency, capturer, budgetversion  } = viewedDepartmentAggregate;
+                  const { version_code, budgetcycle } = budgetversion
+                  if(budgetcycle.id !== activeBudgetCycle.id || activeDepartmentRole.department.id !== viewedDepartmentAggregate.department.id ){
                   return  this.setState({navigate:true})
                   }
               const allBudgetEntries = entries.map((entry)=>{
@@ -664,7 +672,9 @@ export class BudgetEntriesComponent extends Component{
 
     setViewMode = ()=>{
         const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
-        const { entries_status, department, capturer, budgetcycle } = viewedDepartmentAggregate;
+        const { entries_status, department, capturer, budgetversion } = viewedDepartmentAggregate;
+        const { version_code, budgetcycle } = budgetversion
+
         viewOrEditSelections.is_view_only = false  // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
         // Or userRole is not a capture role // departmentHasbegun capture
         // (entries_status || !budgetcycle.is_current)
@@ -845,8 +855,9 @@ export class BudgetEntriesComponent extends Component{
       this.setState({showDescriptionAlert});
     }
 
-    showDescription = async(entryDescription) =>{
-      await this.setState({entryDescription})
+    showDescription = async(index, entryDescription) =>{
+      const descriptionLine = index+1;
+      await this.setState({entryDescription, descriptionLine})
       this.toggleAlert();
     }
 
@@ -930,7 +941,7 @@ export class BudgetEntriesComponent extends Component{
     deleteDepartmentAggregate = (departmentaggregate, entryIdex)=>{
       const {category, costitem } = departmentaggregate;
          swal.fire({
-                title: `<small>Delete this&nbsp;<b>${category.name? category.name : "" +" | "+ costitem.name ? costitem.name : "" }... item</b>?</small>`,
+                title: `<small>Delete this&nbsp;<b>${category.name? category.name : "" +" | "+ costitem.name ? costitem.name : "" }'s... item</b>?</small>`,
                 text: "",
                 icon: "warning",
                 type: "question",
@@ -991,17 +1002,18 @@ export class BudgetEntriesComponent extends Component{
 
     render(){
 
-      const { navigate, viewOrEditSelections } = this.state;
-
+      const { navigate, viewOrEditSelections, activeDepartmentRole, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = this.state;
+      const { active_version } = activeBudgetCycle;
+      // const { version_code } = active_version;
         return navigate ? <Redirect to="/preparation/budget-entries"/> : (
 
             <>
                 <div className="specific">
 
                   <SweetAlert
-                    show={this.state.showDescriptionAlert}
-                    title="Description"
-                    text={this.state.entryDescription}
+                    show={showDescriptionAlert}
+                    title={`Description: line ${descriptionLine}`}
+                    text={entryDescription}
                     onConfirm={this.toggleAlert}
                   />
 
@@ -1142,7 +1154,7 @@ export class BudgetEntriesComponent extends Component{
                     {
                        this.props.updateentries && viewOrEditSelections.is_view ? (
                          <div className="mt-3 ml-4">
-                           <h5><b>Department:</b> {this.state.viewedDepartmentAggregate?.department?.name} ({this.state.viewedDepartmentAggregate?.department?.code})</h5>
+                           <h5><b>Department:</b> {activeDepartmentRole.department?.name} ({activeDepartmentRole?.department?.code})</h5>
                          </div>
                        )
                       : (
@@ -1628,7 +1640,10 @@ export class BudgetEntriesComponent extends Component{
                             )}
 
                             <div className="float-left">
-                                <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"/> &nbsp;&nbsp;<b><span className='text-danger'>*</span>Conversion rate: 1USD = &#x20a6;{utils.formatNumber(this.state.usdConversionRate)}</b>
+                                <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"/> &nbsp;&nbsp;
+                                <b><span className='text-info'>*</span><em>Version Info: </em> {active_version?.version_code?.name} ({active_version?.version_code?.code}) &nbsp;&nbsp;<FaArrowsAlt/>&nbsp;&nbsp;</b>
+
+                                <b><span className='text-danger'>*</span><em>Conversion rate: </em> 1USD = &#x20a6;{utils.formatNumber(this.state.usdConversionRate)}</b>
                             </div>
 
 
@@ -1727,7 +1742,7 @@ export class BudgetEntriesComponent extends Component{
                                                         </td>
 
                                                         <td className="text-center">
-                                                          <a onClick={()=>this.showDescription(departmentaggregate?.description)}  className="text-primary long-view">View</a>
+                                                          <a onClick={()=>this.showDescription(index, departmentaggregate?.description)}  className="text-primary long-view">View</a>
                                                         </td>
                                                         <td>
                                                           {utils.formatNumber(departmentaggregate?.unit_value, false)}

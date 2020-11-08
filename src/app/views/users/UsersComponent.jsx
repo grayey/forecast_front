@@ -8,6 +8,7 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
+import { FaArrowDown } from "react-icons/fa";
 
 
 import LaddaButton, {
@@ -296,7 +297,7 @@ export class UsersComponent extends Component{
       const role = allRolesCopy[role_index];
       const department = allDepartmentsCopy[department_index];
       departmentRoles.unshift({ role, department });
-      allRolesCopy.splice(role_index, 1);
+      // allRolesCopy.splice(role_index, 1); # A user can have the same role in different departments so don't remove roles
       allDepartmentsCopy.splice(department_index, 1);
       addDepartmentRoleForm = {
         department_id:"",
@@ -359,7 +360,7 @@ export class UsersComponent extends Component{
       const { departmentRoles, allDepartmentsCopy, allRolesCopy } = this.state;
       const departmentRole = departmentRoles[index];
       const { role, department } = departmentRole;
-      allRolesCopy.unshift(role);
+      // allRolesCopy.unshift(role);
       allDepartmentsCopy.unshift(department);
       departmentRoles.splice(index, 1);
       this.setState({ departmentRoles, allDepartmentsCopy, allRolesCopy });
@@ -708,7 +709,7 @@ export class UsersComponent extends Component{
 
                                       </div>
                                     <div className="col-md-2 mt-2">
-                                      <button type="button" className="btn float-right mt-4 btn-sm btn-primary" onClick={this.addDepartmentRoles}>Add</button>
+                                      <button type="button" className="btn float-right mt-4 btn-sm btn-primary" onClick={this.addDepartmentRoles}>Add <FaArrowDown/></button>
                                     </div>
                                     </div>
                                     <div className="form-row">
@@ -777,11 +778,13 @@ export class UsersComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.createUserSchema, this.state.createUserForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.createUserSchema, this.state.createUserForm) && this.state.departmentRoles.length > 0
+                                           ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
                                         data-style={EXPAND_RIGHT}
+                                        disabled={this.state.departmentRoles.length == 0}
                                         >
                                         {this.state.saveMsg}
                                     </LaddaButton>

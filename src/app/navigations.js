@@ -36,7 +36,7 @@ export const navigations = [
 
     sub: [
       { icon: "i-Email", name: "Budget cycles", path: "/processing/budget-cycles", type: "link" },
-      { icon: "i-Speach-Bubble-3", name: "Budget versions", path: "/chat", type: "link" },
+      { icon: "i-Speach-Bubble-3", name: "Budget versions", path:"/processing/budget-versions", type: "link" },
     ]
   },
 

@@ -76,6 +76,7 @@ export async  function forwardUserIntoApp(user_access){
  jwtAuthService.setUserDepartmentRoles(userDepartmentRoles);
 
  history.push({ pathname });
+ // window.location.href = `http://localhost:3000${pathname}`;
 
 }
 

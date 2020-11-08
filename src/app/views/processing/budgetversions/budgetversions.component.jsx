@@ -2,9 +2,8 @@ import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
-import PreparationService from "../../../services/preparation.service";
+import ProcessingService from "../../../services/processing.service";
 import AppMainService from "../../../services/appMainService";
-import jwtAuthService from "../../../services/jwtAuthService";
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
@@ -13,7 +12,6 @@ import {FetchingRecords} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
-import { connect } from "react-redux";
 
 
 
@@ -26,40 +24,29 @@ import LaddaButton, {
     CONTRACT,
   } from "react-ladda";
 
-export class DepartmentAggregatesComponent extends Component{
+export class BudgetVersionsComponent extends Component{
 
     state = {
-        navigate: false,
-        navigationUrls:{
-          create:true,
-          view_entries:false
-        },
         editedIndex:0,
-        allDepartmentAggregates:[],
+        allBudgetVersions:[],
         showEditModal:false,
         showCreateModal:false,
         showInstructionsModal:false,
         isSaving:false,
         isFetching:true,
-        canCreate:false,
         firstVersion:{},
-        entryTypes:[
-          "PRINCIPAL",
-
-        ], //dummy entry type
-        groupedEntries:[],
         saveMsg:'Save',
         updateMsg:'Update',
-        editedDepartmentAggregate: {},
-        viewedDepartmentAggregate:{},
-        createDepartmentAggregateForm: {
+        editedBudgetVersion: {},
+        viewedBudgetVersion:{},
+        createBudgetVersionForm: {
             year: "",
             start_date: "",
             end_date: "",
             currency_conversion_rate: "",
             instructions: "",
           },
-          updateDepartmentAggregateForm: {
+          updateBudgetVersionForm: {
             year: "",
             start_date: "",
             end_date: "",
@@ -69,28 +56,20 @@ export class DepartmentAggregatesComponent extends Component{
           availableYears:[]
 
     }
-    preparationService;
+    processingService;
 
 
 
     constructor(props){
         super(props)
-        this.preparationService = new PreparationService();
+        this.processingService = new ProcessingService();
         this.appMainService = new AppMainService();
     }
 
     componentDidMount(){
-      // this.getAllDepartmentAggregates();
-         this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
+         this.getAllBudgetVersions();
          this.getAllVersionCodes();
     }
-
-    // componentWillReceiveProps(nextProps){
-    //   const { activeBudgetCycle } = nextProps.active_budget_cycle;
-    //   if(activeBudgetCycle.id != this.props.active_budget_cycle.id){
-    //     this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
-    //   }
-    // }
 
     /**
      *
@@ -100,23 +79,23 @@ export class DepartmentAggregatesComponent extends Component{
      */
 
     handleChange = (event, form='create') => {
-        const {createDepartmentAggregateForm, updateDepartmentAggregateForm} = this.state
+        const {createBudgetVersionForm, updateBudgetVersionForm} = this.state
         if(form=='create'){
-            createDepartmentAggregateForm[event.target.name] = event.target.value;
+            createBudgetVersionForm[event.target.name] = event.target.value;
         }else if(form=='edit'){
-            updateDepartmentAggregateForm[event.target.name] = event.target.value;
+            updateBudgetVersionForm[event.target.name] = event.target.value;
         }
-        this.setState({ createDepartmentAggregateForm, updateDepartmentAggregateForm });
+        this.setState({ createBudgetVersionForm, updateBudgetVersionForm });
     }
 
     handleRichEditorChange = (html, form='create') => {
-      const {createDepartmentAggregateForm, updateDepartmentAggregateForm} = this.state
+      const {createBudgetVersionForm, updateBudgetVersionForm} = this.state
       if(form=='create'){
-        createDepartmentAggregateForm['instructions'] = html;
+        createBudgetVersionForm['instructions'] = html;
       }else{
-        updateDepartmentAggregateForm['instructions'] = html;
+        updateBudgetVersionForm['instructions'] = html;
       }
-      this.setState({ createDepartmentAggregateForm, updateDepartmentAggregateForm });
+      this.setState({ createBudgetVersionForm, updateBudgetVersionForm });
 
     }
 
@@ -128,7 +107,7 @@ export class DepartmentAggregatesComponent extends Component{
             async(versioncodesResponse)=>{
                 // const allVersionCodes = versioncodesResponse;
                 const firstVersion = versioncodesResponse.find(v => v.step == 1);
-                this.setState({firstVersion})
+                this.setState({ firstVersion })
             }
         ).catch((error)=>{
           console.error('Version Error', error)
@@ -137,56 +116,21 @@ export class DepartmentAggregatesComponent extends Component{
 
 
 
-    getAllDepartmentAggregatesByBudgetCycleAndDepartment = async() =>{
-
-      let isFetching = true;
-      const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
-      const { active_version } = activeBudgetCycle;
-      const budgetCycleId = activeBudgetCycle.id;
-      const ACTIVE_VERSION_ID = active_version.id;
-      const { department } = jwtAuthService.getActiveDepartmentRole();
-      this.setState({ isFetching })
-     this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, department.id).then(
-         async (departmentaggregatesResponse)=>{
-            isFetching = false;
-            const { department_aggregates, budget_versions } = this.buildGroupedEntries(departmentaggregatesResponse);
-            const version_exists = !!budget_versions.find(version => version.id == ACTIVE_VERSION_ID);
-
-            let canCreate = !version_exists; // cannot create if version exists
-
-           const allDepartmentAggregates = department_aggregates.reverse();
-           await  this.setState({ allDepartmentAggregates, isFetching, canCreate });
-
-         }
-     ).catch((error)=>{
-        isFetching = false;
-         this.setState({isFetching})
-         const errorNotification = {
-             type:'error',
-             msg:utils.processErrors(error)
-         }
-         new AppNotification(errorNotification)
-         console.log('Error', error)
-     })
-    }
 
 
     /**
-     * This method lists all departmentaggregates
+     * This method lists all budgetversions
      */
-     getAllDepartmentAggregates = async ()=>{
+     getAllBudgetVersions = async ()=>{
          let isFetching = false;
 
-        this.preparationService.getAllDepartmentAggregates().then(
-            async (departmentaggregatesResponse)=>{
-              const { department_aggregates, budget_versions } = this.buildGroupedEntries(departmentaggregatesResponse);
-             const allDepartmentAggregates = department_aggregates.reverse();
+        this.processingService.getAllBudgetVersions().then(
+            async (budgetversionsResponse)=>{
+              const allBudgetVersions = budgetversionsResponse;
+              await  this.setState({ allBudgetVersions, isFetching }); // so allBudgetVersions is set
+              this.filterYears();
 
-             // const version_exists = !!budget_versions.find(version => version.id == ACTIVE_VERSION_ID);
-             // let canCreate = !version_exists; // cannot create if version exists
-
-              await  this.setState({ allDepartmentAggregates, isFetching });
-
+                console.log('BudgetVersions response', budgetversionsResponse)
             }
         ).catch((error)=>{
             this.setState({isFetching})
@@ -214,78 +158,38 @@ export class DepartmentAggregatesComponent extends Component{
 
     }
 
-
-
-    buildGroupedEntries = (allDepartmentAggregates) =>{
-
-      const { entryTypes } = this.state;
-      const budgetVersions = [];
-      allDepartmentAggregates.forEach((aggregate) =>{
-        const { budgetversion } = aggregate;
-        budgetVersions.push(budgetversion)
-        aggregate['summary'] = {};
-        const entries = aggregate['entries']
-        entryTypes.forEach((entryType)=>{
-          aggregate['summary'][entryType] = this.buildEntriesByType(entries, entryType)
-        })
-      })
-
-      return {
-        "department_aggregates":allDepartmentAggregates,
-        "budget_versions":budgetVersions
-      };
-    }
-
-    buildEntriesByType = (entries, entryType)=>{
-      const summaryItem = {
-        total_naira_part:0,
-        total_currency_part:0,
-        total_in_naira:0,
-        total_in_currency:0,
-      };
-      entries.forEach((entry)=>{
-        if(entry.entity == entryType){
-          summaryItem.total_naira_part += entry.naira_portion
-          summaryItem.total_currency_part += entry.currency_portion
-          summaryItem.total_in_naira+= entry.total_naira
-          summaryItem.total_in_currency += entry.total_currency
-        }
-      })
-      return summaryItem;
-    }
-
     /**
      * Filter years
      * @type {[type]}
      */
 
     filterYears = async ()=>{
-      const { allDepartmentAggregates } = this.state;
+      const { allBudgetVersions } = this.state;
       const futureYears = this.getFutureYears(moment().year());
-      const budgetYears = allDepartmentAggregates.map(departmentAggregate => +departmentAggregate.year);
+      const budgetYears = allBudgetVersions.map(budgetVersion => +budgetVersion.year);
       const availableYears = futureYears.filter(yr => !budgetYears.includes(+yr)).sort();
       this.setState({availableYears});
     }
 
     /**
-     * This method creates a new departmentaggregate
+     * This method creates a new budgetversion
      */
-    createDepartmentAggregate = async ()=>{
-        const {createDepartmentAggregateForm, allDepartmentAggregates, firstVersion} = this.state;
+    createBudgetVersion = async ()=>{
+        const {createBudgetVersionForm, allBudgetVersions, firstVersion} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
-        this.preparationService.createDepartmentAggregate(createDepartmentAggregateForm).then(
-            async (departmentaggregateData) => {
+        this.processingService.createBudgetVersion(createBudgetVersionForm).then(
+            async (budgetversionData) => {
                 isSaving = false;
                 saveMsg = 'Save';
-                departmentaggregateData['active_version'] = firstVersion //making sure
-                allDepartmentAggregates.unshift(departmentaggregateData)
-              await this.setState({ allDepartmentAggregates, isSaving, saveMsg })
-
+                budgetversionData['active_version'] = firstVersion //making sure
+                allBudgetVersions.unshift(budgetversionData)
+              await this.setState({ allBudgetVersions, isSaving, saveMsg })
+                this.filterYears();
                 const successNotification = {
                     type:'success',
-                    msg:`${departmentaggregateData.year} successfully created!`
+                    msg:`${budgetversionData.year} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -306,40 +210,41 @@ export class DepartmentAggregatesComponent extends Component{
     }
 
 
-    viewInstructions = (viewedDepartmentAggregate) => {
-      this.setState({viewedDepartmentAggregate});
+    viewInstructions = (viewedBudgetVersion) => {
+      this.setState({viewedBudgetVersion});
       this.toggleModal('instructions');
 
     }
 
 
     /**
-     * This method updates a new departmentaggregate
+     * This method updates a new budgetversion
      */
-    updateDepartmentAggregate = async ()=>{
+    updateBudgetVersion = async ()=>{
 
-        let {updateDepartmentAggregateForm, allDepartmentAggregates, editedDepartmentAggregate} = this.state;
+        let {updateBudgetVersionForm, allBudgetVersions, editedBudgetVersion} = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
         this.setState({isSaving, updateMsg})
-        this.preparationService.updateDepartmentAggregate(updateDepartmentAggregateForm, editedDepartmentAggregate.id).then(
-            (updatedDepartmentAggregate)=>{
-                updatedDepartmentAggregate.temp_flash = true
+        this.processingService.updateBudgetVersion(updateBudgetVersionForm, editedBudgetVersion.id).then(
+            (updatedBudgetVersion)=>{
+                updatedBudgetVersion.temp_flash = true
                 isSaving = false;
                 updateMsg = 'Update';
-                allDepartmentAggregates.splice(this.state.editedIndex, 1, updatedDepartmentAggregate)
-                this.setState({ allDepartmentAggregates, isSaving, updateMsg })
+                allBudgetVersions.splice(this.state.editedIndex, 1, updatedBudgetVersion)
+                this.setState({ allBudgetVersions, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`Budget cycle ${updatedDepartmentAggregate.year} successfully updated!`
+                    msg:`Budget version ${updatedBudgetVersion.year} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
              setTimeout(async ()=>{
-                    updatedDepartmentAggregate.temp_flash = false
-                    allDepartmentAggregates.splice(this.state.editedIndex, 1, updatedDepartmentAggregate)
-                    await this.setState({ allDepartmentAggregates, isSaving, updateMsg })
+                    updatedBudgetVersion.temp_flash = false
+                    allBudgetVersions.splice(this.state.editedIndex, 1, updatedBudgetVersion)
+                    await this.setState({ allBudgetVersions, isSaving, updateMsg })
+                    this.filterYears();
                 }, 10000);
 
             }
@@ -380,35 +285,36 @@ export class DepartmentAggregatesComponent extends Component{
 
     /**
      *
-     * This method sets the departmentaggregate to be edited
+     * This method sets the budgetversion to be edited
      *  and opens the modal for edit
      *
      */
-    editDepartmentAggregate = (editedDepartmentAggregate) => {
-        const updateDepartmentAggregateForm = {...editedDepartmentAggregate}
+    editBudgetVersion = (editedBudgetVersion) => {
+        const updateBudgetVersionForm = {...editedBudgetVersion}
         const {availableYears} = this.state;
         //
-        availableYears.push(+editedDepartmentAggregate.year);
+        availableYears.push(+editedBudgetVersion.year);
         availableYears.sort();
         //
-        const editedIndex = this.state.allDepartmentAggregates.findIndex(departmentaggregate => editedDepartmentAggregate.id == departmentaggregate.id)
-        this.setState({editedDepartmentAggregate, editedIndex, updateDepartmentAggregateForm, availableYears});
+        const editedIndex = this.state.allBudgetVersions.findIndex(budgetversion => editedBudgetVersion.id == budgetversion.id)
+        this.setState({editedBudgetVersion, editedIndex, updateBudgetVersionForm, availableYears});
         this.toggleModal('edit')
     }
 
 
     /**
      *
-     * @param {*} departmentaggregate
-     * This method toggles a departmentaggregate's status
+     * @param {*} budgetversion
+     * This method toggles a budgetversion's status
      */
-    toggleDepartmentAggregate = (departmentaggregate)=>{
-        const toggleMsg = departmentaggregate.is_current? "Disable":"Enable";
-        const gL = departmentaggregate.is_current? ".":", and notifications will be sent out";
+    toggleBudgetVersion = (budgetversion)=>{
+      return ;
+        const toggleMsg = budgetversion.is_current? "Disable":"Enable";
+        const gL = budgetversion.is_current? ".":", and notifications will be sent out";
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${departmentaggregate.year}</b>?</small>`,
+            title: `<small>${toggleMsg}&nbsp;<b>${budgetversion.year}</b>?</small>`,
             text: `Capture will be ${toggleMsg}d${gL}`,
             icon: "warning",
             type: "question",
@@ -420,17 +326,17 @@ export class DepartmentAggregatesComponent extends Component{
           })
           .then(result => {
             if (result.value) {
-                let { allDepartmentAggregates } = this.state
-                const toggleIndex = allDepartmentAggregates.findIndex(r => r.id == departmentaggregate.id)
-                // departmentaggregate.status = !departmentaggregate.status;
+                let { allBudgetVersions } = this.state
+                const toggleIndex = allBudgetVersions.findIndex(r => r.id == budgetversion.id)
+                // budgetversion.status = !budgetversion.status;
 
-              this.preparationService.toggleDepartmentAggregate(departmentaggregate).then(
-                (toggledDepartmentAggregate)=>{
-                    allDepartmentAggregates.splice(toggleIndex, 1, toggledDepartmentAggregate)
-                    this.setState({ allDepartmentAggregates })
+              this.processingService.toggleBudgetVersion(budgetversion).then(
+                (toggledBudgetVersion)=>{
+                    allBudgetVersions.splice(toggleIndex, 1, toggledBudgetVersion)
+                    this.setState({ allBudgetVersions })
                     const successNotification = {
                         type:'success',
-                        msg:`Budget cycle ${toggledDepartmentAggregate.year} successfully ${toggleMsg}d!`
+                        msg:`Budget version ${toggledBudgetVersion.year} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }
@@ -448,13 +354,13 @@ export class DepartmentAggregatesComponent extends Component{
 
     /**
      *
-     * @param {*} departmentaggregate
-     * This method deletes a departmentaggregate
+     * @param {*} budgetversion
+     * This method deletes a budgetversion
      *
      */
-    deleteDepartmentAggregate = (departmentaggregate)=>{
+    deleteBudgetVersion = (budgetversion)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${departmentaggregate.year}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${budgetversion.year}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -466,14 +372,15 @@ export class DepartmentAggregatesComponent extends Component{
               })
               .then(result => {
                 if (result.value) {
-                let { allDepartmentAggregates } = this.state
-                  this.preparationService.deleteDepartmentAggregate(departmentaggregate).then(
-                    async (deletedDepartmentAggregate) => {
-                        allDepartmentAggregates = allDepartmentAggregates.filter(r=> r.id !== departmentaggregate.id)
-                      await this.setState({ allDepartmentAggregates });
+                let { allBudgetVersions } = this.state
+                  this.processingService.deleteBudgetVersion(budgetversion).then(
+                    async (deletedBudgetVersion) => {
+                        allBudgetVersions = allBudgetVersions.filter(r=> r.id !== budgetversion.id)
+                      await this.setState({ allBudgetVersions });
+                      this.filterYears();
                         const successNotification = {
                             type:'success',
-                            msg:`Budget cycle ${departmentaggregate.year} successfully deleted!`
+                            msg:`Budget version ${budgetversion.year} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -494,21 +401,17 @@ export class DepartmentAggregatesComponent extends Component{
      * @param {*} modalName
      */
     resetForm = ()=> {
-        const createDepartmentAggregateForm = {
+        const createBudgetVersionForm = {
             name: "",
             description: "",
           }
-          this.setState({createDepartmentAggregateForm})
+          this.setState({createBudgetVersionForm})
 
     }
 
     render(){
-      const { navigate, navigationUrls } = this.state;
-      const { create_entries, view_entries}  = navigationUrls
 
-
-
-        return navigate ? <Redirect to="/preparation/budget-entries/create" /> : (
+        return (
 
             <>
                 <div className="specific">
@@ -521,13 +424,13 @@ export class DepartmentAggregatesComponent extends Component{
 
                                       <Modal.Title>
                                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
-                                        Instructions for <b>{this.state?.viewedDepartmentAggregate?.year}</b>
+                                        Instructions for <b>{this.state?.viewedBudgetVersion?.year}</b>
                                     </Modal.Title>
                                       </Modal.Header>
 
                                                <Modal.Body>
 
-                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedDepartmentAggregate.instructions}} />
+                                                 <div dangerouslySetInnerHTML={{__html: this.state.viewedBudgetVersion.instructions}} />
 
                                                </Modal.Body>
 
@@ -565,14 +468,14 @@ export class DepartmentAggregatesComponent extends Component{
                                                       <Modal.Title>
                                                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
 
-                                                        Update budget cycle <b>{this.state.editedDepartmentAggregate.year}</b>
+                                                        Update budget version <b>{this.state.editedBudgetVersion.year}</b>
                                                     </Modal.Title>
                                                       </Modal.Header>
 
                                                       <Formik
-                                                      initialValues={this.state.updateDepartmentAggregateForm}
-                                                      validationSchema={this.updateDepartmentAggregateSchema}
-                                                      onSubmit={this.updateDepartmentAggregate}
+                                                      initialValues={this.state.updateBudgetVersionForm}
+                                                      validationSchema={this.updateBudgetVersionSchema}
+                                                      onSubmit={this.updateBudgetVersion}
                                                       >
                                                       {({
                                                           values,
@@ -602,13 +505,13 @@ export class DepartmentAggregatesComponent extends Component{
                                                                           errors.year && touched.year
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="departmentaggregate_name">
+                                                                      <label htmlFor="budgetversion_name">
                                                                           <b>Year<span className='text-danger'>*</span></b>
                                                                       </label>
 
                                                                     <select
                                                                       className="form-control"
-                                                                      id="departmentaggregate_name"
+                                                                      id="budgetversion_name"
                                                                       placeholder=""
                                                                       name="year"
                                                                       value={values.year}
@@ -637,7 +540,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                                           errors.currency_conversion_rate && touched.currency_conversion_rate
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="departmentaggregate_name">
+                                                                      <label htmlFor="budgetversion_name">
                                                                           <b>[Currency] Rate<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -667,7 +570,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                                           errors.start_date && touched.start_date
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="departmentaggregate_name">
+                                                                      <label htmlFor="budgetversion_name">
                                                                           <b>Start Date<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -696,7 +599,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                                           errors.end_date && touched.end_date
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="departmentaggregate_name">
+                                                                      <label htmlFor="budgetversion_name">
                                                                           <b>End Date<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -726,7 +629,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                                           touched.instructions && errors.instructions
                                                                       })}
                                                                   >
-                                                                      <label htmlFor="edit_departmentaggregate_description">
+                                                                      <label htmlFor="edit_budgetversion_description">
                                                                            <b>Instructions<span className='text-danger'>*</span></b>
                                                                       </label>
 
@@ -772,7 +675,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                                       </LaddaButton>
 
                                                                       <LaddaButton
-                                                                          className={`btn btn-${utils.isValid(this.updateDepartmentAggregateSchema, this.state.editDepartmentAggregateForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                                                          className={`btn btn-${utils.isValid(this.updateBudgetVersionSchema, this.state.editBudgetVersionForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                                                           loading={this.state.isSaving}
                                                                           progress={0.5}
                                                                           type='submit'
@@ -799,14 +702,14 @@ export class DepartmentAggregatesComponent extends Component{
                     <Modal.Title>
                       <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
 
-                      Create Budget Cycle
+                      Create Budget Version
                     </Modal.Title>
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.createDepartmentAggregateForm}
-                    validationSchema={this.createDepartmentAggregateSchema}
-                    onSubmit={this.createDepartmentAggregate}
+                    initialValues={this.state.createBudgetVersionForm}
+                    validationSchema={this.createBudgetVersionSchema}
+                    onSubmit={this.createBudgetVersion}
                     >
                     {({
                         values,
@@ -836,13 +739,13 @@ export class DepartmentAggregatesComponent extends Component{
                                         errors.year && touched.year
                                     })}
                                 >
-                                    <label htmlFor="departmentaggregate_name">
+                                    <label htmlFor="budgetversion_name">
                                         <b>Year<span className='text-danger'>*</span></b>
                                     </label>
 
                                   <select
                                     className="form-control"
-                                    id="departmentaggregate_name"
+                                    id="budgetversion_name"
                                     placeholder=""
                                     name="year"
                                     value={values.year}
@@ -871,7 +774,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         errors.currency_conversion_rate && touched.currency_conversion_rate
                                     })}
                                 >
-                                    <label htmlFor="departmentaggregate_name">
+                                    <label htmlFor="budgetversion_name">
                                         <b>[Currency] Rate<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -901,7 +804,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         errors.start_date && touched.start_date
                                     })}
                                 >
-                                    <label htmlFor="departmentaggregate_name">
+                                    <label htmlFor="budgetversion_name">
                                         <b>Start Date<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -930,7 +833,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         errors.end_date && touched.end_date
                                     })}
                                 >
-                                    <label htmlFor="departmentaggregate_name">
+                                    <label htmlFor="budgetversion_name">
                                         <b>End Date<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -960,7 +863,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         touched.instructions && errors.instructions
                                     })}
                                 >
-                                    <label htmlFor="create_departmentaggregate_description">
+                                    <label htmlFor="create_budgetversion_description">
                                          <b>Instructions<span className='text-danger'>*</span></b>
                                     </label>
 
@@ -1006,7 +909,7 @@ export class DepartmentAggregatesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.createBudgetVersionSchema, this.state.createBudgetVersionForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -1026,18 +929,14 @@ export class DepartmentAggregatesComponent extends Component{
 
                 </Modal>
 
-           {
-             !this.state.canCreate ? null :(
-               <div className='float-right'>
-                   <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
-               </div>
-             )
-
-           }
-
+                {/*
+                <div className='float-right'>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Version</Button>
+                </div>
+                */}
 
                 <div className="breadcrumb">
-                    <h1>Budget Entries</h1>
+                    <h1>Budget Versions</h1>
                     <ul>
                         <li><a href="#">List</a></li>
                         <li>View</li>
@@ -1050,169 +949,132 @@ export class DepartmentAggregatesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">Budget Entries</h4>
-                                <p>List of budget entries.</p>
+                                <h4 className="card-title mb-3">Budget Versions</h4>
+                                <p>List of budget versions.</p>
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
                             <div className="table-responsive">
-                                    <table className="display table tabel-lg table-striped " id="zero_configuration_table" style={{"width":"100%"}}>
+                                    <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
-
-                                              <th >Version</th>
-                                                <th>Department</th>
-                                              <th colSpan="3" className="text-center">Summary</th>
-                                                <th>Progress</th>
+                                                <th>Name</th>
+                                                <th>Approval Date</th>
                                                 <th>Status</th>
+                                                <th>Progress</th>
+                                                <th>Tracking Account</th>
+                                              <th className="text-center">Ledger Activity</th>
+                                                <th>Date Created</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                         {
-                                          this.state.allDepartmentAggregates.length ?  this.state.allDepartmentAggregates.map( (departmentaggregate, index)=>{
-                                            const { budgetversion } = departmentaggregate;
-                                            const { version_code, budgetcycle } = budgetversion
+                                          this.state.allBudgetVersions.length ?  this.state.allBudgetVersions.map( (budgetversion, index)=>{
+                                            const { budgetcycle, version_code } = budgetversion;
                                                 return (
-                                                    <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white divide_row':'divide_row'}>
+                                                    <tr key={budgetversion.id} className={budgetversion.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                          <NavLink className="underline" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
-                                                            {budgetcycle?.year} &nbsp; {version_code?.name} ({version_code?.code})
+                                                            <NavLink className="underline" to={`/processing/budget-versions/${budgetversion.slug}`}>
+                                                            {budgetcycle?.year} {version_code?.name} ({version_code?.code})
                                                           </NavLink>
-                                                        </td>
-                                                        <td>
-                                                          {departmentaggregate?.department?.name} ({departmentaggregate?.department?.code})
-
-                                                        </td>
-                                                        <td colSpan="3" className="no_padding">
-                                                          <table className="w-100">
-                                                            <thead>
-                                                              <tr className="no_top">
-                                                                <th>
-                                                                  Entry Type
-                                                                </th>
-                                                                <th className="text-right">
-                                                                   Naira part (&#x20a6;)
-                                                                </th>
-                                                                <th className="text-right">
-                                                                   USD part ($)
-                                                                </th>
-                                                                <th className="text-right">
-                                                                   Total in Naira (&#x20a6;)
-                                                                </th>
-                                                                <th className="text-right">
-                                                                   Total in USD ($)
-                                                                </th>
-                                                              </tr>
-                                                            </thead>
-
-                                                            <tbody>
-                                                              {
-                                                                Object.keys(departmentaggregate?.summary).map((key)=>{
-                                                                  const summary = departmentaggregate.summary[key]
-                                                                return  (
-                                                                  <tr key={`${key}${index}`}>
-                                                                    <td>
-                                                                      {key}
-                                                                    </td>
-
-                                                                    <td className="text-right">
-                                                                      {
-                                                                        utils.formatNumber(summary?.total_naira_part)
-                                                                      }
-                                                                    </td>
-
-                                                                    <td className="text-right">
-                                                                      {
-                                                                        utils.formatNumber(summary?.total_currency_part)
-                                                                      }
-                                                                    </td>
-                                                                    <td className="text-right">
-                                                                      {
-                                                                        utils.formatNumber(summary?.total_in_naira)
-                                                                      }
-                                                                    </td>
-                                                                    <td className="text-right">
-                                                                      {
-                                                                        utils.formatNumber(summary?.total_in_currency)
-                                                                      }
-                                                                    </td>
-                                                                  </tr>
-                                                                );
-
-                                                                })
-                                                              }
-
-                                                            </tbody>
-                                                            <tfoot>
-                                                              <tr>
-                                                                <th>
-                                                                  Totals:
-                                                                </th>
-                                                                <th className="text-right">
-                                                                  {utils.formatNumber(departmentaggregate?.total_naira_portion)}
-                                                                </th>
-                                                                <th className="text-right">
-                                                                    {
-                                                                      utils.formatNumber(departmentaggregate?.total_currency_portion)
-                                                                    }
-                                                                </th>
-                                                                <th className="text-right">
-                                                                    {
-                                                                      utils.formatNumber(departmentaggregate?.total_functional_naira)
-                                                                    }
-                                                                </th>
-                                                                <th className="text-right">
-                                                                  {
-                                                                    utils.formatNumber(departmentaggregate?.total_functional_currency)
-                                                                  }
-
-                                                                </th>
-                                                              </tr>
-                                                            </tfoot>
-
-                                                          </table>
 
                                                         </td>
                                                         <td>
+                                                          {budgetversion?.approval_date ? utils.formatDate(budgetversion?.approval_date) : 'Pending'}
+                                                        </td>
 
-                                                        PROGRESS
+                                                        <td>
+                                                        <Form>
+
+                                                             <Form.Check
+                                                                    checked={budgetversion.is_active}
+                                                                    type="switch"
+                                                                    id={`custom-switch${budgetversion.id}`}
+                                                                    label={budgetversion.is_active ? 'Running' : 'Closed'}
+                                                                    className={budgetversion.is_active ? 'text-success' : 'text-danger'}
+                                                                    onChange={()=> this.toggleBudgetVersion(budgetversion)}
+                                                                />
+
+
+                                                            </Form>
+                                                        </td>
+
+                                                        <td>
+                                                          STAGE
+                                                        </td>
+
+                                                        <td>
+                                                          {budgetversion?.account_system}
+                                                        </td>
+
+                                                        <td>
+
+                                                          <div className="table-responsive">
+                                                            <table className="table table-striped">
+                                                              <thead>
+                                                                <tr>
+                                                                  <th>
+                                                                    #
+                                                                  </th>
+                                                                  <th>
+                                                                    Status
+                                                                  </th>
+                                                                  <th>
+                                                                    Log
+                                                                  </th>
+                                                                  <th>
+                                                                    Processed At
+                                                                  </th>
+                                                                </tr>
+
+                                                              </thead>
+
+                                                              <tbody>
+                                                                <tr>
+                                                                  <td colSpan="4">
+
+                                                                  </td>
+                                                                </tr>
+                                                              </tbody>
+
+                                                            </table>
+
+                                                          </div>
 
                                                         </td>
                                                         <td>
-                                                          <span className={`badge badge-${departmentaggregate.entries_status == 0 ?
-                                                               'secondary_custom' : departmentaggregate.entries_status == 1 ? "info_custom":"success" }`}>
-
-                                                               {`${departmentaggregate.entries_status == 0 ?
-                                                                    'DRAFT' : departmentaggregate.entries_status == 1 ? "SUBMITTED":"APPROVED" }`}
-                                                          </span>
-
+                                                        {utils.formatDate(budgetversion.created_at)}
                                                         </td>
 
 
                                                         <td>
-                                                        <Dropdown key={departmentaggregate.id}>
+                                                        <Dropdown key={budgetversion.id}>
                                                             <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
                                                             <Dropdown.Item onClick={()=> {
-                                                                this.editDepartmentAggregate(departmentaggregate);
+                                                                this.editBudgetVersion(budgetversion);
                                                             }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                <i className="nav-icon i-Eye text-primary font-weight-bold"> </i> View
                                                             </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteDepartmentAggregate(departmentaggregate);}
+                                                            {/* <Dropdown.Item className='text-danger' onClick={
+                                                                ()=>{this.deleteBudgetVersion(budgetversion);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
                                                             </Dropdown.Item> */}
+                                                            <Dropdown.Item className='border-bottom'>
+                                                                <i className="i-Money-Bag text-info font-weight-bold"> </i>Disable Capture
+                                                            </Dropdown.Item>
+
+                                                            <Dropdown.Item className='border-bottom'>
+                                                                <i className="i-Money-Bag text-warning font-weight-bold"> </i> Archive Version
+                                                            </Dropdown.Item>
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 
@@ -1225,7 +1087,7 @@ export class DepartmentAggregatesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='10'>
+                                                    <td className='text-center' colSpan='9'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -1236,11 +1098,15 @@ export class DepartmentAggregatesComponent extends Component{
                                         <tfoot>
                                             <tr>
                                               <th>#</th>
-                                            <th>Description</th>
-                                              <th>Department</th>
-                                            <th colSpan="3" className="text-center">Summary</th>
-                                              <th>Progress</th>
+                                              <th>Version Name</th>
+                                              <th>Approval Date</th>
                                               <th>Status</th>
+                                              <th>Progress</th>
+                                            <th>Tracking Account</th>
+                                            <th className="text-center">Ledger History</th>
+
+
+                                              <th>Date Created</th>
                                               <th>Action</th>
                                             </tr>
                                         </tfoot>
@@ -1266,7 +1132,7 @@ export class DepartmentAggregatesComponent extends Component{
 
     }
 
-createDepartmentAggregateSchema = yup.object().shape({
+createBudgetVersionSchema = yup.object().shape({
         year: yup.string().required("Year is required"),
         instructions: yup.string().required("instructions is required"),
         start_date: yup.string().required("Start date is required"),
@@ -1275,7 +1141,7 @@ createDepartmentAggregateSchema = yup.object().shape({
       });
 
 
-updateDepartmentAggregateSchema = yup.object().shape({
+updateBudgetVersionSchema = yup.object().shape({
           year: yup.string().required("Year is required"),
           instructions: yup.string().required("instructions is required"),
           start_date: yup.string().required("Start date is required"),
@@ -1285,12 +1151,7 @@ updateDepartmentAggregateSchema = yup.object().shape({
 
 }
 
-const mapStateToProps = (state) => ({
-  active_budget_cycle:state.budgetCycle,
-  active_department:state.department
-});
 
 
-export default withRouter(
-  connect(mapStateToProps)(DepartmentAggregatesComponent)
-);
+
+export default BudgetVersionsComponent

@@ -4,6 +4,7 @@ import DropdownMenu from "react-bootstrap/DropdownMenu";
 import { getTimeDifference } from "@utils";
 import DropdownToggle from "react-bootstrap/DropdownToggle";
 import { Link } from "react-router-dom";
+import { FaCog } from "react-icons/fa";
 
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
@@ -39,6 +40,7 @@ class Layout1Header extends Component {
     activeDepartmentRole:{},
     userDepartmentRoles:[],
     allBudgetCycles:[],
+    fetching:false,
     shorcutMenuList: [
       {
         icon: "i-Shop-4",
@@ -168,8 +170,13 @@ class Layout1Header extends Component {
   }
 
   getactivebudgetcycle = () => {
+
+    let { fetching } = this.state
+    fetching = !fetching;
+    this.setState({ fetching })
     this.processingService.getAllBudgetCycles().then(
         (budgetCycleResponse)=>{
+          fetching = !fetching;
           const allBudgetCycles = budgetCycleResponse.filter((cycle)=>{
             return cycle.is_current;
           })
@@ -178,9 +185,11 @@ class Layout1Header extends Component {
           const activeBudgetCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : allBudgetCycles[0];
 
           localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(activeBudgetCycle));
-        this.setState({ allBudgetCycles, activeBudgetCycle })
+        this.setState({ allBudgetCycles,fetching, activeBudgetCycle })
 
         }).catch((error)=>{
+          fetching = !fetching;
+            this.setState({ fetching })
         const errorNotification = {
             type:'error',
             msg:utils.processErrors(error)
@@ -190,14 +199,26 @@ class Layout1Header extends Component {
   }
 
   setactivebudgetcycle = (budgetCycleId)  => {
+    if(!budgetCycleId) return;
+
+    let { fetching, allBudgetCycles, activeBudgetCycle } = this.state
+     activeBudgetCycle = allBudgetCycles.find(c => c.id == budgetCycleId);
+
+    fetching = !fetching;
+    this.setState({ fetching, activeBudgetCycle});
+
     this.processingService.getBudgetCycleById(budgetCycleId).then(
-        (budgetCycleResponse)=>{
-          localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(budgetCycleResponse));
+        (budgetCycleResponse) => {
+          const cycle = budgetCycleResponse;
+          const { budgetversions } = cycle;
+          cycle.active_version = budgetversions.find(version=>version.is_active);
+          cycle.budgetversions = undefined; //delete budgetversions
+          localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(cycle));
           // const successNotification = {
           //     type:'success',
           //     msg:`Budget cycle selection reset to ${budgetCycleResponse.year}.`
           // }
-          // new AppNotification(successNotification)
+          // new AppNotification(successNotification);
           window.location.reload();
         }
     ).catch((error)=>{
@@ -225,7 +246,7 @@ class Layout1Header extends Component {
 
 
   render() {
-    let { shorcutMenuList = [], notificationList = [], allBudgetCycles, activeBudgetCycle, activeDepartmentRole, userDepartmentRoles,activeUser } = this.state;
+    let { shorcutMenuList = [], notificationList = [], allBudgetCycles, activeBudgetCycle, activeDepartmentRole, userDepartmentRoles,activeUser, fetching } = this.state;
     return (
       <div className="main-header">
         <div className="logo">
@@ -268,7 +289,7 @@ class Layout1Header extends Component {
                   Select Budget Cycle
                 </span>
               </div>
-              <select className="form-control" value={activeBudgetCycle?.id} onChange={this.handleBudgetCycleSelection}>
+              <select className="form-control" disabled={fetching} value={activeBudgetCycle?.id} onChange={this.handleBudgetCycleSelection}>
                 <option value="">
                   Select
                 </option>
@@ -284,8 +305,12 @@ class Layout1Header extends Component {
               </select>
 
               <div className="input-group-append">
-                <button className="btn btn-success">Go</button>
-              </div>
+                     <button className="btn btn-success">
+                       {
+                         fetching ? <small><FaCog className="spinner small-spin"  /></small> : <span>Go</span>
+                       }
+                     </button>
+                  </div>
             </div>
 
           </div>
@@ -303,7 +328,7 @@ class Layout1Header extends Component {
           <Dropdown>
             <Dropdown.Toggle as="span" className="toggle-hidden">
               <i
-                className="i-Safe-Box text-muted header-icon"
+                className="i-Posterous text-muted header-icon"
                 role="button"
               ></i>
             </Dropdown.Toggle>

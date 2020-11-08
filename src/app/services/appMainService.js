@@ -482,6 +482,13 @@ export default class AppMainService extends Component {
        }
 
 
+      /**
+       APP SETTINGS SECTION
+       */
+      async getAppSettings(applied=''){
+        const url =`app_settings/?applied=${applied}`;
+        return await apiService.get(url);
+      }
 
        /**
         * BULK AREA
