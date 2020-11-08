@@ -160,45 +160,107 @@ export class BudgetVersionDetailsComponent extends Component{
     buildVersionRows = (aggregate) =>{
 
       const { department, summary, total_naira_portion, total_currency_portion, total_functional_currency, total_functional_naira } = aggregate;
-      const HeaderRow = () => (
-        <thead>
-          <tr>
-          <td colSpan="10" className="text-center">
-              <h4>{department?.name} ({department?.code})</h4>
-          </td>
-          </tr>
-            {/* <tr>
-              <th>
-                Entity
-              </th>
 
-              <th>Category</th>
-              <th>
-                Cost item
-              </th>
-              <th>
-                Description
-              </th>
-              <th>
-                Unit value
-              </th>
-              <th>
-                Quantity
-              </th>
-              <th className="text-right">
-                Naira part (₦)
-              </th>
-              <th className="text-right">
-                USD part ($)
-              </th>
-              <th className="text-right">
-                Total in Naira (₦)
-              </th>
-              <th className="text-right">
-                Total in USD ($)
-              </th>
-            </tr> */}
-      </thead>
+      const OtherRows = () => Object.keys(summary).map((key)=>{
+        const key_entries = `${key}_ENTRIES`;
+        const entries = summary[key][key_entries];
+        const entries_length = entries.length;
+        const { total_in_naira, total_in_currency, total_naira_part,  total_currency_part } = summary[key];
+
+        return  (
+          <>
+          <tr>
+            <td colSpan="9" className="text-center">
+              <b><em>{key}</em></b>
+            </td>
+          </tr>
+
+                  {
+                    entries_length ? entries.map((entry)=>{
+                      const { costitem, currency_portion, description, unit_value,quantity, naira_portion, total_currency, total_naira }  = entry;
+                      const { category } = costitem;
+                      return (
+                      <tr>
+                      <td>{category?.name} ({category?.code})</td>
+                      <td>{costitem?.name} ({costitem?.code})</td>
+                      <td>{description}</td>
+                      <td>{utils.formatNumber(unit_value, false)}</td>
+                      <td>{utils.formatNumber(quantity, false)}</td>
+                      <td className="text-right">{utils.formatNumber(naira_portion)}</td>
+                      <td className="text-right">{utils.formatNumber(currency_portion)}</td>
+                      <td className="text-right">{utils.formatNumber(total_naira)}</td>
+                      <td className="text-right">{utils.formatNumber(total_currency)}</td>
+                    </tr>
+
+                  )
+                }) : (
+                  <tr>
+                  <td colSpan="9" className='text-center'>
+                    <FetchingRecords emptyMsg="No entries"/>
+                  </td>
+
+                </tr>)}
+
+
+
+
+
+              </>
+
+
+      )
+
+
+        })
+
+      const BodyRow = () => (
+      <>
+        <tbody>
+          <tr>
+            <td>
+              <h5><b>{department?.name} ({department?.code})</b></h5>
+            </td>
+            <td colSpan="10">
+              <table className="table">
+                <thead>
+                          <tr>
+                      <th>Category</th>
+                      <th>
+                        Cost item
+                      </th>
+                      <th>
+                        Description
+                      </th>
+                      <th>
+                        Unit value
+                      </th>
+                      <th>
+                        Quantity
+                      </th>
+                      <th className="text-right">
+                        Naira part (₦)
+                      </th>
+                      <th className="text-right">
+                        USD part ($)
+                      </th>
+                      <th className="text-right">
+                        Total in Naira (₦)
+                      </th>
+                      <th className="text-right">
+                        Total in USD ($)
+                      </th>
+                    </tr>
+                </thead>
+                <OtherRows/>
+
+              </table>
+            </td>
+          </tr>
+
+        </tbody>
+      </>
+
+
 
       )
         const FooterRow = () => (
@@ -234,88 +296,13 @@ export class BudgetVersionDetailsComponent extends Component{
           </tr>
         </tfoot>
         )
-        const OtherRows = () => Object.keys(summary).map((key)=>{
-          const key_entries = `${key}_ENTRIES`;
-          const entries = summary[key][key_entries];
-          const entries_length = entries.length;
-          const { total_in_naira, total_in_currency, total_naira_part,  total_currency_part } = summary[key];
-
-          return  (
-            <tbody>
-             <tr  className="line_entries inner_rowx">
-              <td>
-                <b><em>{key}</em></b>
-              </td>
-
-              <td colSpan="9" className="inner_cellx" >
-                    {
-                      entries_length ? entries.map((entry)=>{
-                        const { costitem, currency_portion, description, unit_value,quantity, naira_portion, total_currency, total_naira }  = entry;
-                        const { category } = costitem;
-                        return (
-                        <tr>
-                        <td>{category?.name} ({category?.code})</td>
-                        <td>{costitem?.name} ({costitem?.code})</td>
-                        <td>{description}</td>
-                        <td>{utils.formatNumber(unit_value, false)}</td>
-                        <td>{utils.formatNumber(quantity, false)}</td>
-                        <td className="text-right">{utils.formatNumber(naira_portion)}</td>
-                        <td className="text-right">{utils.formatNumber(currency_portion)}</td>
-                        <td className="text-right">{utils.formatNumber(total_naira)}</td>
-                        <td className="text-right">{utils.formatNumber(total_currency)}</td>
-                      </tr>
-
-                    )
-                  }) : (
-                    <tr>
-                    <td colSpan="9" className='text-center'>
-                      <FetchingRecords emptyMsg="No entries"/>
-                    </td>
-
-                  </tr>)}
 
 
-              </td>
 
-                </tr>
-                <tr className="sub_row line_entries">
-                  <th className="tet-muted">
-                    <h6>Sub Total:</h6>
-                  </th>
-                  <th colSpan="5">
-                    <div className="dash-mid w-100"></div>
-                </th>
-                  <th className="text-right text-muted">{utils.formatNumber(total_naira_part)}
-                    <div className="dash-mid-2 w-100"></div>
-
-                  </th>
-                  <th className="text-right text-muted">{utils.formatNumber(total_currency_part)}
-                    <div className="dash-mid-2 w-100"></div>
-
-                  </th>
-                  <th className="text-right text-muted">{utils.formatNumber(total_in_naira)}
-                    <div className="dash-mid-2 w-100"></div>
-
-                  </th>
-                  <th className="text-right text-muted">{utils.formatNumber(total_in_currency)}
-                    <div className="dash-mid-2 w-100"></div>
-
-                  </th>
-
-                </tr>
-
-
-          </tbody>
-
-        )
-
-
-          })
 
         return (
           <>
-            <HeaderRow/>
-            <OtherRows/>
+            <BodyRow/>
             <FooterRow/>
           </>
         )
@@ -1326,37 +1313,19 @@ export class BudgetVersionDetailsComponent extends Component{
                           <div className="table-responsive ">
 
                             <table className="table">
-                                <tr>
-                                  <th>
-                                    Entity
-                                  </th>
 
-                                  <th>Category</th>
-                                  <th>
-                                    Cost item
-                                  </th>
-                                  <th>
-                                    Description
-                                  </th>
-                                  <th>
-                                    Unit value
-                                  </th>
-                                  <th>
-                                    Quantity
-                                  </th>
-                                  <th className="text-right">
-                                    Naira part (₦)
-                                  </th>
-                                  <th className="text-right">
-                                    USD part ($)
-                                  </th>
-                                  <th className="text-right">
-                                    Total in Naira (₦)
-                                  </th>
-                                  <th className="text-right">
-                                    Total in USD ($)
-                                  </th>
+                              <thead>
+                                <tr>
+                                <th>
+                                    <h4>Department</h4>
+                                </th>
+                                <th colSpan="9">
+                                    <h4 className="text-center">Breakdown</h4>
+                                </th>
                                 </tr>
+
+                              </thead>
+
 
 
                               {
