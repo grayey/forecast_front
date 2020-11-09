@@ -497,6 +497,11 @@ export default class AppMainService extends Component {
         return await apiService.get(url);
     }
 
+    async bulkUpdateApprovalStages(approvalIds){
+      const url = 'approvals/bulk-update/';
+      return await apiService.post(url,approvalIds);
+    }
+
 
     /**
      *

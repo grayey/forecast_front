@@ -20,39 +20,43 @@ import LaddaButton, {
   } from "react-ladda";
 
 
-const SortableItem = SortableElement(({approval}) => <li className="list-group-item drag">
+const SortableItem = SortableElement(({approval}) => <li className="list-group-item drag shadow-lg">
 
-  <div className="row">
-    <div className="col-md-2">
-      <p><b>Description</b></p>
-      <p>{approval.description}</p>
-    </div>
-    <div className="col-md-2">
-      <p><b>Type</b></p>
-    <p>{approval.approval_type}</p>
-    </div>
-    <div className="col-md-2">
-      <p><b>Role</b></p>
-      <p>{approval.description}</p>
-    </div>
-    <div className="col-md-2">
-      <p><b>Stage</b></p>
-    <p><span className="badge badge-primary">Step {approval.stage}</span></p>
-    </div>
-    <div className="col-md-2">
-      <p><b>Date updated</b></p>
-    <p>{utils.formatDate(approval.updated_at)}</p>
-    </div>
-    <div className="col-md-2">
-      <p><b>Action</b></p>
-    <p>{approval.updated_at}</p>
+
+    <div className="row">
+      <div className="col-md-2">
+        <p><b>Description</b></p>
+        <p>{approval.description}</p>
+      </div>
+      <div className="col-md-2">
+        <p><b>Type</b></p>
+      <p>{approval.approval_type}</p>
+      </div>
+      <div className="col-md-2">
+        <p><b>Role</b></p>
+      <p>{approval?.role?.name}</p>
+      </div>
+      <div className="col-md-2">
+        <p><b>Stage</b></p>
+      <p><span className="badge badge-primary">Step {approval.stage}</span></p>
+      </div>
+      <div className="col-md-2">
+        <p><b>Date updated</b></p>
+      <p>{utils.formatDate(approval.updated_at)}</p>
+      </div>
+      <div className="col-md-2">
+        <p><b>Action</b></p>
+      <p>{approval.updated_at}</p>
+      </div>
+
     </div>
 
-  </div>
+
+
 </li>);
 
 
-const SortableList = SortableContainer(({allApprovals}) => {
+const SortableList = SortableContainer(({allApprovals, fetching}) => {
   return (
 
     <div className="card bg-info_custom">
@@ -61,9 +65,16 @@ const SortableList = SortableContainer(({allApprovals}) => {
       </div>
 
       <ul className="w-100 list-group">
-        {allApprovals.map((approval, index) => (
+        {
+        allApprovals.length ?  allApprovals.map((approval, index) => (
            <SortableItem key={`item-${approval.id}`} index={index} approval={approval} />
-        ))}
+        )) :
+        (
+          <li className="list-group-item drag shadow-lg text-center">
+            <FetchingRecords isFetching={fetching} emptyMsg="No approval stages configured"/>
+          </li>
+        )
+      }
       </ul>
 
     </div>
@@ -83,6 +94,7 @@ class ApprovalsList extends Component {
     editedIndex:0,
     allApprovals:[],
     allRoles:[],
+    approvalIds:[],
    showEditModal:false,
    showCreateModal:false,
    isSaving:false,
@@ -153,7 +165,7 @@ class ApprovalsList extends Component {
 
         this.appMainService.getAllApprovals().then(
             (approvalsResponse)=>{
-                const allApprovals = approvalsResponse;
+                const allApprovals = approvalsResponse.sort((a, b) => (a.stage > b.stage) ? 1 : -1);
                 this.setState({ allApprovals, isFetching })
                 console.log('Approvals response', approvalsResponse)
             }
@@ -278,17 +290,34 @@ class ApprovalsList extends Component {
 
   onSortEnd = async ({oldIndex, newIndex}) => {
     let { allApprovals } = this.state;
+    const oldApprovals = [...allApprovals];
+    const approvalIds = [];
     allApprovals = arrayMove(allApprovals, oldIndex, newIndex);
     allApprovals.map((apr, index)=>{
       apr.stage = index + 1;
+      approvalIds.push(apr.id);
       return apr;
     })
-    // this.setState(({allApprovals}) => ({
-    //   allApprovals: arrayMove(allApprovals, oldIndex, newIndex),
-    // }));
+      this.setState({ allApprovals });
+      await this.appMainService.bulkUpdateApprovalStages(approvalIds).then(
+      (updateResponse)=>{
+      //silent update
+    }).catch((error)=>{
+      const errorNotification = {
+          type:'error',
+          msg:utils.processErrors(error)
+      }
+
+      this.setState({ allApprovals : oldApprovals });
+      new AppNotification(errorNotification)
+      setTimeout(()=>{
+        window.location.reload();
+      }, 1000)
+    })
+
 
     // make backed call, then
-    this.setState({ allApprovals })
+
   };
 
   render() {
@@ -349,7 +378,7 @@ class ApprovalsList extends Component {
                                     onBlur={handleBlur}
                                     required>
                                     <option value="">Select</option>
-                                  <option value="BY_DEPARTMENT">By Department</option>
+                                  <option value="DEPARTMENTAL">By Department</option>
                                   <option value="OVERALL">Overall</option>
 
 
@@ -446,7 +475,7 @@ class ApprovalsList extends Component {
 
         <div className="separator-breadcrumb border-top"></div>
 
-     <SortableList allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} />
+      <SortableList fetching={this.state.isFetching} allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} />
 </>)
 ;
 
