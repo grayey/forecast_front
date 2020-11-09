@@ -11,6 +11,7 @@ import AppNotification from "../../../appNotifications";
 import {FetchingRecords} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
+import { FaCog, FaCheck } from "react-icons/fa";
 
 
 import LaddaButton, {
@@ -23,6 +24,7 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class BudgetVersionDetailsComponent extends Component{
+
 
     state = {
         editedIndex:0,
@@ -44,6 +46,12 @@ export class BudgetVersionDetailsComponent extends Component{
           "ADD",
           "ADE"
         ],
+        grandTotals:{
+          naira:0,
+          dollar:0,
+          in_naira:0,
+          in_dollar:0
+        },
         createBudgetVersionDetailForm: {
             year: "",
             start_date: "",
@@ -161,6 +169,9 @@ export class BudgetVersionDetailsComponent extends Component{
 
       const { department, summary, total_naira_portion, total_currency_portion, total_functional_currency, total_functional_naira } = aggregate;
 
+
+
+
       const OtherRows = () => Object.keys(summary).map((key)=>{
         const key_entries = `${key}_ENTRIES`;
         const entries = summary[key][key_entries];
@@ -202,7 +213,31 @@ export class BudgetVersionDetailsComponent extends Component{
                 </tr>)}
 
 
+                <tr className="sub_row line_entries">
+                  <th className="text-muted">
+                    <h6 className="text-muted"><em><b>Sub Total:</b></em></h6>
+                  </th>
+                  <th colSpan="4">
+                    <div className="dash-mid w-100"></div>
+                </th>
+                  <th className="text-right text-muted">{utils.formatNumber(total_naira_part)}
+                    <div className="dash-mid-2 w-100"></div>
 
+                  </th>
+                  <th className="text-right text-muted">{utils.formatNumber(total_currency_part)}
+                    <div className="dash-mid-2 w-100"></div>
+
+                  </th>
+                  <th className="text-right text-muted">{utils.formatNumber(total_in_naira)}
+                    <div className="dash-mid-2 w-100"></div>
+
+                  </th>
+                  <th className="text-right text-muted">{utils.formatNumber(total_in_currency)}
+                    <div className="dash-mid-2 w-100"></div>
+
+                  </th>
+
+                </tr>
 
 
               </>
@@ -213,17 +248,65 @@ export class BudgetVersionDetailsComponent extends Component{
 
         })
 
-      const BodyRow = () => (
+        const FooterRow = () => (
+
+
+
+          <tr className="line_entries_footer line_entries entries_footer">
+            <th>
+                <h5 className="mt-2"><em>{department?.name}{department?.name?.endsWith('s')?"'":"'s'"} Total:</em></h5>
+            </th>
+
+            <th colSpan="9">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th colSpan="5"></th>
+
+
+                    <th className="text-right">
+                      {utils.formatNumber(total_naira_portion)}
+                      <div className="dash-2"></div>
+
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_currency_portion)}
+                      <div className="dash-2 "></div>
+
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_functional_naira)}
+                      <div className="dash-2"></div>
+
+
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_functional_currency)}
+                      <div className="dash-2"></div>
+
+                    </th>
+                  </tr>
+
+                </thead>
+              </table>
+            </th>
+
+
+          </tr>
+
+        )
+
+      const BodyRows = () => (
       <>
         <tbody>
           <tr>
             <td>
               <h5><b>{department?.name} ({department?.code})</b></h5>
             </td>
-            <td colSpan="10">
-              <table className="table">
+            <td colSpan="9">
+              <table className="table table-striped table-hover">
                 <thead>
-                          <tr>
+                      <tr>
                       <th>Category</th>
                       <th>
                         Cost item
@@ -251,70 +334,46 @@ export class BudgetVersionDetailsComponent extends Component{
                       </th>
                     </tr>
                 </thead>
-                <OtherRows/>
+                <tbody>
+                  <OtherRows/>
+                </tbody>
 
               </table>
             </td>
           </tr>
-
+          <FooterRow/>
         </tbody>
       </>
 
 
 
       )
-        const FooterRow = () => (
-            <tfoot>
-          <tr className="line_entries_footer line_entries entries_footer">
-            <th>
-                <h5 className="mt-2"><em>{department?.name} Total:</em></h5>
-            </th>
-            <th colSpan="5">
-              <div className="dash w-100"></div>
-          </th>
-            <th className="text-right">
-              {utils.formatNumber(total_naira_portion)}
-              <div className="dash-2 w-100"></div>
 
-            </th>
-            <th className="text-right">
-              {utils.formatNumber(total_currency_portion)}
-              <div className="dash-2 w-100"></div>
-
-            </th>
-            <th className="text-right">
-              {utils.formatNumber(total_functional_naira)}
-              <div className="dash-2 w-100"></div>
-
-
-            </th>
-            <th className="text-right">
-              {utils.formatNumber(total_functional_currency)}
-              <div className="dash-2 w-100"></div>
-
-            </th>
-          </tr>
-        </tfoot>
-        )
 
 
 
 
         return (
           <>
-            <BodyRow/>
-            <FooterRow/>
+            <BodyRows/>
           </>
         )
 
-      // return <HeaderRow/>
 
     }
 
 
     buildGroupedEntries = (allDepartmentAggregates) =>{
-      const { entryTypes } = this.state;
+      let { entryTypes, grandTotals } = this.state;
       allDepartmentAggregates.forEach((aggregate) =>{
+        const { total_naira_portion, total_currency_portion, total_functional_currency, total_functional_naira } = aggregate;
+        let { naira, dollar, in_naira, in_dollar } = grandTotals;
+        dollar+=total_currency_portion;
+        naira+=total_naira_portion;
+        in_dollar+= total_functional_currency;
+        in_naira += total_functional_naira;
+        grandTotals = { naira, dollar, in_naira, in_dollar };
+
         const { budgetversion } = aggregate;
         aggregate['summary'] = {};
         const entries = aggregate['entries']
@@ -322,6 +381,7 @@ export class BudgetVersionDetailsComponent extends Component{
           aggregate['summary'][entryType] = this.buildEntriesByType(entries, entryType)
         })
       })
+      this.setState({grandTotals });
 
       return allDepartmentAggregates;
     }
@@ -615,7 +675,8 @@ export class BudgetVersionDetailsComponent extends Component{
 
     render(){
 
-      const { allBudgetEntries, allAggregates } = this.state;
+      const { allBudgetEntries, allAggregates, grandTotals } = this.state;
+      const {naira, dollar, in_naira, in_dollar } = grandTotals;
 
         return (
 
@@ -1135,11 +1196,36 @@ export class BudgetVersionDetailsComponent extends Component{
 
                 </Modal>
 
-                {/*
+
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Version</Button>
-                </div>
-                */}
+
+                  <Dropdown>
+                     <Dropdown.Toggle variant='success' className="mr-3 mb-3" size="sm">
+                    <FaCog/> Manage
+                     </Dropdown.Toggle>
+                     <Dropdown.Menu>
+                     <Dropdown.Item onClick={()=> {
+                         console.log('void');
+                     }} className='border-bottom'>
+                         <FaCheck className ="text-success"/> Post budget
+                     </Dropdown.Item>
+                     <Dropdown.Item className='border-bottom'>
+                         <i className="i-Money-Bag text-info font-weight-bold"> </i>Export to Excel
+                     </Dropdown.Item>
+
+                     <Dropdown.Item className='border-bottom'>
+                         <i className="i-Money-Bag text-warning font-weight-bold"> </i> Export to CSV
+                     </Dropdown.Item>
+
+                     {/* <Dropdown.Item className='text-danger' onClick={
+                        () => {console.log('void');}
+                         }>
+                         <i className="i-Close-Window"> </i> Delete
+                     </Dropdown.Item> */}
+                     </Dropdown.Menu>
+                 </Dropdown>
+              </div>
+
 
                 <div className="breadcrumb">
                     <h1>
@@ -1147,7 +1233,10 @@ export class BudgetVersionDetailsComponent extends Component{
                   </h1>
                     <ul>
                         <li><a href="#">View</a></li>
-                      <li>Detail</li>
+                        <li>Detail</li>
+                      <li>
+                        <marquee className="text-info">Conversion Rate: <b>1USD=&#x20a6;{utils.formatNumber(this.state.viewedBudgetVersionDetail?.budgetcycle?.currency_conversion_rate)}</b></marquee>
+                      </li>
                     </ul>
                 </div>
 
@@ -1165,16 +1254,18 @@ export class BudgetVersionDetailsComponent extends Component{
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
                             <div className="table-responsive">
-                                    <table className="display tablex table-stripedx table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
+                                    <table className="display tablex table-sm table-stripedx table-hoverx " id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
-                                                <th>Approval Date</th>
+                                                <th>Date Created</th>
+                                                <th>Date Approved</th>
                                                 <th>Status</th>
                                                 <th>Progress</th>
                                                 <th>Tracking Account</th>
-                                              <th className="text-center">Ledger Activity</th>
-                                                <th>Date Created</th>
-                                                <th>Action</th>
+                                                <th className="text-center">Ledger Activity</th>
+                                                <th className="text-center">Grand Totals</th>
+
+                                                {/* <th>Action</th> */}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1195,6 +1286,11 @@ export class BudgetVersionDetailsComponent extends Component{
                                                 {/* <td>
                                                     {budgetcycle?.year} {version_code?.name} ({version_code?.code})
                                                 </td> */}
+
+                                                <td>
+                                                {utils.formatDate(this.state.viewedBudgetVersionDetail.created_at)}
+                                                </td>
+
                                                 <td>
                                                   {this.state.viewedBudgetVersionDetail?.approval_date ? utils.formatDate(this.state.viewedBudgetVersionDetail?.approval_date) : 'Pending'}
                                                 </td>
@@ -1223,7 +1319,7 @@ export class BudgetVersionDetailsComponent extends Component{
                                                   {this.state.viewedBudgetVersionDetail?.account_system}
                                                 </td>
 
-                                                <td>
+                                                  <td>
 
                                                   <div className="table-responsive">
                                                     <table className="table table-striped">
@@ -1258,13 +1354,41 @@ export class BudgetVersionDetailsComponent extends Component{
                                                   </div>
 
                                                 </td>
-                                                <td>
-                                                {utils.formatDate(this.state.viewedBudgetVersionDetail.created_at)}
-                                                </td>
-
 
                                                 <td>
-                                                {/* <Dropdown key={budgetversion.id}>
+
+                                                <div className="table-responsivex">
+                                                  <table className="table table-stripedx">
+
+                                                    <tbody>
+                                                      <tr>
+                                                        <th className="text-mutedx">Naira Part:</th>
+                                                      <td>&#x20a6;{utils.formatNumber(naira)}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <th className="text-mutedx">Dollar Part:</th>
+                                                      <td>${utils.formatNumber(dollar)}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <th className="text-mutedx">Total in Naira:</th>
+                                                      <td>&#x20a6;{utils.formatNumber(in_naira)}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <th className="text-mutedx">Total in USD:</th>
+                                                      <td>${utils.formatNumber(in_dollar)}</td>
+                                                      </tr>
+                                                    </tbody>
+
+                                                  </table>
+
+                                                </div>
+
+                                              </td>
+
+
+
+                                                {/* <td>
+                                                 <Dropdown key={budgetversion.id}>
                                                     <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                     Manage
                                                     </Dropdown.Toggle>
@@ -1287,9 +1411,9 @@ export class BudgetVersionDetailsComponent extends Component{
                                                         <i className="i-Money-Bag text-warning font-weight-bold"> </i> Archive Version
                                                     </Dropdown.Item>
                                                     </Dropdown.Menu>
-                                                </Dropdown> */}
-                                                vvvvv
-                                                </td>
+                                                </Dropdown>
+
+                                                </td> */}
 
                                             </tr>
 
@@ -1320,7 +1444,7 @@ export class BudgetVersionDetailsComponent extends Component{
                                     <h4>Department</h4>
                                 </th>
                                 <th colSpan="9">
-                                    <h4 className="text-center">Breakdown</h4>
+                                    <h4 className="text-center">Entries</h4>
                                 </th>
                                 </tr>
 

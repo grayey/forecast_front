@@ -482,6 +482,65 @@ export default class AppMainService extends Component {
        }
 
 
+       /**
+     *
+     * --- APPROVALS SECTION HERE ----
+     *
+     */
+
+
+     /**
+      * This method returns a list of all approvals
+      */
+     async getAllApprovals(){
+        const url = 'approvals';
+        return await apiService.get(url);
+    }
+
+
+    /**
+     *
+     * @param {*} approvalData
+     * this method creates a new approval
+     */
+    async createApproval(approvalData){
+        const url = 'approvals/';
+        return await apiService.post(url,approvalData);
+    }
+
+    /**
+     *
+     * @param {*} approval
+     * @param {*} id
+     * This method updates a approval
+     */
+    async updateApproval(approval, id){
+        const url =`approvals/${id}/`;
+        return await apiService.put(url,approval);
+
+    }
+
+    /**
+     *
+     * @param {*} approval
+     * This method deletes a approval
+     */
+    async deleteApproval(approval){
+        const url = `approvals/${approval.id}`
+        return await apiService.del(url);
+    }
+
+    /**
+     *
+     * @param {*} approval
+     * This method toggles a approval
+     */
+    async toggleApproval(approval){
+        approval.status = !approval.status
+      return this.updateApproval(approval, approval.id);
+    }
+
+
       /**
        APP SETTINGS SECTION
        */

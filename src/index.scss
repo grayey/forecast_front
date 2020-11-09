@@ -168,3 +168,9 @@ a.underline{
 .small-spin{
   font-size: 5px !important;
 }
+
+.drag{
+  cursor: grab !important;
+  // height:80px;
+  border-bottom: 3px solid rgb(23,162,184) !important;
+}
