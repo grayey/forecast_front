@@ -61,7 +61,11 @@ const SortableList = SortableContainer(({allApprovals, fetching}) => {
 
     <div className="card bg-info_custom">
       <div className="card-header ">
-        <p className="card-text text-white">This interface allows you to rearrange approval stages by dragging and dropping them in new positions.</p>
+        <p className="card-text text-white">
+          This interface allows you to rearrange approval stages by dragging and dropping them in new positions.<br/>
+        <b> NOTE:</b> This affects the individual stages of running cycles and departments' budgets.
+        </p>
+      {/* <p className="card-text text-warning"><b>NOTE:</b>This affects the stages of running cycles and budget entries.</p> */}
       </div>
 
       <ul className="w-100 list-group">

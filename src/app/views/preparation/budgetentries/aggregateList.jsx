@@ -1,5 +1,5 @@
 import React, { Component, useState, useEffect } from "react"
-import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, ProgressBar } from "react-bootstrap";
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
@@ -14,6 +14,7 @@ import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
 import { connect } from "react-redux";
+import { FaCheck, FaList } from "react-icons/fa";
 
 
 
@@ -36,6 +37,7 @@ export class DepartmentAggregatesComponent extends Component{
         },
         editedIndex:0,
         allDepartmentAggregates:[],
+        allApprovals:[],
         showEditModal:false,
         showCreateModal:false,
         showInstructionsModal:false,
@@ -83,6 +85,7 @@ export class DepartmentAggregatesComponent extends Component{
       // this.getAllDepartmentAggregates();
          this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
          this.getAllVersionCodes();
+         this.getAllApprovals();
     }
 
     // componentWillReceiveProps(nextProps){
@@ -134,7 +137,25 @@ export class DepartmentAggregatesComponent extends Component{
           console.error('Version Error', error)
         })
     }
+    /**
+   * This method lists all approvals
+   */
+   getAllApprovals = async ()=>{
 
+      this.appMainService.getAllApprovals().then(
+          (approvalsResponse)=>{
+              const allApprovals = approvalsResponse;
+              this.setState({ allApprovals })
+              console.log('Approvals response', approvalsResponse)
+          }
+      ).catch((error)=>{
+          // const errorNotification = {
+          //     type:'error',
+          //     msg:utils.processErrors(error)
+          // }
+          console.log('Error', error)
+      })
+  }
 
 
     getAllDepartmentAggregatesByBudgetCycleAndDepartment = async() =>{
@@ -267,6 +288,63 @@ export class DepartmentAggregatesComponent extends Component{
       this.setState({availableYears});
     }
 
+    setProgressBar = (departmentaggregate)=>{
+      const { approval_stage, entries_status } = departmentaggregate;
+      const { allApprovals } = this.state;
+      let padding = 0; // so that the progress bar displays
+      let prefix = entries_status < 3 ? "Awaiting" : "Completed";
+      let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
+      let progressObject = {
+        percentage:0,
+        variant:null,
+        text:"Submission"
+      };
+      // text-${progressObject.percentage < 100 ? 'info':'success'}
+      if(approval_stage){
+        const percentage = approval_stage.stage/(allApprovals.length + shift) * 100;
+        const variant = percentage < 100 ? "info_custom" : "success";
+        const text = approval_stage.description;
+        progressObject = { percentage,variant,text }
+        padding = 5;
+      }
+      return (
+        <div>
+        <ProgressBar
+          now={progressObject.percentage + padding}
+          label={`${progressObject.percentage}%`}
+          animated
+          striped
+          variant={progressObject.variant}
+        ></ProgressBar>
+        <p className={`text-center`}>
+          <small><b><em>{prefix} {progressObject.text}</em></b></small>
+        </p>
+      </div>
+      )
+
+    }
+
+    setEntriesStatus = (departmentAggregate)=>{
+
+      const { entries_status } = departmentAggregate;
+      const key = entries_status ? entries_status.toString() : "0";
+      const variants = {
+        "0":"secondary_custom",
+        "1":"info_custom",
+        "2":"success",
+        "3":"warning"
+      }
+      const statuses = {
+        "0":"DRAFT",
+        "1":"SUBMITTED",
+        "2":"APPROVED",
+        "3":"DISCARDED"
+      }
+
+      return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+
+    }
+
     /**
      * This method creates a new departmentaggregate
      */
@@ -303,6 +381,53 @@ export class DepartmentAggregatesComponent extends Component{
                 }
                 new AppNotification(errorNotification)
         })
+    }
+
+    submitDepartmentAggregate = (departmentaggregate)=>{
+
+      console.log("Submitted Aggregate",departmentaggregate)
+      const { budgetcycle, budgetversion, department } = departmentaggregate;
+      const { version_code } = budgetversion;
+      const apostrophe = department.name.toLocaleLowerCase().endsWith('s')? `'`:`'s`;
+      const msg = `${department.name}${apostrophe} ${budgetcycle.year} ${version_code.name} (${version_code.code})`
+
+      swal.fire({
+             title: `<small>Submit&nbsp;<em><b>${msg}</b></em> for approval?</small>`,
+             text: "It will leave draft stage and cannot be edited. A notification will be sent.",
+             icon: "warning",
+             type: "question",
+             showCancelButton: true,
+             confirmButtonColor: "#007BFF",
+             cancelButtonColor: "#d33",
+             confirmButtonText: "Yes!",
+             cancelButtonText: "No"
+           })
+           .then(result => {
+             if (result.value) {
+             let { allDepartmentAggregates } = this.state
+               this.preparationService.submitDepartmentAggregate(departmentaggregate).then(
+                 async (submittedAggregate) => {
+                     const aggregateIndex = allDepartmentAggregates.findIndex(r=> r.id == departmentaggregate.id)
+                      allDepartmentAggregates.splice(aggregateIndex, 1, submittedAggregate);
+                      allDepartmentAggregates = this.buildGroupedEntries(allDepartmentAggregates)['department_aggregates'];
+                   await this.setState({ allDepartmentAggregates });
+                     const successNotification = {
+                         type:'success',
+                         msg:`${msg} successfully submitted!`
+                     }
+                     new AppNotification(successNotification)
+                 }
+             ).catch(
+                 (error)=>{
+                     const errorNotification = {
+                         type:'error',
+                         msg:utils.processErrors(error)
+                     }
+                     new AppNotification(errorNotification)
+             })}
+
+           });
+
     }
 
 
@@ -1178,20 +1303,8 @@ export class DepartmentAggregatesComponent extends Component{
                                                           </table>
 
                                                         </td>
-                                                        <td>
-
-                                                        PROGRESS
-
-                                                        </td>
-                                                        <td>
-                                                          <span className={`badge badge-${departmentaggregate.entries_status == 0 ?
-                                                               'secondary_custom' : departmentaggregate.entries_status == 1 ? "info_custom":"success" }`}>
-
-                                                               {`${departmentaggregate.entries_status == 0 ?
-                                                                    'DRAFT' : departmentaggregate.entries_status == 1 ? "SUBMITTED":"APPROVED" }`}
-                                                          </span>
-
-                                                        </td>
+                                                        <td> {this.setProgressBar(departmentaggregate)} </td>
+                                                        <td>{this.setEntriesStatus(departmentaggregate)}</td>
 
 
                                                         <td>
@@ -1200,19 +1313,29 @@ export class DepartmentAggregatesComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editDepartmentAggregate(departmentaggregate);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                            <Dropdown.Item className="border-bottomx">
+                                                                <NavLink className="underlinex text-info_custom" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
+                                                                <i className="nav-icon i-Eye  font-weight-bold"> </i> View
+                                                              </NavLink>
                                                             </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
+                                                            <Dropdown.Divider></Dropdown.Divider>
+
+                                                            {
+                                                              departmentaggregate?.entries_status ? null :
+                                                              <Dropdown.Item className="border-bottom text-success"
+                                                                onClick={()=>{
+                                                                  this.submitDepartmentAggregate(departmentaggregate)
+                                                                }}>
+                                                                <FaCheck className="text-success"/> Submit
+                                                              </Dropdown.Item>
+                                                            }
+
+                                                            <Dropdown.Item className='text-info' onClick={
                                                                 ()=>{this.deleteDepartmentAggregate(departmentaggregate);}
                                                             }>
-                                                                <i className="i-Close-Window"> </i> Delete
+                                                                <FaList/> History
                                                             </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
+
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 

@@ -141,12 +141,12 @@ class AppProgressbar extends Component {
         <div className="row mb-4">
           <div className="col-md-12 mb-4">
             <SimpleCard title="Animated stripes Progress Bar">
-              {[10, 25, 50, 75, 100].map((value, i) => (
+              {[0, 10, 50, 75, 100].map((value, i) => (
                 <ProgressBar
                   key={value}
                   now={value}
-                  animated
                   striped
+                  animated
                   variant={this.variantList[i]}
                   className="mb-3"
                 ></ProgressBar>

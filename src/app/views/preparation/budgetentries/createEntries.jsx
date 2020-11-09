@@ -1,5 +1,5 @@
 import React, { Component, useState, useEffect } from "react"
-import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, ProgressBar } from "react-bootstrap";
 import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
@@ -52,6 +52,7 @@ export class BudgetEntriesComponent extends Component{
         allItemCategories:[],
         allCostItems:[],
         aggregateList:[],
+        allApprovals:[],
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
@@ -142,7 +143,9 @@ export class BudgetEntriesComponent extends Component{
       }
         await this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
          this.getAllItemCategories();
+         this.getAllApprovals();
          this.setActiveBudgetCycle();
+
 
     }
 
@@ -623,6 +626,26 @@ export class BudgetEntriesComponent extends Component{
     }
 
 
+    /**
+   * This method lists all approvals
+   */
+   getAllApprovals = async ()=>{
+
+      this.appMainService.getAllApprovals().then(
+          (approvalsResponse)=>{
+              const allApprovals = approvalsResponse;
+              this.setState({ allApprovals })
+              console.log('Approvals response', approvalsResponse)
+          }
+      ).catch((error)=>{
+          // const errorNotification = {
+          //     type:'error',
+          //     msg:utils.processErrors(error)
+          // }
+          console.log('Error', error)
+      })
+  }
+
 
     /**
      * This method lists all budgetentries
@@ -670,12 +693,15 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
+
+
     setViewMode = ()=>{
         const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
         const { entries_status, department, capturer, budgetversion } = viewedDepartmentAggregate;
         const { version_code, budgetcycle } = budgetversion
 
-        viewOrEditSelections.is_view_only = false  // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
+        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current)
+        // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
         // Or userRole is not a capture role // departmentHasbegun capture
         // (entries_status || !budgetcycle.is_current)
 
@@ -685,6 +711,64 @@ export class BudgetEntriesComponent extends Component{
         this.setState({ viewOrEditSelections })
     }
 
+
+    setProgressBar = (departmentaggregate)=>{
+      let { approval_stage, entries_status } = departmentaggregate ;
+      entries_status = entries_status || 0;
+      const { allApprovals } = this.state;
+      let padding = 0; // so that the progress bar displays
+      let prefix = entries_status < 3 ? "Awaiting" : "Completed";
+      let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
+      let progressObject = {
+        percentage:0,
+        variant:null,
+        text:"Submission"
+      };
+      // text-${progressObject.percentage < 100 ? 'info':'success'}
+      if(approval_stage){
+        const percentage = approval_stage.stage/(allApprovals.length + shift) * 100;
+        const variant = percentage < 100 ? "info_custom" : "success";
+        const text = approval_stage.description;
+        progressObject = { percentage,variant,text }
+        // padding = 5;
+      }
+      return (
+        <div>
+        <ProgressBar
+          now={progressObject.percentage + padding}
+          label={`${progressObject.percentage}%`}
+          animated
+          striped
+          variant={progressObject.variant}
+        ></ProgressBar>
+      <div className={`text-center`}>
+          <small><b><em>{prefix} {progressObject.text}</em></b></small>
+        </div>
+      </div>
+      )
+
+    }
+
+    setEntriesStatus = (departmentAggregate)=>{
+
+      const { entries_status } = departmentAggregate;
+      const key = entries_status ? entries_status.toString() : "0";
+      const variants = {
+        "0":"secondary_custom",
+        "1":"info_custom",
+        "2":"success",
+        "3":"warning"
+      }
+      const statuses = {
+        "0":"DRAFT",
+        "1":"SUBMITTED",
+        "2":"APPROVED",
+        "3":"DISCARDED"
+      }
+
+      return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+
+    }
 
     /**
      * This method creates a new departmentaggregate
@@ -1814,9 +1898,11 @@ export class BudgetEntriesComponent extends Component{
 
                                             <th colSpan="6">
 
+
                                               <div className="dash w-100"></div>
 
                                             </th>
+
                                             <th className="text-right">
                                               {utils.formatNumber(this?.state?.totals?.naira_part)}
                                               <div className="dash-2 w-100"></div>
@@ -1860,56 +1946,29 @@ export class BudgetEntriesComponent extends Component{
 
                                             </tr>
 
-                                            <tr className="ul-widget6__tr--sticky-th line_entries">
-                                              <th>
-                                                 #
-                                               </th>
-
-                                               <th>
-                                                Category
-                                               </th>
-
-                                               <th>
-                                                Cost item
-                                               </th>
-
-                                               <th>
-                                                  Type
-                                               </th>
-
-                                               <th>
-                                                 Description
-                                               </th>
-                                               <th>
-                                                 Unit value
-                                               </th>
-                                               <th>
-                                                 Quantity
-                                               </th>
-
-                                               <th className="text-right">
-                                                 Naira part (&#x20a6;)
-                                               </th>
-                                               <th className="text-right">
-                                                 USD part ($)
-                                               </th>
-                                               <th className="text-right">
-                                                 Total in Naira (&#x20a6;)
-                                               </th>
-                                               <th className="text-right">
-                                                 Total in USD ($)
-                                               </th>
-                                               {
-                                                 this.props.updateentries && viewOrEditSelections.is_view ?
-                                                 null : (
-                                               <th className="text-right">
-                                                 Action
-                                               </th>
-                                             )
-                                           }
-                                            </tr>
+                                            {/* <tr className="ul-widget6__tr--sticky-th line_entries">
+                                              <th colSpan="7"></th>
+                                              <th colSpan="2"> {this.setProgressBar(this?.state?.viewedDepartmentAggregate)} </th>
+                                            <th colSpan="2" className="text-center">{this.setEntriesStatus(this?.state?.viewedDepartmentAggregate)}</th>
+                                            </tr> */}
                                         </tfoot>
                                     </table>
+                                    <div className="card-footer">
+                                      <div className="row">
+                                        <div className="col-md-12">
+                                          <div className="float-right pl-3">
+                                            {this.setEntriesStatus(this?.state?.viewedDepartmentAggregate)}
+                                          </div>
+
+                                          <div className="float-right mt-1">
+                                            {this.setProgressBar(this?.state?.viewedDepartmentAggregate)}
+                                          </div>
+                                        </div>
+
+                                      </div>
+
+
+                                    </div>
                                 </div>
                             </div>
 

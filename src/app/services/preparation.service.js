@@ -59,6 +59,19 @@ export default class PreparationService {
      return await apiService.del(url);
     }
 
+
+    /**
+    *
+    * @param {*} departmentaggregate
+    * This method deletes a departmentaggregate
+    */
+    async submitDepartmentAggregate(departmentaggregate){
+     const url = `departmentaggregates/${departmentaggregate.id}/submit/`
+     return await apiService.put(url);
+    }
+
+
+
     /**
     *
     * @param {*} departmentaggregate
