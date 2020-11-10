@@ -3,7 +3,7 @@ import { Dropdown } from "react-bootstrap";
 import DropdownMenu from "react-bootstrap/DropdownMenu";
 import { getTimeDifference } from "@utils";
 import DropdownToggle from "react-bootstrap/DropdownToggle";
-import { Link } from "react-router-dom";
+import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
 import { FaCog } from "react-icons/fa";
 
 import PropTypes from "prop-types";
@@ -15,7 +15,6 @@ import {
 
 import { logoutUser } from "app/redux/actions/UserActions";
 import { setactivebudgetcycle, getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
-import { withRouter } from "react-router-dom";
 import { merge } from "lodash";
 import MegaMenu from "@gull/components/MegaMenu";
 
@@ -41,6 +40,7 @@ class Layout1Header extends Component {
     userDepartmentRoles:[],
     allBudgetCycles:[],
     fetching:false,
+    toDashboard:false,
     shorcutMenuList: [
       {
         icon: "i-Shop-4",
@@ -231,14 +231,37 @@ class Layout1Header extends Component {
 
   }
 
-  setActiveDepartment = (event, departmentRole)=>{
+  setActiveDepartment = async (event, departmentRole)=>{
     event.preventDefault();
     const { activeDepartmentRole } = this.state;
     if(activeDepartmentRole.id == departmentRole.id){//no need to reload
       return;
     }
-    jwtAuthService.setActiveDepartmentRole(departmentRole);
-    window.location.reload();
+  await  jwtAuthService.setActiveDepartmentRole(departmentRole);
+    let href = window.location.href;
+    if(href.includes('review') && href.endsWith('approval')){ // keep up appearnces
+      const { role } = jwtAuthService.getActiveDepartmentRole();
+      let hrefParts = href.split('/');
+      const approvalSlug = hrefParts[hrefParts.length - 1];
+
+      if(!role.approval){
+          // this.setState({ toDashboard:true })
+          hrefParts = href.split('review');
+           new AppNotification({
+            type:"warning",
+            msg:`In the role of ${role.name}, you are not an approver...`
+          });
+          setTimeout(() =>{
+             window.location.href = hrefParts[0]+'preparation/budget-entries';
+          }, 2000)
+          return;
+      }
+      const newSlug = `${role.name.toLowerCase().split(' ').join('')}-approval`;
+      href = href.replace(approvalSlug,newSlug);
+      window.location.href = href;
+    }else{
+      window.location.reload();
+    }
 
 
   }
@@ -246,8 +269,9 @@ class Layout1Header extends Component {
 
 
   render() {
-    let { shorcutMenuList = [], notificationList = [], allBudgetCycles, activeBudgetCycle, activeDepartmentRole, userDepartmentRoles,activeUser, fetching } = this.state;
+    let { shorcutMenuList = [], notificationList = [], allBudgetCycles, activeBudgetCycle, activeDepartmentRole, userDepartmentRoles,activeUser, fetching, toDashboard } = this.state;
     return (
+
       <div className="main-header">
         <div className="logo">
           <img src="/assets/images/logo.png" alt="" />

@@ -192,10 +192,13 @@ class ApprovalsList extends Component {
         const {createApprovalForm, allApprovals, allRoles} = this.state;
         const { role, type } = createApprovalForm;
         const selectedRole = allRoles.find(r => r.id == role );
+        const noOfApprovals = allApprovals.length;
+        const lastApprovalStage = noOfApprovals ? allApprovals[noOfApprovals - 1].stage : 0;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
         createApprovalForm['approval_type'] = type;
+        createApprovalForm['stage'] = lastApprovalStage+1;
         // createApprovalForm['role_id'] = role;
         createApprovalForm['description'] = `${selectedRole.name} Approval`;
         delete  createApprovalForm['type']; // type is a keyword on the backend, so did not setup the db column with the name
@@ -204,7 +207,7 @@ class ApprovalsList extends Component {
             (approvalData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
-                allApprovals.unshift(approvalData)
+                allApprovals.push(approvalData)
                 this.setState({ allApprovals, isSaving, saveMsg })
                 const successNotification = {
                     type:'success',
@@ -213,8 +216,8 @@ class ApprovalsList extends Component {
                 new AppNotification(successNotification)
                 this.toggleModal();
                 this.resetForm();
+              }
 
-            }
         ).catch(
             (error)=>{
                 isSaving = false;

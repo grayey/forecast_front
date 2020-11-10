@@ -301,7 +301,7 @@ export class DepartmentAggregatesComponent extends Component{
       };
       // text-${progressObject.percentage < 100 ? 'info':'success'}
       if(approval_stage){
-        const percentage = approval_stage.stage/(allApprovals.length + shift) * 100;
+        const percentage = Math.round(approval_stage.stage/(allApprovals.length + shift) * 100 );
         const variant = percentage < 100 ? "info_custom" : "success";
         const text = approval_stage.description;
         progressObject = { percentage,variant,text }
@@ -1313,12 +1313,11 @@ export class DepartmentAggregatesComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item className="border-bottomx">
+                                                            <Dropdown.Item className="border-bottom" href={`/preparation/budget-entries/${departmentaggregate.slug}`}>
                                                                 <NavLink className="underlinex text-info_custom" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
                                                                 <i className="nav-icon i-Eye  font-weight-bold"> </i> View
                                                               </NavLink>
                                                             </Dropdown.Item>
-                                                            <Dropdown.Divider></Dropdown.Divider>
 
                                                             {
                                                               departmentaggregate?.entries_status ? null :

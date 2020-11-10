@@ -1,3 +1,20 @@
+
+import jwtAuthService from "./services/jwtAuthService";
+
+const activeBudgetCycle = JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE'));
+const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+const { department, role } = activeDepartmentRole;
+const { active_version } = activeBudgetCycle;
+const approval_path = role.name.toLowerCase().split(' ').join('') + '-approval';
+
+console.log("Navigationsss", activeBudgetCycle)
+
+
+const getNavigations = () => {
+
+}
+
+
 export const navigations = [
   {
     name: "Dashboard",
@@ -45,9 +62,8 @@ export const navigations = [
     description: "Budget approvals & task delegation",
     type: "dropDown",
     icon: "i-Computer-Secure",
-
     sub: [
-      { icon: "i-Email", name: "[Role] Approval", path: "/inbox", type: "link" },
+      { icon: "i-Email", name: `${role.name} Approval`, path: `/review/${approval_path}`, type: "link" },
       { icon: "i-Speach-Bubble-3", name: "Delegate task", path: "/chat", type: "link" },
     ]
   },

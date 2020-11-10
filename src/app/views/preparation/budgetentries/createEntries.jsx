@@ -726,7 +726,7 @@ export class BudgetEntriesComponent extends Component{
       };
       // text-${progressObject.percentage < 100 ? 'info':'success'}
       if(approval_stage){
-        const percentage = approval_stage.stage/(allApprovals.length + shift) * 100;
+        const percentage = Math.round(approval_stage.stage/(allApprovals.length + shift) * 100);
         const variant = percentage < 100 ? "info_custom" : "success";
         const text = approval_stage.description;
         progressObject = { percentage,variant,text }

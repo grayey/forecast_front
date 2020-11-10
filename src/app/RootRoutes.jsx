@@ -27,6 +27,7 @@ import preparationRoutes from "./views/preparation/preparation.routes";
 import itemCategoriesRoutes from "./views/itemcategories/itemCategoriesRoutes";
 import costItemRoutes from "./views/costitems/costitemsRoutes";
 import versionCodesRoutes from "./views/versioncodes/versionCodesRoutes";
+import reviewRoutes from "./views/review/reviewRoutes";
 
 
 
@@ -61,6 +62,7 @@ const routes = [
       ...itemCategoriesRoutes,
       ...costItemRoutes,
       ...versionCodesRoutes,
+      ...reviewRoutes,
       ...uiKitsRoutes,
       ...formsRoutes,
       ...widgetsRoute,
