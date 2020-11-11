@@ -21,7 +21,7 @@ class ListEntriesComponent extends Component {
   render(){
 
     return (
-      <BudgetEntriesComponent updateentries="true" queryslug={this.querySlug}  {...this.props}/>
+      <BudgetEntriesComponent updateentries={true} queryslug={this.querySlug}  {...this.props}/>
 
 
       )

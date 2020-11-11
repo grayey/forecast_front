@@ -21,7 +21,8 @@ const PreparationRoutes = [
     exact:true,
     path: "/preparation/budget-entries/:slug",
     component: ListEntriesDetailsRoute,
-  }
+  },
+
 
 
 ];

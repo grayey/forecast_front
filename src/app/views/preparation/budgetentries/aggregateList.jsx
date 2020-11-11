@@ -1358,7 +1358,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         <tfoot>
                                             <tr>
                                               <th>#</th>
-                                            <th>Description</th>
+                                            <th>Version</th>
                                               <th>Department</th>
                                             <th colSpan="3" className="text-center">Summary</th>
                                               <th>Progress</th>

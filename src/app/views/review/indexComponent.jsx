@@ -9,7 +9,7 @@ import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
 import jwtAuthService from "../../services/jwtAuthService";
-
+import DepartmentAggregatesApprovalComponent from "./aggregates";
 
 
 
@@ -66,6 +66,7 @@ export class ApprovalsComponent extends Component{
          const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
          const { department, role } = activeDepartmentRole;
          const { active_version } = activeBudgetCycle;
+         console.log("ACTTIVE OAA",active_version)
          this.setState({ activeBudgetCycle,activeDepartmentRole, department, role, active_version })
     }
 
@@ -582,7 +583,7 @@ export class ApprovalsComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Approval</Button>
+                    {/* <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Approval</Button> */}
                 </div>
 
                 <div className="breadcrumb">
@@ -597,118 +598,8 @@ export class ApprovalsComponent extends Component{
                 <div className="row mb-4">
 
                     <div className="col-md-12 mb-4">
-                        <div className="card text-left">
-                            <div className="card-body">
-                                <h4 className="card-title mb-3">Approvals</h4>
-                                <p>List of approvals.</p>
-
-                            {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
-
-                            <div className="table-responsive">
-                                    <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
-                                        <thead>
-                                            <tr className="ul-widget6__tr--sticky-th">
-                                                <th>#</th>
-                                                <th>Name</th>
-                                                <th>Description</th>
-                                                <th>Status</th>
-                                                <th>Date Created</th>
-                                                <th>Date Updated</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        {
-                                          this.state.allApprovals.length ?  this.state.allApprovals.map( (approval, index)=>{
-                                                return (
-                                                    <tr key={approval.id} className={approval.temp_flash ? 'bg-success text-white':''}>
-                                                        <td>
-                                                            <b>{index+1}</b>.
-                                                        </td>
-                                                        <td>
-                                                            {approval.name}
-                                                        </td>
-                                                        <td>
-                                                        {approval.description}
-                                                        </td>
-                                                        <td>
-                                                        <Form>
-
-                                                             <Form.Check
-                                                                    checked={approval.status}
-                                                                    type="switch"
-                                                                    id={`custom-switch${approval.id}`}
-                                                                    label={approval.status ? 'Enabled' : 'Disabled'}
-                                                                    className={approval.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleApproval(approval)}
-                                                                />
-
-
-                                                            </Form>
-                                                        </td>
-                                                        <td>
-                                                        {utils.formatDate(approval.created_at)}
-                                                        </td>
-                                                        <td>
-                                                        {utils.formatDate(approval.updated_at)}
-                                                        </td>
-
-                                                        <td>
-                                                        <Dropdown key={approval.id}>
-                                                            <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
-                                                            Manage
-                                                            </Dropdown.Toggle>
-                                                            <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editApproval(approval);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteApproval(approval);}
-                                                            }>
-                                                                <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
-
-                                                        </td>
-
-                                                    </tr>
-                                                )
-
-
-                                            }) :
-                                            (
-                                                <tr>
-                                                    <td className='text-center' colSpan='7'>
-                                                    <FetchingRecords isFetching={this.state.isFetching}/>
-                                                    </td>
-                                                </tr>
-                                            )
-                                        }
-
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Name</th>
-                                                <th>Description</th>
-                                                <th>Status</th>
-                                                <th>Date Created</th>
-                                                <th>Date Updated</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-
-                            </div>
-                        </div>
+                      <DepartmentAggregatesApprovalComponent approvalSlug={`${this.state.role?.name?.split(' ')?.join('')}-approval`} activeVersion={this.state.active_version}/>
+                    </div>
                     {/* </div> */}
                     {/* <!-- end of col--> */}
 

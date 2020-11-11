@@ -25,6 +25,11 @@ export default class PreparationService {
      return await apiService.get(url);
     }
 
+  async getAllDepartmentAggregatesByActiveVersion(activeVersionId){
+    const url = `departmentaggregates/${activeVersionId}/by-version/`;
+    return await apiService.get(url);
+
+  }
 
     /**
     *

@@ -5,7 +5,6 @@ const IndexRoute = lazy(() => import("./indexComponent"));
 const DepartmentApprovalRoute = lazy(() => import("./departmentApproval"));
 
 
-
 const ReviewRoutes = [
   {
     exact:true,

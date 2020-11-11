@@ -16,7 +16,7 @@ import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
 import { Link, Redirect, withRouter } from "react-router-dom";
 import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv } from "react-icons/fa";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck } from "react-icons/fa";
 import Select from 'react-select';
 
 
@@ -68,7 +68,9 @@ export class BudgetEntriesComponent extends Component{
         saveMsg:'Save',
         updateMsg:'Update',
         editedDepartmentAggregate: {},
-        viewedDepartmentAggregate:{},
+        viewedDepartmentAggregate:{
+          department:{}
+        },
         activeBudgetCycle:{},
         activeDepartmentRole:{},
         createDepartmentAggregateForm: {
@@ -591,7 +593,7 @@ export class BudgetEntriesComponent extends Component{
       let { viewOrEditSelections } = this.state;
       const { is_view_only } = viewOrEditSelections;
 
-      return this.props.updateentries ?(
+      return !this.props.isApproval ?(
         <div className="btn-group">
           <button className={`btn btn-lg btn-${viewOrEditSelections.is_view ? "success shadow":"info_custom"}`} onClick={()=>this.toggleViewOrEdit('view')}>
             View { viewOrEditSelections.is_view ? <FaEye/> : null}
@@ -605,7 +607,17 @@ export class BudgetEntriesComponent extends Component{
           }
 
         </div>
-      ) : null
+      ) :
+        <div className="btn-group">
+          <button className="btn btn-lg btn-success" onClick={()=>this.toggleViewOrEdit('view')}>
+            Approve <FaCheck/>
+          </button>
+          <button className="btn btn-lg btn-danger" onClick={()=>this.toggleViewOrEdit('view')}>
+            Reject <FaTimes/>
+          </button>
+
+        </div>
+
     }
 
     toggleViewOrEdit = (mode)=>{
@@ -663,8 +675,9 @@ export class BudgetEntriesComponent extends Component{
 
               const { entries, total_currency_portion, total_naira_portion,
                   total_functional_naira, total_functional_currency, capturer, budgetversion  } = viewedDepartmentAggregate;
-                  const { version_code, budgetcycle } = budgetversion
-                  if(budgetcycle.id !== activeBudgetCycle.id || activeDepartmentRole.department.id !== viewedDepartmentAggregate.department.id ){
+                  const { version_code, budgetcycle } = budgetversion;
+
+                  if((budgetcycle.id !== activeBudgetCycle.id || activeDepartmentRole.department.id !== viewedDepartmentAggregate.department.id) && !this.props.isApproval){
                   return  this.setState({navigate:true})
                   }
               const allBudgetEntries = entries.map((entry)=>{
@@ -700,7 +713,7 @@ export class BudgetEntriesComponent extends Component{
         const { entries_status, department, capturer, budgetversion } = viewedDepartmentAggregate;
         const { version_code, budgetcycle } = budgetversion
 
-        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current)
+        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current || this.props.isApproval)
         // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
         // Or userRole is not a capture role // departmentHasbegun capture
         // (entries_status || !budgetcycle.is_current)
@@ -1238,7 +1251,13 @@ export class BudgetEntriesComponent extends Component{
                     {
                        this.props.updateentries && viewOrEditSelections.is_view ? (
                          <div className="mt-3 ml-4">
-                           <h5><b>Department:</b> {activeDepartmentRole.department?.name} ({activeDepartmentRole?.department?.code})</h5>
+                           <h5><b>Department:</b> {
+                             this.props?.isApproval ?
+                             `${this.state?.viewedDepartmentAggregate?.department?.name} (${this.state?.viewedDepartmentAggregate?.department?.code})` :
+                             `${activeDepartmentRole.department?.name} (${activeDepartmentRole?.department?.code})`
+                           }
+
+                         </h5>
                          </div>
                        )
                       : (
