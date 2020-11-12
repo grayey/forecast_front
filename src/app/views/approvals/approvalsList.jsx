@@ -10,6 +10,10 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
+import Select from 'react-select';
+import makeAnimated from 'react-select/animated';
+import { FaArrowRight, FaTimes } from "react-icons/fa";
+
 import LaddaButton, {
     XL,
     EXPAND_LEFT,
@@ -19,6 +23,7 @@ import LaddaButton, {
     CONTRACT,
   } from "react-ladda";
 
+const animatedComponents = makeAnimated();
 
 const SortableItem = SortableElement(({approval}) => <li className="list-group-item drag shadow-lg">
 
@@ -96,24 +101,42 @@ class ApprovalsList extends Component {
   state = {
     items: ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5', 'Item 6'],
     editedIndex:0,
+    oldIndex:0,
     allApprovals:[],
     allRoles:[],
     approvalIds:[],
-   showEditModal:false,
-   showCreateModal:false,
-   isSaving:false,
-   isFetching:true,
-   saveMsg:'Save',
-   updateMsg:'Update',
-   editedApproval: {},
-   createApprovalForm: {
-       type: "",
-       role: "",
-     },
-     updateApprovalForm: {
-       type: "",
-       role: "",
-     },
+    shiftedFallBackOptions:[],
+    fallBackOptions:[],
+    shiftedRecaptureOptions:[],
+    recaptureOptions:[],
+    recaptureAssignments:[],
+    updateRejectionInfo:false,
+    oldApprovals:[],
+    sortIndex:0,
+     showEditModal:false,
+     showCreateModal:false,
+     isSaving:false,
+     isFetching:true,
+     saveMsg:'Save',
+     updateMsg:'Update',
+     editedApproval: {},
+     shiftedApproval:{},
+     createApprovalForm: {
+         type: "",
+         role: "",
+         fallback_to:"",
+         recapture_options:""
+       },
+       updateApprovalForm: {
+         type: "",
+         role: "",
+         fallback_to:"",
+         recapture_options:""
+       },
+       updateRejectionInfoForm:{
+         fallback_to:"",
+         recapture_options:""
+       }
 
 
   };
@@ -124,18 +147,44 @@ class ApprovalsList extends Component {
   }
 
   componentDidMount = async() => {
-    this.getAllRoles();
     this.getAllApprovals();
   }
 
-  handleChange = (event, form='create') => {
-       const {createApprovalForm, updateApprovalForm} = this.state
+  handleChange = async (event, form='create') => {
+       const {createApprovalForm, updateApprovalForm, updateRejectionInfoForm} = this.state
+       const {name, value} = event.target;
+
        if(form=='create'){
-           createApprovalForm[event.target.name] = event.target.value;
+           createApprovalForm[name] = value;
        }else if(form=='edit'){
-           updateApprovalForm[event.target.name] = event.target.value;
+           updateApprovalForm[name] = value;
+       }else if(form="uri"){
+         updateRejectionInfoForm[name] = value;
        }
-       this.setState({ createApprovalForm, updateApprovalForm });
+       if(name == 'role'){
+         await this.updateRecaptureOptions(value);
+       }
+       this.setState({ createApprovalForm, updateApprovalForm, updateRejectionInfoForm});
+   }
+
+   handleMultiSelectChange = async(event, modal="create") =>{
+
+       const recaptureAssignments = event;
+       this.setState({ recaptureAssignments })
+
+
+     console.log(recaptureAssignments, "ASSIGNMENTSSS")
+     // const { label, value, id } = event;
+     // const eventValue =  { label, value };
+     //   let { recaptureAssignments, allRoles } = this.state
+     //   const recaptureRole = allRoles.find(r => r.id == id);
+     //   const assignmentIndex  = recaptureAssignments.findIndex(ra => ra.id == id);
+     //
+     //   assignmentIndex !== -1 ? recaptureAssignments.splice(assignmentIndex, 1) : recaptureAssignments.push(recaptureRole);
+     //
+     //   // if !recaptureAssignments.find(ra => ra.id == id) recaptureAssignments.push(recaptureRole);
+     //
+     //   this.setState({ recaptureAssignments })
    }
 
   /**
@@ -143,10 +192,17 @@ class ApprovalsList extends Component {
    */
    getAllRoles = async ()=>{
        let isFetching = false;
+       let { allApprovals } = this.state;
+       const allApprovalRoleIds = allApprovals.map(a => a.role.id);
 
       this.appMainService.getAllRoles().then(
           (rolesResponse)=>{
-              const allRoles = rolesResponse;
+              let allRoles = rolesResponse.map((r)=>{
+                  r.value = r.id;
+                  r.label = r.name;
+                  return r;
+              })
+              allRoles = allRoles.filter(r => !allApprovalRoleIds.includes(r.id)); // remove roles that have already been assigned approvals?
               this.setState({ allRoles, isFetching })
               console.log('Roles response', rolesResponse)
           }
@@ -171,6 +227,8 @@ class ApprovalsList extends Component {
             (approvalsResponse)=>{
                 const allApprovals = approvalsResponse.sort((a, b) => (a.stage > b.stage) ? 1 : -1);
                 this.setState({ allApprovals, isFetching })
+                this.getAllRoles();
+
                 console.log('Approvals response', approvalsResponse)
             }
         ).catch((error)=>{
@@ -184,12 +242,67 @@ class ApprovalsList extends Component {
         })
     }
 
+    updateRecaptureOptions = async (mainRoleId) => {
+
+      let { allRoles, recaptureOptions } = this.state;
+      const mainRole = allRoles.find(r => r.id == mainRoleId);
+      let { approval } = mainRole;
+      if(approval){
+        recaptureOptions = allRoles.filter((r)=>{
+          const role_approval = r.approval;
+          return role_approval ? role_approval.stage <= approval.stage  : true; // recaptureOptions should be "lesser" roles or roles with no approval
+        })
+      }
+      this.setState({ recaptureOptions })
+
+    }
+
+    undoShift = async () =>{
+      let { approvalIds, oldApprovals, allApprovals, updateRejectionInfo } = this.state;
+      allApprovals = [...oldApprovals];
+      approvalIds = [];
+      updateRejectionInfo = false;
+    await  this.setState({ allApprovals, approvalIds, updateRejectionInfo })
+      this.resetForm();
+    }
+
+
+    saveShift = async() =>{
+      let { approvalIds, oldApprovals, isSaving, shiftedApproval, updateRejectionInfoForm, recaptureAssignments } = this.state;
+      // this.setState({ isSaving:true})
+      // const shiftObject = {
+      //   fallback_to:updateRejectionInfoForm.fallback_to,
+      //   recapture_options:recaptureAssignments,
+      //   approval_ids:approvalIds
+      // };
+      await this.appMainService.bulkUpdateApprovalStages(approvalIds).then(
+      (updateResponse)=>{
+        // this.setState({ isSaving:false, updateRejectionInfo:false})
+        // const successNotification = {
+        //     type:'success',
+        //     msg:"Approvals readjusted."
+        // }
+      //silent update
+    }).catch((error)=>{
+      const errorNotification = {
+          type:'error',
+          msg:utils.processErrors(error)
+      }
+
+      this.setState({ allApprovals : oldApprovals, isSaving:false });
+      new AppNotification(errorNotification)
+      // setTimeout(()=>{
+      //   window.location.reload();
+      // }, 1000)
+    })
+    }
+
 
   /**
      * This method creates a new approval
      */
     createApproval = async ()=>{
-        const {createApprovalForm, allApprovals, allRoles} = this.state;
+        let {createApprovalForm, allApprovals, allRoles, recaptureAssignments} = this.state;
         const { role, type } = createApprovalForm;
         const selectedRole = allRoles.find(r => r.id == role );
         const noOfApprovals = allApprovals.length;
@@ -199,6 +312,8 @@ class ApprovalsList extends Component {
         this.setState({isSaving, saveMsg})
         createApprovalForm['approval_type'] = type;
         createApprovalForm['stage'] = lastApprovalStage+1;
+        createApprovalForm['fallback_to'] = createApprovalForm['fallback_to'] !=="CAPTURE" ? allApprovals.find(a=>a.id == createApprovalForm['fallback_to']) : "";
+        createApprovalForm['recapture_options'] = recaptureAssignments;
         // createApprovalForm['role_id'] = role;
         createApprovalForm['description'] = `${selectedRole.name} Approval`;
         delete  createApprovalForm['type']; // type is a keyword on the backend, so did not setup the db column with the name
@@ -207,11 +322,12 @@ class ApprovalsList extends Component {
             (approvalData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
+                recaptureAssignments = [];
                 allApprovals.push(approvalData)
-                this.setState({ allApprovals, isSaving, saveMsg })
+                this.setState({ allApprovals, isSaving, saveMsg, recaptureAssignments })
                 const successNotification = {
                     type:'success',
-                    msg:`${approvalData.name} successfully created!`
+                    msg:`${createApprovalForm['description']} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -227,6 +343,7 @@ class ApprovalsList extends Component {
                     type:'error',
                     msg:utils.processErrors(error)
                 }
+                console.log("EError", error)
                 new AppNotification(errorNotification)
         })
     }
@@ -284,20 +401,39 @@ class ApprovalsList extends Component {
    * This method toggles a modal
    */
   toggleModal = (modalName='create')=> {
-      let {showEditModal, showCreateModal } = this.state;
+      let {showEditModal, showCreateModal, fallBackOptions, recaptureOptions, allRoles, allApprovals, createApprovalForm, updateApprovalForm } = this.state;
+      recaptureOptions = [...allRoles].filter(r => r.role_type !== 'APPROVER')
       if(modalName == 'create'){
           showCreateModal = !showCreateModal;
+          fallBackOptions = [...allApprovals];
+          const lastApprovalStage = fallBackOptions[fallBackOptions.length-1];
+          const fallback_to = lastApprovalStage ? lastApprovalStage.id : "";
+          createApprovalForm = {...createApprovalForm, fallback_to };
       }else if(modalName == 'edit'){
-          showEditModal = !showEditModal
+          showEditModal = !showEditModal;
+          // fallBackOptions = // allApprovals with lower stages
+
       }
 
-      this.setState({ showEditModal, showCreateModal })
+      this.setState({ showEditModal, showCreateModal, fallBackOptions, recaptureOptions, allRoles, allApprovals, createApprovalForm, updateApprovalForm })
+  }
+
+
+  onSortStart = async(event)=>{
+    const sortIndex = event.index;
+    this.setState({ sortIndex })
+    // console.log("SOrt stert", event.index)
   }
 
 
   onSortEnd = async ({oldIndex, newIndex}) => {
-    let { allApprovals } = this.state;
-    const oldApprovals = [...allApprovals];
+    let { allApprovals, allRoles, sortIndex, updateRejectionInfo, shiftedFallBackOptions, shiftedRecaptureOptions } = this.state;
+    if(sortIndex == newIndex){
+      return; // because nothing moved
+    }
+    // console.log("SOrt Endd", newIndex)
+    updateRejectionInfo = true;
+    const oldApprovals = JSON.parse(JSON.stringify(allApprovals)); // DEEP COPY! Array spread was not working!!!
     const approvalIds = [];
     allApprovals = arrayMove(allApprovals, oldIndex, newIndex);
     allApprovals.map((apr, index)=>{
@@ -305,27 +441,36 @@ class ApprovalsList extends Component {
       approvalIds.push(apr.id);
       return apr;
     })
-      this.setState({ allApprovals });
-      await this.appMainService.bulkUpdateApprovalStages(approvalIds).then(
-      (updateResponse)=>{
-      //silent update
-    }).catch((error)=>{
-      const errorNotification = {
-          type:'error',
-          msg:utils.processErrors(error)
-      }
 
-      this.setState({ allApprovals : oldApprovals });
-      new AppNotification(errorNotification)
-      setTimeout(()=>{
-        window.location.reload();
-      }, 1000)
-    })
+    // const shiftedApproval = allApprovals[newIndex];
+    // shiftedFallBackOptions = allApprovals.filter(a => a.stage <= shiftedApproval.stage) // allApprovals with lower stages
+    // shiftedRecaptureOptions = allRoles.filter((r)=>{
+    //   const role_approval = r.approval;
+    //   return role_approval ? role_approval.stage <= shiftedApproval.stage  : true; // recaptureOptions should be "lesser" roles or roles with no approval
+    // })
+    //
+      // this.setState({ allApprovals, oldApprovals, approvalIds, shiftedApproval, oldIndex, shiftedFallBackOptions, shiftedRecaptureOptions});
 
+      await this.setState({ allApprovals, approvalIds, oldApprovals});
+      this.saveShift();
 
-    // make backed call, then
 
   };
+
+  resetForm = ()=> {
+    let { createApprovalForm, updateApprovalForm, updateRejectionInfoForm} = this.state;
+    createApprovalForm = updateApprovalForm = {
+        type: "",
+        role: "",
+        fallback_to:"",
+        recapture_options:""
+      };
+      updateRejectionInfoForm = {
+          fallback_to:"",
+          recapture_options:""
+        };
+      this.setState({ createApprovalForm, updateApprovalForm, updateRejectionInfoForm })
+  }
 
   render() {
 
@@ -418,7 +563,7 @@ class ApprovalsList extends Component {
                                  <option value="">Select</option>
                                  {
                                    this.state.allRoles.map((role)=>{
-                                 return  (<option key={role.id} value={role.id}>{role?.name}</option>)
+                                 return role.role_type !=='CAPTURER' ? (<option key={role.id} value={role.id}>{role?.name}</option>) : null;
 
                                    })
                                  }
@@ -429,6 +574,56 @@ class ApprovalsList extends Component {
                                   Role is required
                                   </div>
                               </div>
+
+                              </div>
+
+                              <div className="form-row">
+                              <div className="col-md-12 mb-2">
+                                <div className="card-header w-100">
+                                  <h4 className="text-danger">Rejection Information</h4>
+                                </div>
+                              </div>
+
+                              <div className="col-md-6">
+                                <label><b>FallBack to:</b> <small>(defaults to previous stage)</small></label>
+                              <select className="form-control fbt" name="fallback_to"
+                                onChange={(event)=>this.handleChange(event)} value={values.fallback_to}>
+                                <option value="">Select</option>
+                              <option value="CAPTURE" className="text-danger">Capture</option>
+                                  {
+                                    this.state.fallBackOptions.map((f)=>{
+                                  return  (<option key={f.id} value={f.id}>{f?.description}</option>)
+                                    })
+                                  }
+                                </select>
+
+                              </div>
+
+                              <div className="col-md-6">
+                                <label><b>Recapture Option(s):</b></label>
+                                {/* <select className="form-control" >
+                                  <option value="">Select</option>
+                                  {
+                                    this.state.recaptureOptions.map((r)=>{
+                                  return  (<option key={r.id} value={r.id}>{r?.name}</option>)
+                                    })
+                                  }
+
+
+                                </select> */}
+
+                            <Select
+                              key={`create_options${this.state.createApprovalForm.role}}`}
+                             closeMenuOnSelect={false}
+                             components={animatedComponents}
+                             onChange={this.handleMultiSelectChange}
+                             isDisabled={!this.state.allApprovals.length}
+                             isMulti
+                             options={this.state.recaptureOptions}
+                           />
+
+                              </div>
+
 
                               </div>
                           </Modal.Body>
@@ -468,6 +663,124 @@ class ApprovalsList extends Component {
               </Modal>
 
 
+
+              <Modal show={this.state.updateRejectionInfo} onHide={
+                          ()=>{ this.toggleModal('update_r_i')}
+                          } {...this.props} id='update_r_i'>
+                          <Modal.Header closeButton>
+                          <Modal.Title className="text-primary">Update Rejection Information</Modal.Title>
+                          </Modal.Header>
+
+                          <Formik
+                          initialValues={this.state.updateRejectionInfoForm}
+                          validationSchema={this.updateRejectionInfoFormSchema}
+                          onSubmit={this.saveShift}
+                          >
+                          {({
+                              values,
+                              errors,
+                              touched,
+                              handleChange,
+                              handleBlur,
+                              handleSubmit,
+                              isSubmitting,
+                              resetForm
+                          }) => {
+
+                              return (
+                              <form
+                                  className="needs-validation "
+                                  onSubmit={handleSubmit}
+                                  noValidate
+                              >
+                                   <Modal.Body>
+
+                                      <div className="form-row">
+                                      <div className="col-md-12 mb-2">
+                                        <div className="card-header w-100">
+                                          <h5><b>{this.state?.shiftedApproval?.description}: <em>Stage {this.state.oldIndex + 1} <FaArrowRight/> {this.state?.shiftedApproval?.stage}</em></b></h5>
+                                        </div>
+                                      </div>
+
+                                      <div className="col-md-6">
+                                        <label><b>FallBack to:</b> <small>(defaults to previous stage)</small></label>
+                                      <select className="form-control fbt" name="fallback_to"
+                                        onChange={(event)=>this.handleChange(event, 'uri')} value={values.fallback_to}>
+                                        <option value="" className="text-danger">Select</option>
+                                      <option value="CAPTURE" className="text-danger">Capture</option>
+                                          {
+                                            this.state.shiftedFallBackOptions.map((f)=>{
+                                          return  (<option key={f.id} value={f.id}>{f?.description}</option>)
+                                            })
+                                          }
+                                        </select>
+
+                                      </div>
+
+                                      <div className="col-md-6">
+                                        <label><b>Recapture Option(s):</b></label>
+                                        {/* <select className="form-control" >
+                                          <option value="">Select</option>
+                                          {
+                                            this.state.recaptureOptions.map((r)=>{
+                                          return  (<option key={r.id} value={r.id}>{r?.name}</option>)
+                                            })
+                                          }
+
+
+                                        </select> */}
+
+                                    <Select
+                                      key={`update_options`}
+                                     closeMenuOnSelect={false}
+                                     components={animatedComponents}
+                                     onChange={(event) => this.handleMultiSelectChange(event, 'uri')}
+                                     isMulti
+                                     options={this.state.shiftedRecaptureOptions}
+                                   />
+
+                                      </div>
+
+
+                                      </div>
+                                  </Modal.Body>
+
+                                  <Modal.Footer>
+
+                                          <LaddaButton
+                                              className="btn btn-danger border-0 mr-2 mb-2 position-relative"
+                                              loading={false}
+                                              progress={0.5}
+                                              type='button'
+                                              onClick={this.undoShift}
+
+                                              >
+                                            <FaTimes/>  Cancel
+                                          </LaddaButton>
+
+                                          <LaddaButton
+                                              className={`btn btn-${utils.isValid(this.updateRejectionInfoFormSchema, this.state.updateRejectionInfoForm) && this.state.recaptureAssignments.length ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                              loading={this.state.isSaving}
+                                              progress={0.5}
+                                              type='submit'
+                                              data-style={EXPAND_RIGHT}
+                                              disabled={!this.state.recaptureAssignments.length}
+                                              >
+                                              {this.state.saveMsg}
+                                          </LaddaButton>
+                                          </Modal.Footer>
+
+                              </form>
+                              );
+                          }}
+
+                          </Formik>
+
+
+
+                      </Modal>
+
+
         <div className='float-right'>
             <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Approval stage</Button>
         </div>
@@ -482,7 +795,7 @@ class ApprovalsList extends Component {
 
         <div className="separator-breadcrumb border-top"></div>
 
-      <SortableList fetching={this.state.isFetching} allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} />
+      <SortableList fetching={this.state.isFetching} onSortStart={this.onSortStart} allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} />
 </>)
 ;
 
@@ -491,14 +804,23 @@ class ApprovalsList extends Component {
   createApprovalSchema = yup.object().shape({
         type: yup.string().required("Approval type is required"),
         role: yup.string().required("role is required"),
+        // fallback_to: yup.string().required("a fallback stage is required"),
       });
 
 
 updateApprovalSchema = yup.object().shape({
         type: yup.string().required("Approval type is required"),
         role: yup.string().required("role is required"),
+        // fallback_to: yup.string().required("a fallback stage is required"),
+
         });
 
+updateRejectionInfoFormSchema = yup.object().shape({
+        // fallback_to: yup.string().required("a fallback level is required"),
+        // recapture_options: yup.string().required("role is required"),
+        // fallback_to: yup.string().required("a fallback stage is required"),
+
+        });
 
 
 }

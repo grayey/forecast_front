@@ -598,7 +598,7 @@ export class ApprovalsComponent extends Component{
                 <div className="row mb-4">
 
                     <div className="col-md-12 mb-4">
-                      <DepartmentAggregatesApprovalComponent approvalSlug={`${this.state.role?.name?.split(' ')?.join('')}-approval`} activeVersion={this.state.active_version}/>
+                      <DepartmentAggregatesApprovalComponent approvalSlug={`${this.state.role?.name?.toLowerCase()?.split(' ')?.join('')}-approval`} activeVersion={this.state.active_version}/>
                     </div>
                     {/* </div> */}
                     {/* <!-- end of col--> */}

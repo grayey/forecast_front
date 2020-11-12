@@ -56,6 +56,8 @@ export class BudgetEntriesComponent extends Component{
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
+        approvalModal:false,
+        rejectionModal:false,
         showDescriptionAlert:false,
         descriptionLine:0,
         entryDescription:"",
@@ -609,10 +611,10 @@ export class BudgetEntriesComponent extends Component{
         </div>
       ) :
         <div className="btn-group">
-          <button className="btn btn-lg btn-success" onClick={()=>this.toggleViewOrEdit('view')}>
+          <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
             Approve <FaCheck/>
           </button>
-          <button className="btn btn-lg btn-danger" onClick={()=>this.toggleViewOrEdit('view')}>
+          <button className="btn btn-lg btn-danger" onClick={()=>this.toggleModal('reject')}>
             Reject <FaTimes/>
           </button>
 
@@ -930,7 +932,7 @@ export class BudgetEntriesComponent extends Component{
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
-        let {showEditModal, showSplitModal, showInstructionsModal, toggleFields, createDepartmentAggregateForm } = this.state;
+        let {showEditModal, showSplitModal, showInstructionsModal, toggleFields, createDepartmentAggregateForm, approvalModal, rejectionModal } = this.state;
         if(modalName == 'split_type'){
             showSplitModal = !showSplitModal;
             toggleFields.PERCENTAGE_SPLIT = false;
@@ -940,9 +942,14 @@ export class BudgetEntriesComponent extends Component{
             showEditModal = !showEditModal
         }else if(modalName=='instructions'){
           showInstructionsModal = !showInstructionsModal
+        }else if(modalName=='approve'){
+          approvalModal = !approvalModal;
+        }
+        else if(modalName=='reject'){
+          rejectionModal = !rejectionModal
         }
 
-        this.setState({ showEditModal, showSplitModal, showInstructionsModal, toggleFields, createDepartmentAggregateForm })
+        this.setState({ showEditModal, showSplitModal, showInstructionsModal, approvalModal, rejectionModal,  toggleFields, createDepartmentAggregateForm })
 
     }
 
@@ -1160,6 +1167,48 @@ export class BudgetEntriesComponent extends Component{
 
                                   </Modal>
 
+                                  <Modal show={this.state.approvalModal} onHide={
+                                      ()=>{ this.toggleModal('approve')}
+                                    } {...this.props} id='approval_modal'>
+                                      <Modal.Header closeButton>
+
+                                      <Modal.Title className="text-success">
+                                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                                        Approval
+                                    </Modal.Title>
+                                      </Modal.Header>
+
+                                               <Modal.Body>
+
+
+
+
+                                               </Modal.Body>
+
+
+                                              <Modal.Footer>
+
+
+
+
+                                                      <LaddaButton
+                                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                          loading={false}
+                                                          progress={0.5}
+                                                          type='button'
+                                                          onClick={()=>this.toggleModal('approve')}
+
+                                                          >
+                                                          Close
+                                                      </LaddaButton>
+
+
+                                                      </Modal.Footer>
+
+
+
+
+                                  </Modal>
 
 
 
