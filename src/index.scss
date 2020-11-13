@@ -174,3 +174,12 @@ a.underline{
   // height:80px;
   border-bottom: 3px solid rgb(23,162,184) !important;
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 0; } /* more concise! */
+  50% { opacity: 1; }
+}
+
+.live {
+  animation: blink 2s infinite;
+}

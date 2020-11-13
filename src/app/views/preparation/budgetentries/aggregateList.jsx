@@ -293,7 +293,7 @@ export class DepartmentAggregatesComponent extends Component{
       const { allApprovals } = this.state;
       let padding = 0; // so that the progress bar displays
       let prefix = entries_status < 3 ? "Awaiting" : "Completed";
-      let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
+      let shift = entries_status < 3 ? 1 : 0;
       let progressObject = {
         percentage:0,
         variant:null,
@@ -301,11 +301,11 @@ export class DepartmentAggregatesComponent extends Component{
       };
       // text-${progressObject.percentage < 100 ? 'info':'success'}
       if(approval_stage){
-        const percentage = Math.round(approval_stage.stage/(allApprovals.length + shift) * 100 );
+        const percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
         const variant = percentage < 100 ? "info_custom" : "success";
         const text = approval_stage.description;
         progressObject = { percentage,variant,text }
-        padding = 5;
+        padding = entries_status < 3 ? 5 : 100; // once approved/discarded fill the progress bar
       }
       return (
         <div>

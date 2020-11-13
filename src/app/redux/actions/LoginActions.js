@@ -30,17 +30,17 @@ export function loginWithEmailAndPassword({ email, password }) {
           type:"error",
           msg:utils.processErrors(error)
         })
-        return dispatch({
-          type: LOGIN_ERROR,
-          payload: error
-        });
+        // return dispatch({
+        //   type: LOGIN_ERROR,
+        //   payload: error
+        // });
       });
   };
 }
 
 export async  function forwardUserIntoApp(user_access){
   const { user_id } = jwtAuthService.decode_token(user_access);
-  let pathname = "/user-departments";
+  let pathname = "user-departments";
   let activeUser = null;
   let activeDepartmentRole = null;
   let userDepartmentRoles = [];
@@ -55,12 +55,12 @@ export async  function forwardUserIntoApp(user_access){
         return dr;
       })
       if(userDepartmentRoles.length == 1){ // user belongs to just one department
-        pathname = '/dashboard/v1';
+        pathname = 'dashboard/v1';
         activeDepartmentRole = userDepartmentRoles[0]; // user's active department is his first (and only) department
       }
 
     }).catch((error)=>{
-       pathname = "/";
+       pathname = "";
        new AppNotification({
          type:"warning",
          msg:"Could not determine your login information. Please contact admin."
@@ -75,8 +75,8 @@ export async  function forwardUserIntoApp(user_access){
  jwtAuthService.setActiveDepartmentRole(activeDepartmentRole);
  jwtAuthService.setUserDepartmentRoles(userDepartmentRoles);
 
- history.push({ pathname });
- // window.location.href = `http://localhost:3000${pathname}`;
+ // history.push({ pathname });
+ window.location.href += `${pathname}`;
 
 }
 

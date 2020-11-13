@@ -16,7 +16,7 @@ import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
 import { Link, Redirect, withRouter } from "react-router-dom";
 import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck } from "react-icons/fa";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList } from "react-icons/fa";
 import Select from 'react-select';
 
 
@@ -53,6 +53,9 @@ export class BudgetEntriesComponent extends Component{
         allCostItems:[],
         aggregateList:[],
         allApprovals:[],
+        historyRoles:[],
+        historyUsers:[],
+        historyRoleIds:[],
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
@@ -120,7 +123,9 @@ export class BudgetEntriesComponent extends Component{
             currency_part:0,
             in_naira:0,
             in_currency:0
-          }
+          },
+          approvalMessage:"",
+          approvalHue:"info_custom"
 
     }
 
@@ -515,19 +520,37 @@ export class BudgetEntriesComponent extends Component{
     }
 
 
-    submitApproval = (event, approved) =>{
+    submitApproval = async (event, approved) =>{
       event.preventDefault();
       const { role } = jwtAuthService.getActiveDepartmentRole();
       const user = jwtAuthService.getUser();
-      const { viewedDepartmentAggregate, rejection_comment, approval_comment } = this.state;
+      let { viewedDepartmentAggregate, rejection_comment, approval_comment, approvalModal, rejectionModal } = this.state;
+      this.setState({isSaving:true })
       const comment = approved ? approval_comment : rejection_comment;
-      const approvalObject = { approved, comment, role:role.id, user:+user.userId }
+      const approvalObject = { approved, comment, role:role.id, user:+user.id }
 
       this.preparationService.approveDepartmentAggregate(viewedDepartmentAggregate, approvalObject).then(
-        (approvalResponse)=>{
-
+      async  (approvedAggregateResponse)=>{
+          viewedDepartmentAggregate = approvedAggregateResponse;
+          console.log("VEWV V ",viewedDepartmentAggregate)
+          const action = approved ? "Approved":"Rejected";
+          const notified  = approved ? "":"";
+          const successNotification ={
+            msg:`Budget ${action}. A notification has been sent to`,
+            type:"success"
+          }
+        await this.setState({isSaving:false, approvalModal:false, rejectionModal:false,viewedDepartmentAggregate   });
+          new AppNotification(successNotification);
+           this.getApprovalMessage();
         }).catch((error)=>{
 
+          const errorNotification ={
+            msg:utils.processErrors(error),
+            type:"error"
+          }
+          this.setState({isSaving:false })
+
+          new AppNotification(errorNotification);
       })
 
     }
@@ -640,16 +663,53 @@ export class BudgetEntriesComponent extends Component{
 
         </div>
       ) :
-        <div className="btn-group">
-          <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
-            Approve <FaCheck/>
-          </button>
-          <button className="btn btn-lg btn-danger" onClick={()=>this.toggleModal('reject')}>
-            Reject <FaTimes/>
-          </button>
+      <>
+      {
+        this.state.viewedDepartmentAggregate?.approval_stage?.id == this.state.activeDepartmentRole?.role?.approval?.id ? (
+          <div className="btn-group">
+            {
+              this.state.viewedDepartmentAggregate.id && this.state.activeDepartmentRole?.role?.approval ?(
+                <>
+                <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
+                  Approve <FaCheck/>
+                </button>
+                <button className="btn btn-lg btn-danger" onClick={()=>this.toggleModal('reject')}>
+                  Reject <FaTimes/>
+                </button>
+                </>
+            ) :null
+            }
 
+
+          </div>
+        ) :
+        <div className="btn-group">
+          <button className={`btn btn-lg btn-${this.state.approvalHue}`}>
+          <small>This approval is <u>unavailable</u> because it <em>{this.state.approvalMessage}</em> desk</small>.
+          </button>
         </div>
 
+      }
+
+      </>
+
+
+    }
+
+    getApprovalMessage(){
+      let { viewedDepartmentAggregate,  activeDepartmentRole, historyRoleIds, approvalHue } = this.state;
+      const { approval_stage } = viewedDepartmentAggregate;
+      const { role } = activeDepartmentRole;
+      const { approval } = role;
+      const user = jwtAuthService.getUser();
+      const suffix = `the ${role.name}`;
+
+      let approvalMessage = historyRoleIds.includes(role.id) ? `has been sent back by ${suffix}` : `has not reached ${suffix}`;
+      if(approval_stage && approval){
+        approvalMessage = approval_stage.stage < approval.stage ? approvalMessage : `has now passed ${suffix}`;
+      }
+      approvalHue = approvalMessage.includes("back") ? "warning" : approvalMessage.includes("passed") ? "success" :approvalHue;
+      this.setState({approvalMessage, approvalHue})
     }
 
     toggleViewOrEdit = (mode)=>{
@@ -696,7 +756,8 @@ export class BudgetEntriesComponent extends Component{
      */
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
          const slug = this.props.queryslug;
-         let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching, activeDepartmentRole } = this.state
+         let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching,
+           activeDepartmentRole, historyRoles, historyUsers, historyRoleIds } = this.state
          let activeBudgetCycle  = this.selectedBudgetCycle ? this.selectedBudgetCycle : {}
           isFetching = true;
          this.setState({ isFetching })
@@ -704,6 +765,14 @@ export class BudgetEntriesComponent extends Component{
             async (departmentAggregatesResponse)=>{
                isFetching = false;
                viewedDepartmentAggregate = departmentAggregatesResponse;
+               const { aggregate_history } = viewedDepartmentAggregate;
+               aggregate_history.forEach((tale)=>{
+                 const { role, user } = tale;
+                 historyRoles.push(role);
+                 historyRoleIds.push(role.id);
+                 historyUsers.push(user);
+
+               })
 
               const { entries, total_currency_portion, total_naira_portion,
                   total_functional_naira, total_functional_currency, capturer, budgetversion  } = viewedDepartmentAggregate;
@@ -721,7 +790,9 @@ export class BudgetEntriesComponent extends Component{
               totals.in_currency = total_functional_currency;
               usdConversionRate = budgetcycle.currency_conversion_rate
               await  this.setState({ allBudgetEntries, isFetching, totals,
-                 viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle }); // so allBudgetEntries is set
+                 viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle,
+                 historyRoles, historyUsers }); // so allBudgetEntries is set
+              await this.getApprovalMessage();
 
               this.setViewMode();
 
@@ -763,7 +834,7 @@ export class BudgetEntriesComponent extends Component{
       const { allApprovals } = this.state;
       let padding = 0; // so that the progress bar displays
       let prefix = entries_status < 3 ? "Awaiting" : "Completed";
-      let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
+      // let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
       let progressObject = {
         percentage:0,
         variant:null,
@@ -771,10 +842,12 @@ export class BudgetEntriesComponent extends Component{
       };
       // text-${progressObject.percentage < 100 ? 'info':'success'}
       if(approval_stage){
-        const percentage = Math.round(approval_stage.stage/(allApprovals.length + shift) * 100);
+        const percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100);
         const variant = percentage < 100 ? "info_custom" : "success";
         const text = approval_stage.description;
         progressObject = { percentage,variant,text }
+        padding = entries_status < 3 ? 5 : 100; // once approved/discarded fill the progress bar
+
         // padding = 5;
       }
       return (
@@ -1247,7 +1320,7 @@ export class BudgetEntriesComponent extends Component{
 
                                                       <LaddaButton
                                                           className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
-                                                          loading={false}
+                                                          loading={this.state.isSaving}
                                                           progress={0.5}
                                                           type='button'
                                                           onClick={()=>this.toggleModal('approve')}
@@ -1258,7 +1331,7 @@ export class BudgetEntriesComponent extends Component{
 
                                                       <LaddaButton
                                                           className={`btn btn-${this.state.approval_comment !=="<p><br></p>" || this.state.approval_comment ? 'success':'info_custom'} border-0 mr-2 text-white mb-2 position-relative`}
-                                                          loading={false}
+                                                          loading={this.state.isSaving}
                                                           progress={0.5}
                                                           type='submit'
                                                           disabled={this.state.approval_comment=="<p><br></p>"  || !this.state.approval_comment }
@@ -1427,19 +1500,40 @@ export class BudgetEntriesComponent extends Component{
                                   </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><i className='i-Add'></i> View  instructions</Button>
+                  {
+                    !this.props.isApproval ?
+                    (
+                      <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><i className='i-Add'></i> View  instructions</Button>
+
+                    ) :
+
+                    (
+                      <Button  variant="primary" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><FaList/> View  History</Button>
+
+                    )
+                  }
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>{this.props.updateentries ? this.viewOrEditButton() : "Create" } Entries</h1>
+                    <h1>{this.props.updateentries ? this.viewOrEditButton() : "Create" } Entries{this.props.isApproval ? "' Approval":""}</h1>
                     <ul>
-                      <li>
-                        <a href="#">
-                        Bulk  {this.props.updateentries ? "update" : "insert" }
-                      </a>
-                    </li>
-                        <li><a href="#">Import</a></li>
-                        <li>Add lines</li>
+                      {
+                        !this.props.isApproval ?
+                            <>
+                              <li>
+                                <a href="#">
+                                Bulk  {this.props.updateentries ? "update" : "insert" }
+                              </a>
+                            </li>
+                            <li><a href="#">Import</a></li>
+                            <li>Add lines</li>
+                          </>
+                        :  null
+
+
+                      }
+
+
                     </ul>
 
                     {

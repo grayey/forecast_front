@@ -152,6 +152,7 @@ class Layout1Header extends Component {
     activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
     userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
     activeUser = jwtAuthService.getUser();
+    console.log("ACTIVE USER", activeUser)
     this.setState({ activeDepartmentRole, userDepartmentRoles, activeUser })
     // const { activeBudgetCycle } = this.props.bugetcycleData;
     // this.props.setactivebudgetcycle(activeBudgetCycle.id)

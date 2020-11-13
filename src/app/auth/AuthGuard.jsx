@@ -48,10 +48,10 @@ class AuthGuard extends Component {
       matched && matched.auth && matched.auth.length
         ? matched.auth.includes(user.role)
         : true;
-
-    return {
-      authenticated
-    };
+return true;
+    // return {
+    //   authenticated
+    // };
   }
 
   redirectRoute(props) {

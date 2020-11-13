@@ -14,7 +14,7 @@ import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
 import { connect } from "react-redux";
-import { FaCheck, FaList, FaTimes } from "react-icons/fa";
+import { FaCheck, FaList, FaTimes, FaDotCircle, FaEdit, FaPlus, FaArrowDown } from "react-icons/fa";
 
 
 
@@ -41,6 +41,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         showEditModal:false,
         showCreateModal:false,
         showInstructionsModal:false,
+        showHistoryModal:false,
         isSaving:false,
         isFetching:true,
         canCreate:false,
@@ -70,10 +71,12 @@ export class DepartmentAggregatesApprovalComponent extends Component{
             currency_conversion_rate: "",
             instructions: "",
           },
-          availableYears:[]
+          availableYears:[],
+          activeDepartmentRole:{}
 
     }
     preparationService;
+
 
 
 
@@ -84,6 +87,8 @@ export class DepartmentAggregatesApprovalComponent extends Component{
     }
 
     componentDidMount(){
+       const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+       this.setState({ activeDepartmentRole })
       // this.getAllDepartmentAggregates();
          this.getAllDepartmentAggregatesByActiveVersion();
          this.getAllVersionCodes();
@@ -239,11 +244,19 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
 
 
-    buildGroupedEntries = (allDepartmentAggregates) =>{
+    buildGroupedEntries = (allDepartmentAggregates) => {
 
-      const { entryTypes } = this.state;
+      const { entryTypes, activeDepartmentRole } = this.state;
+      const { role } = activeDepartmentRole;
+      const { approval } = role ;
       const budgetVersions = [];
-      allDepartmentAggregates.forEach((aggregate) =>{
+      allDepartmentAggregates.forEach((aggregate) => {
+
+        const { approval_stage } = aggregate;
+        console.log("AAAA", approval_stage , "BBB", approval )
+        const a_stage = approval_stage ? approval_stage.stage : "x";
+        const r_stage = approval ? approval.stage : "y";
+        aggregate['is_my_stage'] = a_stage == r_stage;
         const { budgetversion } = aggregate;
         budgetVersions.push(budgetversion)
         aggregate['summary'] = {};
@@ -291,11 +304,11 @@ export class DepartmentAggregatesApprovalComponent extends Component{
     }
 
     setProgressBar = (departmentaggregate)=>{
-      const { approval_stage, entries_status } = departmentaggregate;
+      const { approval_stage, entries_status, is_my_stage } = departmentaggregate;
       const { allApprovals } = this.state;
       let padding = 0; // so that the progress bar displays
       let prefix = entries_status < 3 ? "Awaiting" : "Completed";
-      let shift = entries_status < 3 ? 1 : 0; // once approved/discarded fill the progress bar
+      // let shift = entries_status < 3 ? 1 : 0;
       let progressObject = {
         percentage:0,
         variant:null,
@@ -303,12 +316,14 @@ export class DepartmentAggregatesApprovalComponent extends Component{
       };
       // text-${progressObject.percentage < 100 ? 'info':'success'}
       if(approval_stage){
-        const percentage = Math.round(approval_stage.stage/(allApprovals.length + shift) * 100 );
+        const percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
         const variant = percentage < 100 ? "info_custom" : "success";
         const text = approval_stage.description;
         progressObject = { percentage,variant,text }
-        padding = 5;
+        padding = entries_status < 3 ? 5 : 100; // once approved/discarded fill the progress bar
       }
+      const text_variant = is_my_stage? "success text-bold": "";
+
       return (
         <div>
         <ProgressBar
@@ -318,7 +333,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
           striped
           variant={progressObject.variant}
         ></ProgressBar>
-        <p className={`text-center`}>
+      <p className={`text-center text-${text_variant}`}>
           <small><b><em>{prefix} {progressObject.text}</em></b></small>
         </p>
       </div>
@@ -328,7 +343,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
     setEntriesStatus = (departmentAggregate)=>{
 
-      const { entries_status } = departmentAggregate;
+      const { entries_status, is_my_stage } = departmentAggregate;
       const key = entries_status ? entries_status.toString() : "0";
       const variants = {
         "0":"secondary_custom",
@@ -343,7 +358,47 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         "3":"DISCARDED"
       }
 
+
+
       return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+
+    }
+
+    setAction = (action_type) =>{
+      const action_types = {
+        "0":{
+          "text":"Created",
+          "icon":<FaPlus/>,
+        "variant":"secondary_custom"
+      },
+      "1":{
+        "text":"Updated",
+        "icon":<FaEdit/>,
+      "variant":"primary"
+        },
+    "2":{
+      "text":"Approved",
+      "icon":<FaCheck/>,
+    "variant":"success"
+      },
+    "3":{
+      "text":"Rejected",
+      "icon":<FaTimes/>,
+    "variant":"danger"
+      },
+    "4":{
+      "text":"Submitted",
+      "icon":<FaArrowDown/>,
+    "variant":"info_custom"
+      },
+      }
+      const action = action_types[action_type.toString()] || {};
+
+      return (
+        <>
+          <span className={`badge badge-${action.variant}`}>{action.text}</span>&nbsp;{action.icon}
+        </>
+      )
 
     }
 
@@ -490,7 +545,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
-        let {showEditModal, showCreateModal, showInstructionsModal } = this.state;
+        let {showEditModal, showCreateModal, showInstructionsModal, showHistoryModal } = this.state;
         if(modalName == 'create'){
             showCreateModal = !showCreateModal;
         }else if(modalName == 'edit'){
@@ -498,8 +553,10 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         }else if(modalName=='instructions'){
           showInstructionsModal = !showInstructionsModal
         }
-
-        this.setState({ showEditModal, showCreateModal, showInstructionsModal })
+        else if(modalName=='history'){
+          showHistoryModal = !showHistoryModal
+        }
+        this.setState({ showEditModal, showCreateModal, showInstructionsModal, showHistoryModal })
 
     }
 
@@ -523,6 +580,11 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         this.toggleModal('edit')
     }
 
+    viewAggregateHistory = (viewedDepartmentAggregate) => {
+      this.setState( {showHistoryModal:true, viewedDepartmentAggregate});
+
+
+    }
 
     /**
      *
@@ -682,6 +744,116 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
 
                                   </Modal>
+
+
+                                  <Modal size="xl"  show={this.state.showHistoryModal} onHide={
+                                      ()=>{ this.toggleModal('history')}
+                                      } {...this.props} id='history_modal'>
+                                      <Modal.Header closeButton>
+
+                                      <Modal.Title>
+                                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />
+                                        &nbsp;&nbsp;
+                                         <b>History<FaList/> </b>&nbsp;<em>{this.state?.viewedDepartmentAggregate?.department?.name} ({this.state?.viewedDepartmentAggregate?.department?.code}) <b>::</b> {this.state?.activeBudgetCycle?.year} {this.state?.active_version?.version_code?.name} ({this.state?.active_version?.version_code?.code})</em>
+                                    </Modal.Title>
+                                      </Modal.Header>
+
+                                               <Modal.Body>
+
+                                                 <div className="table-resonsive">
+                                                   <table className="table table-striped table-hover">
+                                                     <thead>
+                                                       <tr>
+                                                         <th>
+                                                           User
+                                                         </th>
+                                                         <th>
+                                                           Role
+                                                         </th>
+                                                         <th>
+                                                           Department
+                                                         </th>
+                                                         <th>
+                                                           Action
+                                                         </th>
+                                                         <th>
+                                                           Details
+                                                         </th>
+                                                         <th>
+                                                           Date
+                                                         </th>
+                                                       </tr>
+                                                     </thead>
+
+                                                     <tbody>
+                                                       {
+                                                         this.state?.viewedDepartmentAggregate?.aggregate_history?.length ?
+                                                         this.state?.viewedDepartmentAggregate?.aggregate_history?.map((histo)=>{
+                                                           return (
+                                                             <tr key={histo.id}>
+                                                               <td>
+                                                                 {histo?.user?.first_name} {histo?.user?.last_name} <small>({histo?.user?.email})</small>
+                                                               </td>
+
+                                                               <td>
+                                                                 {histo?.role?.name}
+                                                               </td>
+                                                               <td>
+                                                                 {histo?.aggregate?.department?.name} ({histo?.aggregate?.department?.code} )
+                                                               </td>
+                                                               <td>
+                                                                 {this.setAction(histo?.action)}
+                                                               </td>
+                                                               <td>
+                                                                 <div dangerouslySetInnerHTML={{__html: histo?.body }}>
+
+                                                                 </div>
+                                                               </td>
+                                                               <td>
+                                                                 {
+                                                                   utils.formatDate(histo?.created_at)
+                                                                 }
+                                                               </td>
+                                                             </tr>
+                                                           )
+                                                         }):
+                                                         (
+                                                           <tr>
+                                                             <td colSpan="6" className="text-center">No history.</td>
+                                                           </tr>
+                                                         )
+                                                       }
+
+                                                     </tbody>
+
+                                                   </table>
+
+                                                 </div>
+
+
+                                               </Modal.Body>
+
+
+                                              <Modal.Footer>
+
+
+
+
+                                                      <LaddaButton
+                                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                          loading={false}
+                                                          progress={0.5}
+                                                          type='button'
+                                                          onClick={()=>this.toggleModal('history')}
+
+                                                          >
+                                                          Close
+                                                      </LaddaButton>
+
+
+                                                      </Modal.Footer>
+
+                                                    </Modal>
 
 
 
@@ -1153,14 +1325,20 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
                 </Modal>
 
-           {
-             !this.state.canCreate ? null :(
-               <div className='float-right'>
-                   <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
-               </div>
-             )
 
-           }
+
+
+
+                    <div className='float-right'>
+                      {/* {
+                        !this.state.canCreate ? null :(
+                          <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
+                          )
+                      } */}
+                    </div>
+
+
+
 
                 <div className="row mb-4">
 
@@ -1197,9 +1375,16 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                                         </td>
 
                                                         <td>
+
+                                                          {
+                                                            departmentaggregate.is_my_stage ? <sup><FaDotCircle className="live text-success"/></sup> : null
+                                                          }
+
                                                           <NavLink className="underline" to={`/review/${this.props?.approvalSlug}/${departmentaggregate.slug}`}>
                                                           {departmentaggregate?.department?.name} ({departmentaggregate?.department?.code})
                                                         </NavLink>
+
+
                                                         </td>
                                                         <td colSpan="3" className="no_padding">
                                                           <table className="w-100">
@@ -1297,13 +1482,13 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
                                                         <td>
                                                         <Dropdown key={departmentaggregate.id}>
-                                                            <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
+                                                            <Dropdown.Toggle variant={departmentaggregate?.is_my_stage ? 'success' : 'secondary_custom' } className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
 
                                                               {
-                                                                departmentaggregate?.entries_status ? null : (
+                                                                !departmentaggregate?.is_my_stage ? null : (
                                                                   <>
                                                                   <Dropdown.Item className="border-bottom text-success"
                                                                     onClick={()=>{
@@ -1323,8 +1508,8 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
                                                               }
 
-                                                            <Dropdown.Item className="border-bottom" href={`/preparation/budget-entries/${departmentaggregate.slug}`}>
-                                                                <NavLink className="underlinex text-info_custom" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
+                                                            <Dropdown.Item className="border-bottom" href={`/review/${this.props?.approvalSlug}/${departmentaggregate.slug}`}>
+                                                                <NavLink className="underlinex text-info_custom" to={`/review/${this.props?.approvalSlug}/${departmentaggregate.slug}`}>
                                                                 <i className="nav-icon i-Eye  font-weight-bold"> </i> View
                                                               </NavLink>
                                                             </Dropdown.Item>
@@ -1332,7 +1517,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
 
                                                             <Dropdown.Item className='text-info' onClick={
-                                                                ()=>{this.deleteDepartmentAggregate(departmentaggregate);}
+                                                                ()=>{this.viewAggregateHistory(departmentaggregate);}
                                                             }>
                                                                 <FaList/> History
                                                             </Dropdown.Item>

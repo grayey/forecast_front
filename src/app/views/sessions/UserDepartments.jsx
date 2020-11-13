@@ -45,7 +45,10 @@ export class UserDepartmentsComponent extends Component {
 
   pushUserToDashboard = (departmentRole)=>{
     jwtAuthService.setActiveDepartmentRole(departmentRole);
-    this.setState({navigate:true});
+    let href= window.location.href;
+    href = href.replace("user-departments","dashboard/v1");
+    window.location.href=href;
+    // this.setState({navigate:true});
 
   }
 

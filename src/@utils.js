@@ -14,6 +14,10 @@ export function debounce(func, wait, immediate) {
   };
 }
 
+export function setProgressBar(departmentaggregate){
+
+}
+
 export function isMobile() {
   if (window) {
     return window.matchMedia(`(max-width: 767px)`).matches;
