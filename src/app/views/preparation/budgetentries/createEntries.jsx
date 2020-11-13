@@ -73,6 +73,8 @@ export class BudgetEntriesComponent extends Component{
         viewedDepartmentAggregate:{
           department:{}
         },
+        rejection_comment:"",
+        approval_cooment:"",
         activeBudgetCycle:{},
         activeDepartmentRole:{},
         createDepartmentAggregateForm: {
@@ -212,6 +214,17 @@ export class BudgetEntriesComponent extends Component{
 
         }
         this.setState({ createDepartmentAggregateForm, selectedCategory, selectedCostitem });
+
+    }
+
+    handleRichEditorChange = (html, form='approve') => {
+      let { rejection_comment, approval_comment} = this.state
+      if(form=='approve'){
+      approval_comment = html;
+      }else{
+        rejection_comment = html;
+      }
+      this.setState({ rejection_comment, approval_comment });
 
     }
 
@@ -502,12 +515,29 @@ export class BudgetEntriesComponent extends Component{
     }
 
 
+    submitApproval = (event, approved) =>{
+      event.preventDefault();
+      const { role } = jwtAuthService.getActiveDepartmentRole();
+      const user = jwtAuthService.getUser();
+      const { viewedDepartmentAggregate, rejection_comment, approval_comment } = this.state;
+      const comment = approved ? approval_comment : rejection_comment;
+      const approvalObject = { approved, comment, role:role.id, user:+user.userId }
+
+      this.preparationService.approveDepartmentAggregate(viewedDepartmentAggregate, approvalObject).then(
+        (approvalResponse)=>{
+
+        }).catch((error)=>{
+
+      })
+
+    }
+
     /**
      * This method lists all itemcategories
      */
      getAllItemCategories = async ()=>{
        // Move to a getAllEntities method
-       let { allEntities,createDepartmentAggregateForm } = this.state;
+       let { allEntities, createDepartmentAggregateForm } = this.state;
        if(!allEntities.length){
          createDepartmentAggregateForm.entity = "PRINCIPAL" // default entity
        }
@@ -1178,8 +1208,32 @@ export class BudgetEntriesComponent extends Component{
                                     </Modal.Title>
                                       </Modal.Header>
 
+                                      <form onSubmit={(event)=>this.submitApproval(event,1)}>
+
                                                <Modal.Body>
 
+
+                                                   <div className="form-row">
+                                                    <div className="col-md-12">
+                                                      <label><b>Comment:</b><small>(Please provide an approval comment.)<span className="text-success">*</span></small></label>
+                                                      <RichTextEditor
+                                                        theme="snow"
+                                                        modules={{
+                                                          toolbar: [
+                                                            [{ size: ["small", false, "large", "huge"] }],
+                                                            ["bold", "italic", "underline", "strike"],
+                                                            [{ list: "ordered" }, { list: "bullet" }],
+                                                            ["clean"]
+                                                          ]
+                                                        }}
+                                                        content={this.state.approval_comment}
+                                                        handleContentChange={html =>
+                                                          this.handleRichEditorChange(html, 'approve')
+                                                        }
+                                                        placeholder="insert text here..."
+                                                      />
+                                                    </div>
+                                                   </div>
 
 
 
@@ -1202,8 +1256,99 @@ export class BudgetEntriesComponent extends Component{
                                                           Close
                                                       </LaddaButton>
 
+                                                      <LaddaButton
+                                                          className={`btn btn-${this.state.approval_comment !=="<p><br></p>" || this.state.approval_comment ? 'success':'info_custom'} border-0 mr-2 text-white mb-2 position-relative`}
+                                                          loading={false}
+                                                          progress={0.5}
+                                                          type='submit'
+                                                          disabled={this.state.approval_comment=="<p><br></p>"  || !this.state.approval_comment }
+
+                                                          >
+                                                          <FaCheck/> Approve
+                                                      </LaddaButton>
+
 
                                                       </Modal.Footer>
+                                                    </form>
+
+
+
+
+                                  </Modal>
+
+
+                                  <Modal show={this.state.rejectionModal} onHide={
+                                      ()=>{ this.toggleModal('reject')}
+                                    } {...this.props} id='rejection_modal'>
+                                      <Modal.Header closeButton>
+
+                                      <Modal.Title className="text-danger">
+                                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                                        Rejection
+                                    </Modal.Title>
+                                      </Modal.Header>
+                                      <form onSubmit={(event)=>this.submitApproval(event, 0)}>
+
+
+                                               <Modal.Body>
+
+
+                                                   <div className="form-row">
+                                                    <div className="col-md-12">
+                                                      <label><b>Comment:</b><small>(Please provide a reason for rejecting.)<span className="text-danger">*</span></small></label>
+                                                      <RichTextEditor
+                                                        theme="snow"
+                                                        modules={{
+                                                          toolbar: [
+                                                            [{ size: ["small", false, "large", "huge"] }],
+                                                            ["bold", "italic", "underline", "strike"],
+                                                            [{ list: "ordered" }, { list: "bullet" }],
+                                                            ["clean"]
+                                                          ]
+                                                        }}
+                                                        content={this.state.rejection_comment}
+                                                        handleContentChange={html =>
+                                                          this.handleRichEditorChange(html, 'reject')
+                                                        }
+                                                        placeholder="insert text here..."
+                                                      />
+                                                    </div>
+                                                   </div>
+
+                                               </Modal.Body>
+
+
+                                              <Modal.Footer>
+
+
+
+
+                                            <LaddaButton
+                                                className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                loading={false}
+                                                progress={0.5}
+                                                type='button'
+                                                onClick={()=>this.toggleModal('reject')}
+
+                                                >
+                                                Close
+                                            </LaddaButton>
+
+                                            <LaddaButton
+                                                className={`btn btn-${this.state.rejection_comment !=="<p><br></p>" || this.state.rejection_comment ? 'danger':'warning'} border-0 mr-2 text-white mb-2 position-relative`}
+                                                loading={false}
+                                                progress={0.5}
+                                                type='submit'
+                                                disabled={this.state.rejection_comment=="<p><br></p>"  || !this.state.rejection_comment }
+
+                                                >
+                                                <FaTimes/> Reject
+                                            </LaddaButton>
+
+
+                                          </Modal.Footer>
+
+                                        </form>
 
 
 

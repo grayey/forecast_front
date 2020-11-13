@@ -9,7 +9,7 @@ import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
 
-  
+
 import LaddaButton, {
     XL,
     EXPAND_LEFT,
@@ -34,17 +34,20 @@ export class DepartmentsComponent extends Component{
         createDepartmentForm: {
             name: "",
             description: "",
+            code:""
           },
           updateDepartmentForm: {
             name: "",
             description: "",
+            code:""
+
           },
 
     }
     appMainService;
-    
 
-    
+
+
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
@@ -55,10 +58,10 @@ export class DepartmentsComponent extends Component{
     }
 
     /**
-     * 
-     * @param {*} event 
-     * @param {*} errors 
-     * @param {*} form 
+     *
+     * @param {*} event
+     * @param {*} errors
+     * @param {*} form
      */
 
     handleChange = (event, form='create') => {
@@ -71,7 +74,7 @@ export class DepartmentsComponent extends Component{
         this.setState({ createDepartmentForm, updateDepartmentForm });
     }
 
-    
+
 
 
 
@@ -102,7 +105,7 @@ export class DepartmentsComponent extends Component{
      * This method creates a new department
      */
     createDepartment = async ()=>{
-        const {createDepartmentForm, allDepartments} = this.state; 
+        const {createDepartmentForm, allDepartments} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
@@ -119,7 +122,7 @@ export class DepartmentsComponent extends Component{
                 new AppNotification(successNotification)
                 this.toggleModal();
                 this.resetForm();
-                
+
             }
         ).catch(
             (error)=>{
@@ -140,9 +143,9 @@ export class DepartmentsComponent extends Component{
      */
     updateDepartment = async ()=>{
 
-        
 
-        let {updateDepartmentForm, allDepartments, editedDepartment} = this.state; 
+
+        let {updateDepartmentForm, allDepartments, editedDepartment} = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
         this.setState({isSaving, updateMsg})
@@ -165,7 +168,7 @@ export class DepartmentsComponent extends Component{
                     allDepartments.splice(this.state.editedIndex, 1, updatedDepartment)
                     this.setState({ allDepartments, isSaving, updateMsg })
                 }, 10000);
-               
+
             }
         ).catch(
             (error)=>{
@@ -182,8 +185,8 @@ export class DepartmentsComponent extends Component{
 
 
     /**
-     * 
-     * @param {*} modalName 
+     *
+     * @param {*} modalName
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
@@ -193,17 +196,17 @@ export class DepartmentsComponent extends Component{
         }else if(modalName == 'edit'){
             showEditModal = !showEditModal
         }
-        
+
         this.setState({ showEditModal, showCreateModal })
     }
 
 
 
     /**
-     * 
+     *
      * This method sets the department to be edited
      *  and opens the modal for edit
-     * 
+     *
      */
     editDepartment = (editedDepartment) => {
         const updateDepartmentForm = {...editedDepartment}
@@ -214,14 +217,14 @@ export class DepartmentsComponent extends Component{
 
 
     /**
-     * 
+     *
      * @param {*} department
-     * This method toggles a department's status 
+     * This method toggles a department's status
      */
     toggleDepartment = (department)=>{
         const toggleMsg = department.status? "Disable":"Enable";
         const gL = department.status? "lose":"gain"
-       
+
 
         swal.fire({
             title: `<small>${toggleMsg}&nbsp;<b>${department.name}</b>?</small>`,
@@ -258,15 +261,15 @@ export class DepartmentsComponent extends Component{
                     }
                     new AppNotification(errorNotification)
             })}
-          
+
           });
     }
 
     /**
-     * 
-     * @param {*} department 
+     *
+     * @param {*} department
      * This method deletes a department
-     * 
+     *
      */
     deleteDepartment = (department)=>{
          swal.fire({
@@ -301,13 +304,13 @@ export class DepartmentsComponent extends Component{
                         }
                         new AppNotification(errorNotification)
                 })}
-              
+
               });
      }
 
       /**
-     * 
-     * @param {*} modalName 
+     *
+     * @param {*} modalName
      */
     resetForm = ()=> {
         const createDepartmentForm = {
@@ -319,19 +322,19 @@ export class DepartmentsComponent extends Component{
     }
 
     render(){
-        
+
         return (
 
             <>
                 <div className="specific">
-        
+
                 <Modal show={this.state.showEditModal} onHide={
                     ()=>{ this.toggleModal('edit')}
                     } {...this.props} id='edit_modal'>
                     <Modal.Header closeButton>
                     <Modal.Title>Update {this.state.editedDepartment.name}</Modal.Title>
                     </Modal.Header>
-                  
+
                     <Formik
                     initialValues={this.state.updateDepartmentForm}
                     validationSchema={this.updateDepartmentSchema}
@@ -347,7 +350,7 @@ export class DepartmentsComponent extends Component{
                         isSubmitting,
                         resetForm
                     }) => {
-                        
+
 
                         return (
                         <form
@@ -385,6 +388,36 @@ export class DepartmentsComponent extends Component{
                                     Name is required
                                     </div>
                                 </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-12 mb-2": true,
+                                    "valid-field":
+                                        !errors.code && touched.code,
+                                    "invalid-field":
+                                        errors.code && touched.code
+                                    })}
+                                >
+                                    <label htmlFor="department_code">
+                                        <b>Code<span className='text-danger'>*</span></b>
+                                    </label>
+                                    <input
+                                    type="text"
+                                    className="form-control"
+                                    id="department_code"
+                                    placeholder=""
+                                    name="code"
+                                    value={values.code}
+                                    onChange={(event)=>this.handleChange(event, 'edit')}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">
+                                    Code is required
+                                    </div>
+                                </div>
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
@@ -400,7 +433,7 @@ export class DepartmentsComponent extends Component{
 
                                     <textarea className="form-control"
                                     id="update_department_description"  onChange={(event)=>this.handleChange(event,'edit')}
-                                    name="description" 
+                                    name="description"
                                     defaultValue={values.description}
                                    />
                                     <div className="valid-feedback"></div>
@@ -408,19 +441,19 @@ export class DepartmentsComponent extends Component{
                                     Description is required
                                     </div>
                                 </div>
-                            
+
                                 </div>
                             </Modal.Body>
-                       
+
                             <Modal.Footer>
-                        
+
                                     <LaddaButton
                                         className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
                                         loading={false}
                                         progress={0.5}
                                         type='button'
                                         onClick={()=>this.toggleModal('edit')}
-                                    
+
                                         >
                                         Close
                                     </LaddaButton>
@@ -435,17 +468,17 @@ export class DepartmentsComponent extends Component{
                                         {this.state.updateMsg}
                                     </LaddaButton>
                                     </Modal.Footer>
-          
+
                         </form>
                         );
                     }}
-                   
+
                     </Formik>
-                
-                    
+
+
                 </Modal>
-               
-               
+
+
                 <Modal show={this.state.showCreateModal} onHide={
                     ()=>{ this.toggleModal('create')}
                     } {...this.props} id='create_modal'>
@@ -468,7 +501,7 @@ export class DepartmentsComponent extends Component{
                         isSubmitting,
                         resetForm
                     }) => {
-                       
+
                         return (
                         <form
                             className="needs-validation "
@@ -505,6 +538,36 @@ export class DepartmentsComponent extends Component{
                                     Name is required
                                     </div>
                                 </div>
+
+                                <div
+                                    className={utils.classList({
+                                    "col-md-12 mb-2": true,
+                                    "valid-field":
+                                        !errors.code && touched.code,
+                                    "invalid-field":
+                                        errors.code && touched.code
+                                    })}
+                                >
+                                    <label htmlFor="department_code">
+                                        <b>Code<span className='text-danger'>*</span></b>
+                                    </label>
+                                    <input
+                                    type="text"
+                                    className="form-control"
+                                    id="department_code"
+                                    placeholder=""
+                                    name="code"
+                                    value={values.code}
+                                    onChange={(event)=>this.handleChange(event)}
+                                    onBlur={handleBlur}
+                                    required
+                                    />
+                                    <div className="valid-feedback"></div>
+                                    <div className="invalid-feedback">
+                                    Code is required
+                                    </div>
+                                </div>
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
@@ -520,7 +583,7 @@ export class DepartmentsComponent extends Component{
 
                                     <textarea className="form-control"
                                     id="create_department_description"  onChange={(event)=>this.handleChange(event)}
-                                    name="description" 
+                                    name="description"
                                     defaultValue={values.description}
                                    />
                                     <div className="valid-feedback"></div>
@@ -528,19 +591,19 @@ export class DepartmentsComponent extends Component{
                                     Description is required
                                     </div>
                                 </div>
-                            
+
                                 </div>
                             </Modal.Body>
-                       
+
                             <Modal.Footer>
-                        
+
                                     <LaddaButton
                                         className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
                                         loading={false}
                                         progress={0.5}
                                         type='button'
                                         onClick={()=>this.toggleModal('create')}
-                                    
+
                                         >
                                         Close
                                     </LaddaButton>
@@ -555,21 +618,21 @@ export class DepartmentsComponent extends Component{
                                         {this.state.saveMsg}
                                     </LaddaButton>
                                     </Modal.Footer>
-          
+
                         </form>
                         );
                     }}
-                   
+
                     </Formik>
-                
-                    
-                  
+
+
+
                 </Modal>
-               
+
                 <div className='float-right'>
                     <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Department</Button>
                 </div>
-        
+
                 <div className="breadcrumb">
                     <h1>Departments</h1>
                     <ul>
@@ -577,16 +640,16 @@ export class DepartmentsComponent extends Component{
                         <li>View</li>
                     </ul>
                 </div>
-              
+
                 <div className="separator-breadcrumb border-top"></div>
                 <div className="row mb-4">
-        
+
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
                                 <h4 className="card-title mb-3">Departments</h4>
                                 <p>List of departments.</p>
-                            
+
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
                             <div className="table-responsive">
@@ -595,6 +658,7 @@ export class DepartmentsComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Name</th>
+                                                <th>Code</th>
                                                 <th>Description</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
@@ -614,6 +678,9 @@ export class DepartmentsComponent extends Component{
                                                             {department.name}
                                                         </td>
                                                         <td>
+                                                            {department.code}
+                                                        </td>
+                                                        <td>
                                                         {department.description}
                                                         </td>
                                                         <td>
@@ -625,11 +692,11 @@ export class DepartmentsComponent extends Component{
                                                                     id={`custom-switch${department.id}`}
                                                                     label={department.status ? 'Enabled' : 'Disabled'}
                                                                     className={department.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleDepartment(department)} 
+                                                                    onChange={()=> this.toggleDepartment(department)}
                                                                 />
-                                                               
 
-                                                            </Form> 
+
+                                                            </Form>
                                                         </td>
                                                         <td>
                                                         {utils.formatDate(department.created_at)}
@@ -637,10 +704,10 @@ export class DepartmentsComponent extends Component{
                                                         <td>
                                                         {utils.formatDate(department.updated_at)}
                                                         </td>
-                                                        
+
                                                         <td>
                                                         <Dropdown key={department.id}>
-                                                            <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm"> 
+                                                            <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
@@ -659,66 +726,71 @@ export class DepartmentsComponent extends Component{
                                                             </Dropdown.Item> */}
                                                             </Dropdown.Menu>
                                                         </Dropdown>
-               
+
                                                         </td>
 
                                                     </tr>
-                                                ) 
-                                                
-                                              
+                                                )
+
+
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='7'>
+                                                    <td className='text-center' colSpan='8'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
                                             )
                                         }
-                                        
+
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <th>#</th>
-                                                <th>Name</th>
-                                                <th>Description</th>
-                                                <th>Status</th>
-                                                <th>Date Created</th>
-                                                <th>Date Updated</th>
-                                                <th>Action</th>
+                                              <th>#</th>
+                                              <th>Name</th>
+                                              <th>Code</th>
+                                              <th>Description</th>
+                                              <th>Status</th>
+                                              <th>Date Created</th>
+                                              <th>Date Updated</th>
+                                              <th>Action</th>
                                             </tr>
                                         </tfoot>
                                     </table>
                                 </div>
                             </div>
-                                
+
                             </div>
                         </div>
                     {/* </div> */}
                     {/* <!-- end of col--> */}
 
 
-                
+
                 </div>
 
                 </div>
-            
+
             </>
         )
 
 
-        
+
     }
 
 createDepartmentSchema = yup.object().shape({
         name: yup.string().required("Name is required"),
         description: yup.string().required("Description is required"),
+        code: yup.string().required("Code is required"),
+
       });
 
 
 updateDepartmentSchema = yup.object().shape({
         name: yup.string().required("Name is required"),
         description: yup.string().required("Description is required"),
+        code: yup.string().required("Code is required"),
+
         });
 
 }
@@ -727,5 +799,3 @@ updateDepartmentSchema = yup.object().shape({
 
 
 export default DepartmentsComponent;
-
-

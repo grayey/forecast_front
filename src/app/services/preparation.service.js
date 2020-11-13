@@ -76,6 +76,17 @@ export default class PreparationService {
     }
 
 
+    /**
+    *
+    * @param {*} departmentaggregate
+    * This method approves or rejects a departmentaggregate
+    */
+    async approveDepartmentAggregate(departmentaggregate, approvalObject){
+     const url = `departmentaggregates/${departmentaggregate.id}/approval/`
+     return await apiService.put(url, approvalObject);
+    }
+
+
 
     /**
     *

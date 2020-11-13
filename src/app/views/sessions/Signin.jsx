@@ -133,7 +133,7 @@ return {
         <LoadingOverlay
           active={loadingSettings}
           spinner
-          text='Authenticating ...'>
+          text='Resolving Authentication ...'>
             <div className="full-screen">
               <img src="/assets/images/logo.png" alt="Logo" className="modal-logox"  />
 
