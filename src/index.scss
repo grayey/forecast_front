@@ -183,3 +183,29 @@ a.underline{
 .live {
   animation: blink 2s infinite;
 }
+
+.operator {
+vertical-align: top;
+text-align: left;
+position: absolute;
+margin-top: -10px !important;
+margin-left: -1.5rem !important;
+// padding: -20px !important;
+background:grey !important;
+color: white;
+border:2px outset grey;
+}
+
+.operator .minus {
+// vertical-align: top;
+// text-align: left;
+// position: absolute;
+// margin-top: -10px !important;
+// margin-left: -1rem !important;
+// // padding: -20px !important;
+// background:grey !important;
+// color: white;
+// border:2px outset grey;
+margin-left: 1rem;
+// position: absolute;
+}

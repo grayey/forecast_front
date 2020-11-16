@@ -1,5 +1,7 @@
 import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, ProgressBar } from "react-bootstrap";
+import { renderToStaticMarkup } from "react-dom/server";
+
 import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import PreparationService from "../../../services/preparation.service";
@@ -16,7 +18,7 @@ import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
 import { Link, Redirect, withRouter } from "react-router-dom";
 import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList } from "react-icons/fa";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList,  FaPlus, FaDownload, FaMinus  } from "react-icons/fa";
 import Select from 'react-select';
 
 
@@ -47,15 +49,27 @@ export class BudgetEntriesComponent extends Component{
           is_view_only:true,
           is_edit:false,
         },
+        initial_totals:{
+          total_functional_naira:0,
+          total_functional_currency:0,
+          total_naira_portion:0,
+          total_currency_portion:0
+        },
+        editions:[],
         editedIndex:0,
         allBudgetEntries:[],
         allItemCategories:[],
+        changesWereMade:false,
         allCostItems:[],
         aggregateList:[],
         allApprovals:[],
         historyRoles:[],
         historyUsers:[],
         historyRoleIds:[],
+        detailLInes:(<></>),
+        historyDetail:{},
+        showHistoryModal:false,
+        showDetailAlert:false,
         showEditModal:false,
         showSplitModal:false,
         showInstructionsModal:false,
@@ -233,6 +247,16 @@ export class BudgetEntriesComponent extends Component{
 
     }
 
+    viewHistoryDetail = async (histo) =>{
+
+      const historyDetail = histo;
+      const action = histo.action == 2? "Approval" : "Rejection"
+      historyDetail.title = `${histo.role.name} ${action} ${utils.formatDate(histo.created_at)}`
+      await this.setState({ historyDetail })
+      this.toggleAlert(false);
+    }
+
+
     handlePercentageSplitChange = (event) =>{
       const { percentageSliptForm } = this.state;
       percentageSliptForm[event.target.name] = event.target.value
@@ -362,6 +386,8 @@ export class BudgetEntriesComponent extends Component{
     const new_entry = {
       ...createDepartmentAggregateForm, category, costitem, naira_portion, currency_portion, total_naira, total_currency, totals, version
     };
+
+    await this.entryValueChanged(new_entry);
 
     editFormMode ? allBudgetEntries.splice(editedIndex,1, new_entry) :allBudgetEntries.unshift(new_entry); // if in editFormMode, just replace
     editFormMode = false;
@@ -522,12 +548,12 @@ export class BudgetEntriesComponent extends Component{
 
     submitApproval = async (event, approved) =>{
       event.preventDefault();
-      const { role } = jwtAuthService.getActiveDepartmentRole();
+      const { role, department } = jwtAuthService.getActiveDepartmentRole();
       const user = jwtAuthService.getUser();
       let { viewedDepartmentAggregate, rejection_comment, approval_comment, approvalModal, rejectionModal } = this.state;
       this.setState({isSaving:true })
       const comment = approved ? approval_comment : rejection_comment;
-      const approvalObject = { approved, comment, role:role.id, user:+user.id }
+      const approvalObject = { approved, comment, role:role.id, user:+user.id, department:department.id }
 
       this.preparationService.approveDepartmentAggregate(viewedDepartmentAggregate, approvalObject).then(
       async  (approvedAggregateResponse)=>{
@@ -757,7 +783,7 @@ export class BudgetEntriesComponent extends Component{
      getAllBudgetEntriesByDepartmentSlug = async ()=>{
          const slug = this.props.queryslug;
          let { totals, usdConversionRate, viewedDepartmentAggregate, isFetching,
-           activeDepartmentRole, historyRoles, historyUsers, historyRoleIds } = this.state
+           activeDepartmentRole, historyRoles, historyUsers, historyRoleIds, initial_totals } = this.state
          let activeBudgetCycle  = this.selectedBudgetCycle ? this.selectedBudgetCycle : {}
           isFetching = true;
          this.setState({ isFetching })
@@ -765,6 +791,7 @@ export class BudgetEntriesComponent extends Component{
             async (departmentAggregatesResponse)=>{
                isFetching = false;
                viewedDepartmentAggregate = departmentAggregatesResponse;
+
                const { aggregate_history } = viewedDepartmentAggregate;
                aggregate_history.forEach((tale)=>{
                  const { role, user } = tale;
@@ -777,6 +804,7 @@ export class BudgetEntriesComponent extends Component{
               const { entries, total_currency_portion, total_naira_portion,
                   total_functional_naira, total_functional_currency, capturer, budgetversion  } = viewedDepartmentAggregate;
                   const { version_code, budgetcycle } = budgetversion;
+                  initial_totals = {total_currency_portion, total_naira_portion, total_functional_currency, total_functional_naira };
 
                   if((budgetcycle.id !== activeBudgetCycle.id || activeDepartmentRole.department.id !== viewedDepartmentAggregate.department.id) && !this.props.isApproval){
                   return  this.setState({navigate:true})
@@ -791,7 +819,7 @@ export class BudgetEntriesComponent extends Component{
               usdConversionRate = budgetcycle.currency_conversion_rate
               await  this.setState({ allBudgetEntries, isFetching, totals,
                  viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle,
-                 historyRoles, historyUsers }); // so allBudgetEntries is set
+                 historyRoles, historyUsers, initial_totals }); // so allBudgetEntries is set
               await this.getApprovalMessage();
 
               this.setViewMode();
@@ -892,21 +920,24 @@ export class BudgetEntriesComponent extends Component{
      * This method creates a new departmentaggregate
      */
     saveBudgetEntries = async ()=>{
-        let { allBudgetEntries, totals, navigate, activeBudgetCycle, viewedDepartmentAggregate } = this.state;
+        let { allBudgetEntries, totals, navigate, activeBudgetCycle, viewedDepartmentAggregate, editions, initial_totals } = this.state;
         activeBudgetCycle  = activeBudgetCycle  || this.selectedBudgetCycle;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
         const { role, department } = jwtAuthService.getActiveDepartmentRole();
+        const user = jwtAuthService.getUser();
         const aggregateData = {
           department:department.id,
           budgetcycle:activeBudgetCycle.id,
           capturer:role.id,
+          user:user.id,
           total_functional_naira:totals.in_naira,
           total_functional_currency:totals.in_currency,
           total_naira_portion:totals.naira_part,
           total_currency_portion:totals.currency_part,
-          entries:[]
+          entries:[],
+          initial_totals
         }
         const allEntries = [...allBudgetEntries].map((be)=>{
           delete be.category;
@@ -918,6 +949,7 @@ export class BudgetEntriesComponent extends Component{
           return entry;
         });
         aggregateData['entries'] = allEntries;
+        aggregateData['editions'] = editions;
         console.log(aggregateData)
 
         this.preparationService.saveDepartmentAggregate(aggregateData, viewedDepartmentAggregate.id).then(
@@ -1035,7 +1067,7 @@ export class BudgetEntriesComponent extends Component{
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
-        let {showEditModal, showSplitModal, showInstructionsModal, toggleFields, createDepartmentAggregateForm, approvalModal, rejectionModal } = this.state;
+        let {showEditModal, showSplitModal, showHistoryModal, showInstructionsModal, toggleFields, createDepartmentAggregateForm, approvalModal, rejectionModal } = this.state;
         if(modalName == 'split_type'){
             showSplitModal = !showSplitModal;
             toggleFields.PERCENTAGE_SPLIT = false;
@@ -1050,16 +1082,23 @@ export class BudgetEntriesComponent extends Component{
         }
         else if(modalName=='reject'){
           rejectionModal = !rejectionModal
+        }else if(modalName=='history'){
+          showHistoryModal = !showHistoryModal
         }
 
-        this.setState({ showEditModal, showSplitModal, showInstructionsModal, approvalModal, rejectionModal,  toggleFields, createDepartmentAggregateForm })
+        this.setState({ showEditModal, showSplitModal, showHistoryModal, showInstructionsModal, approvalModal, rejectionModal,  toggleFields, createDepartmentAggregateForm })
 
     }
 
-    toggleAlert = ()=>{
-      let {showDescriptionAlert} = this.state;
-      showDescriptionAlert = !showDescriptionAlert;
-      this.setState({showDescriptionAlert});
+    toggleAlert = (description=true)=>{
+      let { showDescriptionAlert, showDetailAlert } = this.state;
+      if(description){
+        showDescriptionAlert = !showDescriptionAlert;
+      }
+      else{
+        showDetailAlert = !showDetailAlert
+      }
+      this.setState({showDescriptionAlert, showDetailAlert});
     }
 
     showDescription = async(index, entryDescription) =>{
@@ -1067,6 +1106,494 @@ export class BudgetEntriesComponent extends Component{
       await this.setState({entryDescription, descriptionLine})
       this.toggleAlert();
     }
+
+    downloadHistoryDetail = async (histo)=>{
+
+      console.log("HISTOOO", histo);
+      this.setDetailLines(histo);
+
+
+
+    }
+
+    setDetailLines = (histo)=> {
+      let { body, action, user, role, user_department, created_at } = histo;
+      body = JSON.parse(body);
+      const { total_naira_portion, total_currency_portion, total_functional_naira, total_functional_currency } = body;
+
+
+      let { detailLInes, setDetailLinesAlert } = this.state;
+      const { entries, editions, initial_totals } = body;
+      const action_types ={
+        "0":"Created",
+        "1":"Updated",
+        "4":"Submitted",
+      }
+      const edition_types = {
+        "ADDED":{
+          'bg':"success text-white",
+          'icon':<FaArrowDown/>,
+          'name':'Add',
+          'operator':<FaPlus/>
+
+        },
+        "EDITED":{
+          'bg_old':"pink text-white",
+          'bg_new':"info_custom text-white",
+          'operator_old':<FaMinus className="minus"/>,
+        'operator_new':<FaPlus/>,
+          'icon':<FaEdit/>,
+          'name':'Edit'
+
+        },
+        "DELETED":{
+          'bg':"danger text-white",
+          'icon':<FaTimes/>,
+        'name':'Deleted',
+        'operator':<FaMinus className="minus"/>
+        }
+      }
+      const action_type = action_types[action.toString()];
+      const text_color = action_type == "Created" ? "dark": action_type == "Updated" ? "primary":"success";
+
+      const header = `Entries <span class="text-${text_color}">${action_type}</span> by ${user.first_name} ${user.last_name} <small>(${user.email})</small>, ${role.name} in ${user_department.name} <small>(${user_department.code})</small> on ${utils.formatDate(created_at)}.`
+
+       detailLInes =  (
+         <>
+         {
+           action_type =="Updated" ? (
+             <div>
+               <div className="float-right p-1">
+                 <small>Legend:</small>
+               <span className="badge badge-success mr-1"><small>Added <FaArrowDown/></small></span>
+             <span className="badge badge-danger mr-1"><small>Deleted <FaTimes/></small></span>
+           <span className="badge badge-info_custom mr-1"><small>New Value <FaEdit/></small></span>
+             <span className="badge badge-pink_custom"><small>Old Value <FaEdit/></small></span>
+
+               </div>
+             </div>
+           ): null
+         }
+
+
+
+         <div className="table-responsive">
+           <table className="table display table-striped table-hover" id="zero_configuration_table" style={{"width":"100%"}}>
+               <thead>
+                   <tr className="ul-widget6__tr--sticky-th line_entries">
+                     <th>
+                        #
+                      </th>
+
+                      <th>
+                       Category
+                      </th>
+
+                      <th>
+                       Cost item
+                      </th>
+
+                      <th>
+                         Type
+                      </th>
+
+                      <th>
+                        Description
+                      </th>
+                      <th>
+                        Unit value
+                      </th>
+                      <th>
+                        Quantity
+                      </th>
+
+                      <th className="text-right">
+                        Naira part (&#x20a6;)
+                      </th>
+                      <th className="text-right">
+                        USD part ($)
+                      </th>
+                      <th className="text-right">
+                        Total in Naira (&#x20a6;)
+                      </th>
+                      <th className="text-right">
+                        Total in USD ($)
+                      </th>
+
+
+                   </tr>
+               </thead>
+               <>
+                 {
+                   action_type == "Updated" ?
+
+                   (
+                     <tbody>
+                       {
+                         editions.length ? editions.map((edition, index)=>{
+
+                           const { action, old } = edition;
+                           const new_entry = edition.new;
+                           const row_span = old ? 2 : 1;
+                           const edition_type = edition_types[action];
+
+
+                           return (
+                             <>
+                             <tr key={`edition_${index}`} className={`bg-${action == 'EDITED' ? edition_type?.bg_new : edition_type?.bg}`}>
+                               <td rowSpan={row_span} className='bg-white text-dark'>
+                                 <div className={old ? "mt-3":""}>
+                                   <b>{index+1}</b>. <span className={`text-${action == 'EDITED' ? 'primary': edition_type?.bg}`}>{edition_type?.icon}</span>
+                               </div>
+                             </td>
+
+                               <td>
+                                 <span className="operatorx float-left">{action == 'EDITED' ? edition_type?.operator_new : edition_type?.operator} </span>
+                                 {new_entry?.costitem?.category?.name} <small>({new_entry?.costitem?.category?.code})</small>
+                               </td>
+                               <td>
+                                 {new_entry?.costitem?.name} <small>({new_entry?.costitem?.code})</small>
+                               </td>
+
+                               <td>
+                                 {new_entry?.entity}
+                               </td>
+
+                               <td className="text-center">
+                                 <a onClick={()=>this.showDescription(index, new_entry?.description)}  className="text-primary long-view">View</a>
+                               </td>
+                               <td>
+                                 {utils.formatNumber(new_entry?.unit_value, false)}
+                               </td>
+                               <td>
+                                 {utils.formatNumber(new_entry?.quantity, false)}
+
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.naira_portion)}
+
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.currency_portion)}
+
+                               </td>
+
+                               <td className="text-right">
+                               {utils.formatNumber(new_entry?.total_naira)}
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.total_currency)}
+                               </td>
+
+
+                             </tr>
+                             {
+                               old ? (
+                               <tr className={edition_type?.bg_old}>
+                                 <td>
+                                   <span className="operatorx float-left">{edition_type?.operator_old} </span>
+                                 {old?.costitem?.category?.name} xdcdsdsd <small>({old?.costitem?.category?.code}) </small>
+                                 </td>
+                                 <td>
+                                   {old?.costitem?.costitem?.name} xdcdsdsd <small>({old?.costitem?.costitem?.code})</small>
+                                 </td>
+
+                                 <td>
+                                   {old?.entity}
+                                 </td>
+
+                                 <td className="text-center">
+                                   <a onClick={()=>this.showDescription(index, old?.description)}  className="text-primary long-view">View</a>
+                                 </td>
+                                 <td>
+                                   {utils.formatNumber(old?.unit_value, false)}
+                                 </td>
+                                 <td>
+                                   {utils.formatNumber(old?.quantity, false)}
+
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.naira_portion)}
+
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.currency_portion)}
+
+                                 </td>
+
+                                 <td className="text-right">
+                                 {utils.formatNumber(old?.total_naira)}
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.total_currency)}
+                                 </td>
+                               </tr>
+                             ) : null
+                             }
+                           </>
+                           )
+
+                         }) : (
+                           <tr>
+                               <td className='text-center' colSpan='13'>
+                               <FetchingRecords emptyMsg={`No changes were made.`} isFetching={this.state.isFetching}/>
+                               </td>
+                           </tr>
+                         )
+                       }
+
+                     </tbody>
+                   )
+
+                    : (
+
+                     <tbody>
+                     {
+                       entries.length ?  entries.map( (departmentaggregate, index)=>{
+
+                             return (
+                                 <tr key={index} className={'line_entries'}>
+                                     <td>
+                                         <b>{index+1}</b>.
+                                     </td>
+                                     <td>
+                                       {departmentaggregate?.costitem?.category?.name} <small>({departmentaggregate?.costitem?.category?.code})</small>
+                                     </td>
+                                     <td>
+                                       {departmentaggregate?.costitem?.name} <small>({departmentaggregate?.costitem?.code})</small>
+                                     </td>
+
+                                     <td>
+                                       {departmentaggregate?.entity}
+                                     </td>
+
+                                     <td className="text-center">
+                                       <a onClick={()=>this.showDescription(index, departmentaggregate?.description)}  className="text-primary long-view">View</a>
+                                     </td>
+                                     <td>
+                                       {utils.formatNumber(departmentaggregate?.unit_value, false)}
+                                     </td>
+                                     <td>
+                                       {utils.formatNumber(departmentaggregate?.quantity, false)}
+
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.naira_portion)}
+
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.currency_portion)}
+
+                                     </td>
+
+                                     <td className="text-right">
+                                     {utils.formatNumber(departmentaggregate?.total_naira)}
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.total_currency)}
+                                     </td>
+
+
+                                 </tr>
+                             )
+
+
+                         }) :
+                         (
+                             <tr>
+                                 <td className='text-center' colSpan='13'>
+                                 <FetchingRecords emptyMsg="No entries added." isFetching={this.state.isFetching}/>
+                                 </td>
+                             </tr>
+                         )
+                     }
+
+                     </tbody>
+
+                   )
+                 }
+               </>
+
+               <tfoot className="line_entries_footer">
+
+                 <tr className="line_entries">
+                 <th rowSpan='2'>
+                  <div className="mt-4">
+                    TOTALS
+                  </div>
+                 </th>
+
+                 <th colSpan="6">
+
+                   <div className="text-center"><small><del>INITIAL</del></small></div>
+                   <div className="dash w-100"></div>
+
+                 </th>
+
+                 <th className="text-right">
+                   <del>{utils.formatNumber(initial_totals?.total_naira_portion)}</del>
+                   <div className="dash w-100"></div>
+                 </th>
+                 <th className="text-right">
+                  <del> {utils.formatNumber(initial_totals?.total_currency_portion)} </del>
+                   <div className="dash w-100"></div>
+
+
+                 </th>
+                 <th className="text-right">
+                     <del> {utils.formatNumber(initial_totals?.total_functional_naira)} </del>
+                   <div className="dash w-100"></div>
+
+
+                 </th>
+                 <th className="text-right">
+                     <del> {utils.formatNumber(initial_totals?.total_functional_currency)}</del>
+                   <div className="dash w-100"></div>
+
+
+                 </th>
+
+
+                 </tr>
+
+                   <tr className="line_entries entries_footer">
+
+
+                   <th colSpan="6">
+
+                      <div className="text-center w-100"><small>FINAL</small></div>
+                    {/* <div className="dash-2 w-100"></div> */}
+
+                   </th>
+
+                   <th className="text-right">
+                     {utils.formatNumber(total_naira_portion)}
+                     <div className="dash-2 w-100"></div>
+                   </th>
+                   <th className="text-right">
+                     {utils.formatNumber(total_currency_portion)}
+                     <div className="dash-2 w-100"></div>
+
+
+                   </th>
+                   <th className="text-right">
+                     {utils.formatNumber(total_functional_naira)}
+                     <div className="dash-2 w-100"></div>
+
+
+                   </th>
+                   <th className="text-right">
+                     {utils.formatNumber(total_functional_currency)}
+                     <div className="dash-2 w-100"></div>
+
+
+                   </th>
+
+
+                   </tr>
+
+               </tfoot>
+           </table>
+         </div>
+         </>
+
+
+)
+
+
+      swal.fire({
+          title: `<small><em>${header}</em></small>`,
+          html:renderToStaticMarkup(detailLInes),
+          width:"1150px",
+          icon: null,
+          type: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#007BFF",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Download as file",
+          cancelButtonText: "Close"
+        }).then(
+          (result)=>{
+            if(result.value){
+              console.log("Download details")
+            }
+
+        }).catch(
+          (error)=>{
+          console.log("Error", error)
+        })
+
+      // this.setState({ detailLInes, setDetailLinesAlert:true });
+
+      console.log("BODYY ", body, "ACTION", action);
+    }
+
+
+        setAction = (action_type) =>{
+          const action_types = {
+            "0":{
+              "text":"Created",
+              "icon":<FaPlus/>,
+            "variant":"secondary_custom"
+          },
+          "1":{
+            "text":"Updated",
+            "icon":<FaEdit/>,
+          "variant":"primary"
+            },
+        "2":{
+          "text":"Approved",
+          "icon":<FaCheck/>,
+        "variant":"success"
+          },
+        "3":{
+          "text":"Rejected",
+          "icon":<FaTimes/>,
+        "variant":"danger"
+          },
+        "4":{
+          "text":"Submitted",
+          "icon":<FaArrowDown/>,
+        "variant":"info_custom"
+          },
+          }
+          const action = action_types[action_type.toString()] || {};
+
+          return (
+            <>
+              <span className={`badge badge-${action.variant}`}>{action.text} {action.icon}</span>
+            </>
+          )
+
+        }
+
+  entryValueChanged = async (new_entry) => {
+    if(!this.props.updateentries) return; // if we are not updating, return
+
+    const { editions, editedDepartmentAggregate, editFormMode } = this.state;
+    const editionData = JSON.parse(JSON.stringify(editedDepartmentAggregate)) // deep copy. I canet shout. Remember psuedo_id!
+    let edition = { action:"ADDED", old:null, new:new_entry};
+
+    if(editFormMode){
+      for (const key in editionData) {
+        if (new_entry[key] && editionData[key] && editionData[key].toString() !== new_entry[key].toString()) {
+          edition['action'] = "EDITED";
+          edition['old'] = editionData;
+        }
+      }
+    }
+    editions.push(edition);
+    this.setState({ editions })
+
+       // if (edited) {
+       //   const edition = {
+       //     old: this.entryToEdit,
+       //     new: this.editFormData,
+       //     uniqueId: this.entryToEdit.uniqueId
+       //   };
+       //   this.setEditions(edition);
+       // }
+  }
 
 
 
@@ -1160,7 +1687,7 @@ export class BudgetEntriesComponent extends Component{
               })
               .then(result => {
                 if (result.value) {
-                let { allBudgetEntries } = this.state
+                let { allBudgetEntries, editions } = this.state
                 if(!departmentaggregate.id){ // doesnt exist at the backend
                   allBudgetEntries.splice(entryIdex, 1);
                   this.reduceTotal(departmentaggregate);
@@ -1175,6 +1702,10 @@ export class BudgetEntriesComponent extends Component{
 
                   this.preparationService.deleteBudgetEntry(departmentaggregate).then(
                     async (deletedDepartmentAggregate) => {
+                      const edition = { action:"DELETED", old:null, new:departmentaggregate};
+                      editions.push(edition);
+                      await this.setState({ editions });
+
                         allBudgetEntries = allBudgetEntries.filter(r=> r.id !== departmentaggregate.id)
 
                         const successNotification = {
@@ -1182,7 +1713,8 @@ export class BudgetEntriesComponent extends Component{
                             msg:`Budget entry ${entryIdex+1} successfully deleted!`
                         }
                         new AppNotification(successNotification)
-                        this.checkDeleteDuringEdit(entryIdex)
+                        this.checkDeleteDuringEdit(entryIdex);
+
                         this.reduceTotal(departmentaggregate);
                         await this.setState({ allBudgetEntries });
                     }
@@ -1218,11 +1750,139 @@ export class BudgetEntriesComponent extends Component{
                 <div className="specific">
 
                   <SweetAlert
+                    show={this.state.showDetailAlert}
+                    title={this.state?.historyDetail?.title}
+                    html={this.state.historyDetail?.body}
+                    onConfirm={() => this.toggleAlert(false)}
+                  />
+
+
+                  <SweetAlert
                     show={showDescriptionAlert}
                     title={`Description: line ${descriptionLine}`}
                     text={entryDescription}
                     onConfirm={this.toggleAlert}
                   />
+
+
+
+                                                    <Modal size="xl"  show={this.state.showHistoryModal} onHide={
+                                                        ()=>{ this.toggleModal('history')}
+                                                        } {...this.props} id='history_modal'>
+                                                        <Modal.Header closeButton>
+
+                                                        <Modal.Title>
+                                                          <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />
+                                                          &nbsp;&nbsp;
+                                                           <b>History<FaList/> </b>&nbsp;<em>{this.state?.viewedDepartmentAggregate?.department?.name} ({this.state?.viewedDepartmentAggregate?.department?.code}) <b>::</b> {activeBudgetCycle?.year} {active_version?.version_code?.name} ({active_version?.version_code?.code})</em>
+                                                      </Modal.Title>
+                                                        </Modal.Header>
+
+                                                                 <Modal.Body>
+
+                                                                   <div className="table-resonsive">
+                                                                     <table className="table table-striped table-hover">
+                                                                       <thead>
+                                                                         <tr>
+                                                                           <th>
+                                                                             User
+                                                                           </th>
+                                                                           <th>
+                                                                              Role
+                                                                           </th>
+                                                                           <th>
+                                                                              Department
+                                                                           </th>
+                                                                           <th>
+                                                                             Action
+                                                                           </th>
+                                                                           <th>
+                                                                             Details
+                                                                           </th>
+                                                                           <th>
+                                                                             Date
+                                                                           </th>
+                                                                         </tr>
+                                                                       </thead>
+
+                                                                       <tbody>
+                                                                         {
+                                                                           this.state?.viewedDepartmentAggregate?.aggregate_history?.length ?
+                                                                           this.state?.viewedDepartmentAggregate?.aggregate_history?.map((histo)=>{
+                                                                             return (
+                                                                               <tr key={histo.id}>
+                                                                                 <td>
+                                                                                   {histo?.user?.first_name} {histo?.user?.last_name} <small>({histo?.user?.email})</small>
+                                                                                 </td>
+
+                                                                                 <td>
+                                                                                   {histo?.role?.name}
+                                                                                 </td>
+                                                                                 <td>
+                                                                                   {histo?.user_department?.name} ({histo?.user_department?.code})
+                                                                                 </td>
+                                                                                 <td>
+                                                                                   {this.setAction(histo?.action)}
+                                                                                 </td>
+                                                                                 <td>
+                                                                                   {
+                                                                                     (histo?.action !== 2 && histo?.action !== 3) ?
+                                                                                     (
+                                                                                       <a className="underline text-primary" href="#" onClick={()=>this.downloadHistoryDetail(histo)}>View <FaList/></a>
+                                                                                     ) :(
+                                                                                       <a className="underline" href="#" onClick={()=>this.viewHistoryDetail(histo)}>View <FaEye/></a>
+                                                                                     )
+                                                                                   }
+                                                                                   {/* <div dangerouslySetInnerHTML={{__html: histo?.body }}>
+
+                                                                                   </div> */}
+                                                                                 </td>
+                                                                                 <td>
+                                                                                   {
+                                                                                     utils.formatDate(histo?.created_at)
+                                                                                   }
+                                                                                 </td>
+                                                                               </tr>
+                                                                             )
+                                                                           }):
+                                                                           (
+                                                                             <tr>
+                                                                               <td colSpan="6" className="text-center">No history.</td>
+                                                                             </tr>
+                                                                           )
+                                                                         }
+
+                                                                       </tbody>
+
+                                                                     </table>
+
+                                                                   </div>
+
+
+                                                                 </Modal.Body>
+
+
+                                                                <Modal.Footer>
+
+
+
+
+                                                                        <LaddaButton
+                                                                            className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                                                            loading={false}
+                                                                            progress={0.5}
+                                                                            type='button'
+                                                                            onClick={()=>this.toggleModal('history')}
+
+                                                                            >
+                                                                            Close
+                                                                        </LaddaButton>
+
+
+                                                                        </Modal.Footer>
+
+                                                                      </Modal>
+
 
 
                                   <Modal show={this.state.showInstructionsModal} onHide={
@@ -1508,7 +2168,7 @@ export class BudgetEntriesComponent extends Component{
                     ) :
 
                     (
-                      <Button  variant="primary" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><FaList/> View  History</Button>
+                      <Button  variant="primary" className="ripple m-1 text-capitalize" onClick={()=>this.toggleModal('history')} ><FaList/> View  History</Button>
 
                     )
                   }
@@ -2260,6 +2920,8 @@ export class BudgetEntriesComponent extends Component{
                                             </tr> */}
                                         </tfoot>
                                     </table>
+
+
                                     <div className="card-footer">
                                       <div className="row">
                                         <div className="col-md-12">

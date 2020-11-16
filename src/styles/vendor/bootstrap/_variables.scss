@@ -17,7 +17,9 @@ $gray-800: #343a40 !default;
 $gray-900: #212529 !default;
 $black: #000 !default;
 $infoC:rgb(23,162,184) !default;
+$successC:rgb(223,240,216) !default;
 $secondaryC: rgb(108,117,125) !default;
+$pinkC:rgb(203,48,102) !default;
 $grays: () !default;
 // stylelint-disable-next-line scss/dollar-variable-default
 $grays: map-merge( ( "100": $gray-100, "200": $gray-200, "300": $gray-300, "400": $gray-400, "500": $gray-500, "600": $gray-600, "700": $gray-700, "800": $gray-800, "900": $gray-900), $grays);
@@ -44,7 +46,7 @@ $light: $gray-100 !default;
 $dark: $gray-800 !default;
 $theme-colors: () !default;
 // stylelint-disable-next-line scss/dollar-variable-default
-$theme-colors: map-merge( ( "primary": $primary, "secondary": $secondary, "success": $success, "info": $info, "warning": $warning, "danger": $danger, "light": $light, "dark": $dark, "info_custom":$infoC, "secondary_custom":$secondaryC), $theme-colors);
+$theme-colors: map-merge( ( "primary": $primary, "secondary": $secondary, "success": $success, "info": $info, "warning": $warning, "danger": $danger, "light": $light, "dark": $dark, "info_custom":$infoC, "success_custom":$successC, "pink_custom":$pinkC, "secondary_custom":$secondaryC), $theme-colors);
 // Set a specific jump point for requesting color jumps
 $theme-color-interval: 8% !default;
 // The yiq lightness value that determines when the lightness of color changes from "dark" to "light". Acceptable values are between 0 and 255.

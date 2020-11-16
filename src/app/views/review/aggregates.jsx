@@ -1,6 +1,8 @@
 import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, ProgressBar } from "react-bootstrap";
-// import SweetAlert from "sweetalert2-react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import PreparationService from "../../services/preparation.service";
 import AppMainService from "../../services/appMainService";
@@ -14,7 +16,7 @@ import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
 import { connect } from "react-redux";
-import { FaCheck, FaList, FaTimes, FaDotCircle, FaEdit, FaPlus, FaArrowDown } from "react-icons/fa";
+import { FaCheck, FaList, FaTimes, FaDotCircle, FaEdit, FaPlus, FaArrowDown, FaDownload, FaEye, FaMinus} from "react-icons/fa";
 
 
 
@@ -42,6 +44,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         showCreateModal:false,
         showInstructionsModal:false,
         showHistoryModal:false,
+        showDetailAlert:false,
         isSaving:false,
         isFetching:true,
         canCreate:false,
@@ -52,6 +55,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
           "PRINCIPAL",
 
         ], //dummy entry type
+        historyDetail:{},
         groupedEntries:[],
         saveMsg:'Save',
         updateMsg:'Update',
@@ -242,6 +246,474 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
     }
 
+    downloadHistoryDetail = async (histo)=>{
+
+      console.log("HISTOOO", histo);
+      this.setDetailLines(histo);
+
+
+
+    }
+
+    setDetailLines = (histo)=> {
+      let { body, action, user, role, user_department, created_at } = histo;
+      body = JSON.parse(body);
+      const { total_naira_portion, total_currency_portion, total_functional_naira, total_functional_currency } = body;
+
+
+      let { detailLInes, setDetailLinesAlert } = this.state;
+      const { entries, editions, initial_totals } = body;
+      const action_types ={
+        "0":"Created",
+        "1":"Updated",
+        "4":"Submitted",
+      }
+      const edition_types = {
+        "ADDED":{
+          'bg':"success text-white",
+          'icon':<FaArrowDown/>,
+          'name':'Add',
+          'operator':<FaPlus/>
+
+        },
+        "EDITED":{
+          'bg_old':"pink text-white",
+          'bg_new':"info_custom text-white",
+          'operator_old':<FaMinus className="minus"/>,
+        'operator_new':<FaPlus/>,
+          'icon':<FaEdit/>,
+          'name':'Edit'
+
+        },
+        "DELETED":{
+          'bg':"danger text-white",
+          'icon':<FaTimes/>,
+        'name':'Deleted',
+        'operator':<FaMinus className="minus"/>
+        }
+      }
+      const action_type = action_types[action.toString()];
+      const text_color = action_type == "Created" ? "dark": action_type == "Updated" ? "primary":"success";
+
+      const header = `Entries <span class="text-${text_color}">${action_type}</span> by ${user.first_name} ${user.last_name} <small>(${user.email})</small>, ${role.name} in ${user_department.name} <small>(${user_department.code})</small> on ${utils.formatDate(created_at)}.`
+
+       detailLInes =  (
+         <>
+         {
+           action_type =="Updated" ? (
+             <div>
+               <div className="float-right p-1">
+                 <small>Legend:</small>
+               <span className="badge badge-success mr-1"><small>Added <FaArrowDown/></small></span>
+             <span className="badge badge-danger mr-1"><small>Deleted <FaTimes/></small></span>
+           <span className="badge badge-info_custom mr-1"><small>New Value <FaEdit/></small></span>
+             <span className="badge badge-pink_custom"><small>Old Value <FaEdit/></small></span>
+
+               </div>
+             </div>
+           ): null
+         }
+
+
+
+         <div className="table-responsive">
+           <table className="table display table-striped table-hover" id="zero_configuration_table" style={{"width":"100%"}}>
+               <thead>
+                   <tr className="ul-widget6__tr--sticky-th line_entries">
+                     <th>
+                        #
+                      </th>
+
+                      <th>
+                       Category
+                      </th>
+
+                      <th>
+                       Cost item
+                      </th>
+
+                      <th>
+                         Type
+                      </th>
+
+                      <th>
+                        Description
+                      </th>
+                      <th>
+                        Unit value
+                      </th>
+                      <th>
+                        Quantity
+                      </th>
+
+                      <th className="text-right">
+                        Naira part (&#x20a6;)
+                      </th>
+                      <th className="text-right">
+                        USD part ($)
+                      </th>
+                      <th className="text-right">
+                        Total in Naira (&#x20a6;)
+                      </th>
+                      <th className="text-right">
+                        Total in USD ($)
+                      </th>
+
+
+                   </tr>
+               </thead>
+               <>
+                 {
+                   action_type == "Updated" ?
+
+                   (
+                     <tbody>
+                       {
+                         editions.length ? editions.map((edition, index)=>{
+
+                           const { action, old } = edition;
+                           const new_entry = edition.new;
+                           const row_span = old ? 2 : 1;
+                           const edition_type = edition_types[action];
+
+
+                           return (
+                             <>
+                             <tr key={`edition_${index}`} className={`bg-${action == 'EDITED' ? edition_type?.bg_new : edition_type?.bg}`}>
+                               <td rowSpan={row_span} className='bg-white text-dark'>
+                                 <div className={old ? "mt-3":""}>
+                                   <b>{index+1}</b>. <span className={`text-${action == 'EDITED' ? 'primary': edition_type?.bg}`}>{edition_type?.icon}</span>
+                               </div>
+                             </td>
+
+                               <td>
+                                 <span className="operatorx float-left">{action == 'EDITED' ? edition_type?.operator_new : edition_type?.operator} </span>
+                                 {new_entry?.costitem?.category?.name} <small>({new_entry?.costitem?.category?.code})</small>
+                               </td>
+                               <td>
+                                 {new_entry?.costitem?.name} <small>({new_entry?.costitem?.code})</small>
+                               </td>
+
+                               <td>
+                                 {new_entry?.entity}
+                               </td>
+
+                               <td className="text-center">
+                                 <a onClick={()=>this.showDescription(index, new_entry?.description)}  className="text-primary long-view">View</a>
+                               </td>
+                               <td>
+                                 {utils.formatNumber(new_entry?.unit_value, false)}
+                               </td>
+                               <td>
+                                 {utils.formatNumber(new_entry?.quantity, false)}
+
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.naira_portion)}
+
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.currency_portion)}
+
+                               </td>
+
+                               <td className="text-right">
+                               {utils.formatNumber(new_entry?.total_naira)}
+                               </td>
+                               <td className="text-right">
+                                 {utils.formatNumber(new_entry?.total_currency)}
+                               </td>
+
+
+                             </tr>
+                             {
+                               old ? (
+                               <tr className={edition_type?.bg_old}>
+                                 <td>
+                                   <span className="operatorx float-left">{edition_type?.operator_old} </span>
+                                 {old?.costitem?.category?.name} xdcdsdsd <small>({old?.costitem?.category?.code}) </small>
+                                 </td>
+                                 <td>
+                                   {old?.costitem?.costitem?.name} xdcdsdsd <small>({old?.costitem?.costitem?.code})</small>
+                                 </td>
+
+                                 <td>
+                                   {old?.entity}
+                                 </td>
+
+                                 <td className="text-center">
+                                   <a onClick={()=>this.showDescription(index, old?.description)}  className="text-primary long-view">View</a>
+                                 </td>
+                                 <td>
+                                   {utils.formatNumber(old?.unit_value, false)}
+                                 </td>
+                                 <td>
+                                   {utils.formatNumber(old?.quantity, false)}
+
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.naira_portion)}
+
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.currency_portion)}
+
+                                 </td>
+
+                                 <td className="text-right">
+                                 {utils.formatNumber(old?.total_naira)}
+                                 </td>
+                                 <td className="text-right">
+                                   {utils.formatNumber(old?.total_currency)}
+                                 </td>
+                               </tr>
+                             ) : null
+                             }
+                           </>
+                           )
+
+                         }) : (
+                           <tr>
+                               <td className='text-center' colSpan='13'>
+                               <FetchingRecords emptyMsg={`No changes were made.`} isFetching={this.state.isFetching}/>
+                               </td>
+                           </tr>
+                         )
+                       }
+
+                     </tbody>
+                   )
+
+                    : (
+
+                     <tbody>
+                     {
+                       entries.length ?  entries.map( (departmentaggregate, index)=>{
+
+                             return (
+                                 <tr key={index} className={'line_entries'}>
+                                     <td>
+                                         <b>{index+1}</b>.
+                                     </td>
+                                     <td>
+                                       {departmentaggregate?.costitem?.category?.name} <small>({departmentaggregate?.costitem?.category?.code})</small>
+                                     </td>
+                                     <td>
+                                       {departmentaggregate?.costitem?.name} <small>({departmentaggregate?.costitem?.code})</small>
+                                     </td>
+
+                                     <td>
+                                       {departmentaggregate?.entity}
+                                     </td>
+
+                                     <td className="text-center">
+                                       <a onClick={()=>this.showDescription(index, departmentaggregate?.description)}  className="text-primary long-view">View</a>
+                                     </td>
+                                     <td>
+                                       {utils.formatNumber(departmentaggregate?.unit_value, false)}
+                                     </td>
+                                     <td>
+                                       {utils.formatNumber(departmentaggregate?.quantity, false)}
+
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.naira_portion)}
+
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.currency_portion)}
+
+                                     </td>
+
+                                     <td className="text-right">
+                                     {utils.formatNumber(departmentaggregate?.total_naira)}
+                                     </td>
+                                     <td className="text-right">
+                                       {utils.formatNumber(departmentaggregate?.total_currency)}
+                                     </td>
+
+
+                                 </tr>
+                             )
+
+
+                         }) :
+                         (
+                             <tr>
+                                 <td className='text-center' colSpan='13'>
+                                 <FetchingRecords emptyMsg="No entries added." isFetching={this.state.isFetching}/>
+                                 </td>
+                             </tr>
+                         )
+                     }
+
+                     </tbody>
+
+                   )
+                 }
+               </>
+
+               <tfoot className="line_entries_footer">
+                {
+                  action_type == "Updated" ? (
+                <>
+                <tr className="line_entries">
+                <th rowSpan='2'>
+                 <div className="mt-4">
+                   TOTALS
+                 </div>
+                </th>
+
+                <th colSpan="6">
+
+                  <div className="text-center"><small><del>INITIAL</del></small></div>
+                  <div className="dash w-100"></div>
+
+                </th>
+
+                <th className="text-right">
+                  <del>{utils.formatNumber(initial_totals?.total_naira_portion)}</del>
+                  <div className="dash w-100"></div>
+                </th>
+                <th className="text-right">
+                 <del> {utils.formatNumber(initial_totals?.total_currency_portion)} </del>
+                  <div className="dash w-100"></div>
+
+
+                </th>
+                <th className="text-right">
+                    <del> {utils.formatNumber(initial_totals?.total_functional_naira)} </del>
+                  <div className="dash w-100"></div>
+
+
+                </th>
+                <th className="text-right">
+                    <del> {utils.formatNumber(initial_totals?.total_functional_currency)}</del>
+                  <div className="dash w-100"></div>
+
+
+                </th>
+
+
+                </tr>
+
+                  <tr className="line_entries entries_footer">
+
+
+                  <th colSpan="6">
+
+                     <div className="text-center w-100"><small>FINAL</small></div>
+                   {/* <div className="dash-2 w-100"></div> */}
+
+                  </th>
+
+                  <th className="text-right">
+                    {utils.formatNumber(total_naira_portion)}
+                    <div className="dash-2 w-100"></div>
+                  </th>
+                  <th className="text-right">
+                    {utils.formatNumber(total_currency_portion)}
+                    <div className="dash-2 w-100"></div>
+
+
+                  </th>
+                  <th className="text-right">
+                    {utils.formatNumber(total_functional_naira)}
+                    <div className="dash-2 w-100"></div>
+
+
+                  </th>
+                  <th className="text-right">
+                    {utils.formatNumber(total_functional_currency)}
+                    <div className="dash-2 w-100"></div>
+
+
+                  </th>
+
+
+                  </tr>
+                </>
+
+                  ) :(
+                    <tr className="line_entries entries_footer">
+
+                      <th>
+                         <div className="text-center w-100">TOTAL</div>
+                      </th>
+
+
+                    <th colSpan="6">
+
+
+                     <div className="dash w-100"></div>
+
+                    </th>
+
+                    <th className="text-right">
+                      {utils.formatNumber(total_naira_portion)}
+                      <div className="dash-2 w-100"></div>
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_currency_portion)}
+                      <div className="dash-2 w-100"></div>
+
+
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_functional_naira)}
+                      <div className="dash-2 w-100"></div>
+
+
+                    </th>
+                    <th className="text-right">
+                      {utils.formatNumber(total_functional_currency)}
+                      <div className="dash-2 w-100"></div>
+
+
+                    </th>
+
+
+                    </tr>
+                  )
+                }
+
+
+               </tfoot>
+           </table>
+         </div>
+         </>
+
+
+  )
+
+
+      swal.fire({
+          title: `<small><em>${header}</em></small>`,
+          html:renderToStaticMarkup(detailLInes),
+          width:"1150px",
+          icon: null,
+          type: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#007BFF",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Download as file",
+          cancelButtonText: "Close"
+        }).then(
+          (result)=>{
+            if(result.value){
+              console.log("Download details")
+            }
+
+        }).catch(
+          (error)=>{
+          console.log("Error", error)
+        })
+
+      // this.setState({ detailLInes, setDetailLinesAlert:true });
+
+      console.log("BODYY ", body, "ACTION", action);
+    }
+
 
 
     buildGroupedEntries = (allDepartmentAggregates) => {
@@ -364,6 +836,16 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
     }
 
+    viewHistoryDetail = async (histo) =>{
+
+      const historyDetail = histo;
+      const action = histo.action == 2? "Approval" : "Rejection"
+      historyDetail.title = `${histo.role.name} ${action} ${utils.formatDate(histo.created_at)}`
+      await this.setState({ historyDetail })
+      this.toggleAlert();
+    }
+
+
     setAction = (action_type) =>{
       const action_types = {
         "0":{
@@ -396,11 +878,19 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
       return (
         <>
-          <span className={`badge badge-${action.variant}`}>{action.text}</span>&nbsp;{action.icon}
+          <span className={`badge badge-${action.variant}`}>{action.text} {action.icon}</span>
         </>
       )
 
     }
+
+    toggleAlert = ()=>{
+      let { showDetailAlert } = this.state;
+      showDetailAlert = !showDetailAlert;
+      this.setState({showDetailAlert});
+    }
+
+
 
     /**
      * This method creates a new departmentaggregate
@@ -702,6 +1192,14 @@ export class DepartmentAggregatesApprovalComponent extends Component{
             <>
                 <div className="specific">
 
+                  <SweetAlert
+                    show={this.state.showDetailAlert}
+                    title={this.state?.historyDetail?.title}
+                    html={this.state.historyDetail?.body}
+                    onConfirm={this.toggleAlert}
+                  />
+
+
 
                                   <Modal show={this.state.showInstructionsModal} onHide={
                                       ()=>{ this.toggleModal('instructions')}
@@ -768,10 +1266,10 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                                            User
                                                          </th>
                                                          <th>
-                                                           Role
+                                                            Role
                                                          </th>
                                                          <th>
-                                                           Department
+                                                            Department
                                                          </th>
                                                          <th>
                                                            Action
@@ -799,15 +1297,23 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                                                  {histo?.role?.name}
                                                                </td>
                                                                <td>
-                                                                 {histo?.aggregate?.department?.name} ({histo?.aggregate?.department?.code} )
+                                                                 {histo?.user_department?.name} ({histo?.user_department?.code})
                                                                </td>
                                                                <td>
                                                                  {this.setAction(histo?.action)}
                                                                </td>
                                                                <td>
-                                                                 <div dangerouslySetInnerHTML={{__html: histo?.body }}>
+                                                                 {
+                                                                   (histo?.action !== 2 && histo?.action !== 3) ?
+                                                                   (
+                                                                     <a className="underline" href="#" onClick={()=>this.downloadHistoryDetail(histo)}>View <FaList/></a>
+                                                                   ) :(
+                                                                     <a className="underline" href="#" onClick={()=>this.viewHistoryDetail(histo)}>View <FaEye/></a>
+                                                                   )
+                                                                 }
+                                                                 {/* <div dangerouslySetInnerHTML={{__html: histo?.body }}>
 
-                                                                 </div>
+                                                                 </div> */}
                                                                </td>
                                                                <td>
                                                                  {
