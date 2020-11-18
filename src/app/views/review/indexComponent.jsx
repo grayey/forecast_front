@@ -10,6 +10,7 @@ import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
 import jwtAuthService from "../../services/jwtAuthService";
 import DepartmentAggregatesApprovalComponent from "./aggregates";
+import ConsolidatedApproval from "./consolidatedApproval";
 
 
 
@@ -336,6 +337,8 @@ export class ApprovalsComponent extends Component{
 
     render(){
 
+        const { department, role } = this.state.activeDepartmentRole
+
         return (
 
             <>
@@ -598,7 +601,14 @@ export class ApprovalsComponent extends Component{
                 <div className="row mb-4">
 
                     <div className="col-md-12 mb-4">
-                      <DepartmentAggregatesApprovalComponent approvalSlug={`${this.state.role?.name?.toLowerCase()?.split(' ')?.join('')}-approval`} activeVersion={this.state.active_version}/>
+                      <>
+
+                      {
+                        role?.approval?.approval_type !== 'DEPARTMENTAL' ? <ConsolidatedApproval/> : <DepartmentAggregatesApprovalComponent activeVersion={this.state.active_version} approvalSlug={`${this.state.role?.name?.toLowerCase()?.split(' ')?.join('')}-approval`} />
+
+
+                      }
+                      </>
                     </div>
                     {/* </div> */}
                     {/* <!-- end of col--> */}

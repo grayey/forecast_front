@@ -122,7 +122,7 @@ class ApprovalsList extends Component {
      editedApproval: {},
      shiftedApproval:{},
      createApprovalForm: {
-         type: "",
+         type: "DEPARTMENTAL",
          role: "",
          fallback_to:"",
          recapture_options:""
@@ -530,8 +530,8 @@ class ApprovalsList extends Component {
                                     onBlur={handleBlur}
                                     required>
                                     <option value="">Select</option>
-                                  <option value="DEPARTMENTAL">By Department</option>
-                                  <option value="OVERALL">Overall</option>
+                                  <option value="DEPARTMENTAL">Departmental Approval</option>
+                                  <option value="VERSION">Version Approval</option>
 
 
                                   </select>

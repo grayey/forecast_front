@@ -13,7 +13,7 @@ export class DepartmentApproval extends Component {
 
 
       render() {
-        return <BudgetEntriesComponent updateentries={true} isApproval={true} queryslug={this.querySlug}  {...this.props}/>;
+        return  <BudgetEntriesComponent updateentries={true} isApproval={true} queryslug={this.querySlug}  {...this.props}/>;
 
 
       }
