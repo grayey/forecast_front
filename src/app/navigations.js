@@ -137,7 +137,15 @@ export const navigations = [
             name: "Cost items",
             path: "/admin/cost-items",
             type: "link"
-          }
+          },
+          {
+            icon: "i-Clock-3",
+            name: "Department-items mapping",
+            path: "/admin/department-items-mapping",
+            type: "link"
+          },
+
+
         ]
       },
       {

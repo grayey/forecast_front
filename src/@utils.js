@@ -182,7 +182,8 @@ export function processErrors(error){
     errorMessage = errorData.detail;
   }else if(errorStatus == 400){
     for(let key in errorData){
-      errorMessage += `${errorData[key][0].replace('This',key)}\r\n`
+      const msg_line = (typeof errorData[key] == 'object') ? errorData[key][0].replace('This',key): errorData[key]
+      errorMessage += `${msg_line}\r\n`
     }
   }
   }else{

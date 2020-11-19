@@ -52,6 +52,7 @@ export async  function forwardUserIntoApp(user_access){
       activeUser = profile.user;
       userDepartmentRoles = department_roles.map((dr)=>{
         dr.userprofile = undefined; // delete userprofile from department_role
+        dr.itemcategories = undefined;
         return dr;
       })
       if(userDepartmentRoles.length == 1){ // user belongs to just one department

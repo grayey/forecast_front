@@ -566,10 +566,10 @@ export class BudgetEntriesComponent extends Component{
             type:"success"
           }
         await this.setState({isSaving:false, approvalModal:false, rejectionModal:false,viewedDepartmentAggregate   });
+        this.getApprovalMessage();
           new AppNotification(successNotification);
-           this.getApprovalMessage();
         }).catch((error)=>{
-
+          // console.error("ERROR", error);
           const errorNotification ={
             msg:utils.processErrors(error),
             type:"error"

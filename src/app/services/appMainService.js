@@ -295,6 +295,11 @@ export default class AppMainService extends Component {
       return this.updateDepartment(department, department.id);
     }
 
+    async submitDepartmentCategoriesAssignment(id, category_ids){
+      const url = `departments/${id}/assignment/`;
+      return await apiService.put(url, {_assigned:category_ids})
+    }
+
     /**
         *
         * --- ITEM CATEGORIES SECTION HERE ----
@@ -352,6 +357,8 @@ export default class AppMainService extends Component {
            itemcategory.status = !itemcategory.status
          return this.updateItemCategory(itemcategory, itemcategory.id);
        }
+
+
 
        /**
         *

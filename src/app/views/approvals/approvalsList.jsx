@@ -12,7 +12,7 @@ import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
-import { FaArrowRight, FaTimes } from "react-icons/fa";
+import { FaArrowRight, FaTimes, FaExclamation } from "react-icons/fa";
 
 import LaddaButton, {
     XL,
@@ -25,11 +25,14 @@ import LaddaButton, {
 
 const animatedComponents = makeAnimated();
 
-const SortableItem = SortableElement(({approval}) => <li className="list-group-item drag shadow-lg">
+const SortableItem = SortableElement(({approval, is_faulty}) => <li className={`list-group-item drag shadow-lg ${is_faulty ? 'faulty':''}`}>
 
 
     <div className="row">
       <div className="col-md-2">
+        {
+          is_faulty ? (<FaExclamation className='text-danger'/>) : null
+        }
         <p><b>Description</b></p>
         <p>{approval.description}</p>
       </div>
@@ -61,23 +64,41 @@ const SortableItem = SortableElement(({approval}) => <li className="list-group-i
 </li>);
 
 
-const SortableList = SortableContainer(({allApprovals, fetching}) => {
+const SortableList = SortableContainer(({allApprovals, fetching, badConfiguration}) => {
   return (
 
-    <div className="card bg-info_custom">
+    <div className={`card bg-${badConfiguration ? 'danger' :'info_custom'}`}>
       <div className="card-header ">
         <p className="card-text text-white">
-          This interface allows you to rearrange approval stages by dragging and dropping them in new positions.<br/>
-        <b> NOTE:</b> This affects the individual stages of running cycles and departments' budgets.
+          {
+            badConfiguration ?
+          (
+            <>
+              <b>Bad Configuration:</b> <em>All</em> departmental approvals should come <em>before</em> version approvals.
+            </>
+      ) : (
+            <>
+              This interface allows you to rearrange approval stages by dragging and dropping them in new positions.<br/>
+              <b> NOTE:</b> This affects the individual stages of running cycles and departments budgets.
+            </>
+          )
+          }
+
         </p>
       {/* <p className="card-text text-warning"><b>NOTE:</b>This affects the stages of running cycles and budget entries.</p> */}
       </div>
 
       <ul className="w-100 list-group">
         {
-        allApprovals.length ?  allApprovals.map((approval, index) => (
-           <SortableItem key={`item-${approval.id}`} index={index} approval={approval} />
-        )) :
+        allApprovals.length ?  allApprovals.map((approval, index) => {
+          const { is_faulty } = approval;
+          console.log("IS FAULTY", is_faulty);
+
+          return (
+
+             <SortableItem key={`item-${approval.id}`} index={index} approval={approval} is_faulty={is_faulty}/>
+          )
+        }):
         (
           <li className="list-group-item drag shadow-lg text-center">
             <FetchingRecords isFetching={fetching} emptyMsg="No approval stages configured"/>
@@ -121,6 +142,7 @@ class ApprovalsList extends Component {
      updateMsg:'Update',
      editedApproval: {},
      shiftedApproval:{},
+     badConfiguration:false,
      createApprovalForm: {
          type: "DEPARTMENTAL",
          role: "",
@@ -148,6 +170,35 @@ class ApprovalsList extends Component {
 
   componentDidMount = async() => {
     this.getAllApprovals();
+  }
+
+  checkConfiguration = () =>{
+    let { allApprovals, badConfiguration } = this.state;
+    let faults = [];
+    let faulty = false;
+    const a_length = allApprovals.length;
+
+    for(let index=0; index< a_length; index++){
+      allApprovals[index]['is_faulty'] = faulty;
+      if((index + 1) == a_length){
+        continue;
+      }
+      let  present_ = allApprovals[index].approval_type;
+      if(!index){
+        faulty = present_ == "VERSION";
+      }else{
+        const prev_ = allApprovals[index - 1].approval_type;
+        const next_ = allApprovals[index + 1].approval_type;
+        faulty = (prev_ == next_  && prev_ != present_);
+      }
+      allApprovals[index]['is_faulty'] = faulty;
+      faults.push(faulty);
+    }
+    badConfiguration = faults.includes(true);
+    console.log('badConfiguration', badConfiguration, allApprovals);
+
+    this.setState({ allApprovals, badConfiguration })
+
   }
 
   handleChange = async (event, form='create') => {
@@ -224,9 +275,10 @@ class ApprovalsList extends Component {
          let isFetching = false;
 
         this.appMainService.getAllApprovals().then(
-            (approvalsResponse)=>{
+            async (approvalsResponse)=>{
                 const allApprovals = approvalsResponse.sort((a, b) => (a.stage > b.stage) ? 1 : -1);
-                this.setState({ allApprovals, isFetching })
+                await this.setState({ allApprovals, isFetching });
+                this.checkConfiguration();
                 this.getAllRoles();
 
                 console.log('Approvals response', approvalsResponse)
@@ -452,7 +504,8 @@ class ApprovalsList extends Component {
       // this.setState({ allApprovals, oldApprovals, approvalIds, shiftedApproval, oldIndex, shiftedFallBackOptions, shiftedRecaptureOptions});
 
       await this.setState({ allApprovals, approvalIds, oldApprovals});
-      this.saveShift();
+      await this.saveShift();
+      this.checkConfiguration();
 
 
   };
@@ -795,7 +848,7 @@ class ApprovalsList extends Component {
 
         <div className="separator-breadcrumb border-top"></div>
 
-      <SortableList fetching={this.state.isFetching} onSortStart={this.onSortStart} allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} />
+      <SortableList fetching={this.state.isFetching} onSortStart={this.onSortStart} allApprovals={this.state.allApprovals} onSortEnd={this.onSortEnd} badConfiguration={this.state.badConfiguration} />
 </>)
 ;
 

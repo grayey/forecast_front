@@ -133,7 +133,7 @@ export class BudgetVersionDetailsComponent extends Component{
 
 
     /**
-     * This method lists all budgetversions
+     * This method listm a budget version by slug
      */
      getBudgetVersionBySlug = async ()=>{
          let { viewedBudgetVersionDetail, allBudgetEntries, allAggregates, isFetching } = this.state;
