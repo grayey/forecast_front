@@ -12,7 +12,7 @@ import AppNotification from "../../appNotifications";
 import {FetchingRecords} from "../../appWidgets";
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
-import { FaArrowRight, FaTimes, FaExclamation } from "react-icons/fa";
+import { FaArrowRight, FaTimes, FaExclamation, FaRecycle } from "react-icons/fa";
 
 import LaddaButton, {
     XL,
@@ -24,6 +24,30 @@ import LaddaButton, {
   } from "react-ladda";
 
 const animatedComponents = makeAnimated();
+const approvalTypes = {
+  VERSION:{
+    label:"Version (overview)",
+    desc:"Approves the OVERVIEW a budget version"
+  },
+  SINGLE_DEPARTMENTAL:{
+    label:"Single Department",
+    desc:"Approves ONLY their department's budget"
+  },
+  DEPARTMENTAL:{
+    label:"Mulitiple Departments",
+    desc:"Approves the overall version of a budget"
+
+  },
+  MULTIPLE_DEPARTMENTAL:{
+    label:"Mulitiple Departments",
+    desc:"Approves MULTIPLE departments' budgets"
+  }
+}
+
+const setApprovalType = (a_type)=>{
+
+  return approvalTypes[a_type].label
+}
 
 const SortableItem = SortableElement(({approval, is_faulty}) => <li className={`list-group-item drag shadow-lg ${is_faulty ? 'faulty':''}`}>
 
@@ -38,7 +62,7 @@ const SortableItem = SortableElement(({approval, is_faulty}) => <li className={`
       </div>
       <div className="col-md-2">
         <p><b>Type</b></p>
-      <p>{approval.approval_type}</p>
+      <p>{setApprovalType(approval.approval_type)}</p>
       </div>
       <div className="col-md-2">
         <p><b>Role</b></p>
@@ -144,9 +168,10 @@ class ApprovalsList extends Component {
      shiftedApproval:{},
      badConfiguration:false,
      createApprovalForm: {
-         type: "DEPARTMENTAL",
+         type: "SINGLE_DEPARTMENTAL",
          role: "",
          fallback_to:"",
+         forward_to:"DEFAULT",
          recapture_options:""
        },
        updateApprovalForm: {
@@ -189,7 +214,7 @@ class ApprovalsList extends Component {
       }else{
         const prev_ = allApprovals[index - 1].approval_type;
         const next_ = allApprovals[index + 1].approval_type;
-        faulty = (prev_ == next_  && prev_ != present_);
+        faulty = (next_.includes('DEPARTMENTAL')  &&  !present_.includes('DEPARTMENTAL') && prev_.includes('DEPARTMENTAL'));
       }
       allApprovals[index]['is_faulty'] = faulty;
       faults.push(faulty);
@@ -527,6 +552,8 @@ class ApprovalsList extends Component {
 
   render() {
 
+
+
     return (
       <>
 
@@ -582,12 +609,19 @@ class ApprovalsList extends Component {
                                     onChange={(event)=>this.handleChange(event)}
                                     onBlur={handleBlur}
                                     required>
-                                    <option value="">Select</option>
-                                  <option value="DEPARTMENTAL">Departmental Approval</option>
-                                  <option value="VERSION">Version Approval</option>
+                                  <option value="">Select</option>
+                                  <option value="SINGLE_DEPARTMENTAL">Single Department Approval</option>
+                                  <option value="MULTIPLE_DEPARTMENTAL">Multiple Departments Approval</option>
+                                  <option value="VERSION">Version(overview) Approval</option>
 
 
                                   </select>
+                                  {
+                                    values.type ? <small className="text-info mt-2 ml-2">{approvalTypes[values.type].desc}</small> : null
+                                  }
+                                  <div className="">
+
+                                  </div>
 
                                   <div className="valid-feedback"></div>
                                   <div className="invalid-feedback">
@@ -633,12 +667,12 @@ class ApprovalsList extends Component {
                               <div className="form-row">
                               <div className="col-md-12 mb-2">
                                 <div className="card-header w-100">
-                                  <h4 className="text-danger">Rejection Information</h4>
+                                  <h4 className="text-danger">Post-rejection Cycle <FaRecycle/></h4>
                                 </div>
                               </div>
 
-                              <div className="col-md-6">
-                                <label><b>FallBack to:</b> <small>(defaults to previous stage)</small></label>
+                              <div className="col-md-12 mb-2">
+                                <label><b>FallBack to:</b> <small>(on <em className="text-danger">rejection</em> defaults to <b>previous</b> stage)</small></label>
                               <select className="form-control fbt" name="fallback_to"
                                 onChange={(event)=>this.handleChange(event)} value={values.fallback_to}>
                                 <option value="">Select</option>
@@ -652,7 +686,23 @@ class ApprovalsList extends Component {
 
                               </div>
 
-                              <div className="col-md-6">
+
+                              <div className="col-md-12 mb-2">
+                                <label><b>Jump Forward to:</b> <small>(on <em className="text-success">approval</em> defaults to <b>next</b> stage)</small></label>
+                              <select className="form-control fbt" name="forward_to"
+                                onChange={(event)=>this.handleChange(event)} value={values.forward_to}>
+                                <option value="DEFAULT">DEFAULT</option>
+                                <option value="LAST_APPROVAL">LAST APPROVAL</option>
+                                  {/* {
+                                    this.state.fallBackOptions.map((f)=>{
+                                  return  (<option key={f.id} value={f.id}>{f?.description}</option>)
+                                    })
+                                  } */}
+                                </select>
+
+                              </div>
+
+                              <div className="col-md-12">
                                 <label><b>Recapture Option(s):</b></label>
                                 {/* <select className="form-control" >
                                   <option value="">Select</option>

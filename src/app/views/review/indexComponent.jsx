@@ -604,7 +604,7 @@ export class ApprovalsComponent extends Component{
                       <>
 
                       {
-                        role?.approval?.approval_type !== 'DEPARTMENTAL' ? <ConsolidatedApproval/> : <DepartmentAggregatesApprovalComponent activeVersion={this.state.active_version} approvalSlug={`${this.state.role?.name?.toLowerCase()?.split(' ')?.join('')}-approval`} />
+                        role?.approval?.approval_type == 'VERSION' ? <ConsolidatedApproval/> : <DepartmentAggregatesApprovalComponent activeVersion={this.state.active_version} approvalSlug={`${this.state.role?.name?.toLowerCase()?.split(' ')?.join('')}-approval`} />
 
 
                       }

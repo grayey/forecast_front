@@ -265,7 +265,7 @@ import LaddaButton, {
 
                                                               return (
                                                                 <>
-                                                                <li className="list-group-item shadow-sm">
+                                                                <li className="list-group-item bl shadow-sm">
                                                                   <div className='float-right'>
 
                                                                     <Form.Check

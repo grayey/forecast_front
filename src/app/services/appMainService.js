@@ -310,8 +310,9 @@ export default class AppMainService extends Component {
         /**
          * This method returns a list of all itemcategories
          */
-        async getAllItemCategories(){
-           const url = 'itemcategories';
+        async getAllItemCategories(departmentId = null){
+          let url = 'itemcategories';
+          url += departmentId ? `/${departmentId}/by-department` : '';
            return await apiService.get(url);
        }
 

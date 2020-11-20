@@ -166,8 +166,8 @@ export class BudgetEntriesComponent extends Component{
       if(this.props.updateentries){
       await  this.getAllBudgetEntriesByDepartmentSlug();
       }
-        await this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
-         this.getAllItemCategories();
+        await this.getAllDepartmentAggregatesByActiveVersion();
+
          this.getAllApprovals();
          this.setActiveBudgetCycle();
 
@@ -586,14 +586,18 @@ export class BudgetEntriesComponent extends Component{
      */
      getAllItemCategories = async ()=>{
        // Move to a getAllEntities method
-       let { allEntities, createDepartmentAggregateForm } = this.state;
+       let { allEntities, createDepartmentAggregateForm, activeDepartmentRole, viewedDepartmentAggregate } = this.state;
        if(!allEntities.length){
          createDepartmentAggregateForm.entity = "PRINCIPAL" // default entity
        }
        this.setState({allEntities, createDepartmentAggregateForm})
        // End getAllEntities method
 
-        this.appMainService.getAllItemCategories().then(
+       const { department } = this.props.updateentries ? viewedDepartmentAggregate : activeDepartmentRole; // get item categories by department
+
+
+
+        this.appMainService.getAllItemCategories(department.id).then(
             (itemcategoriesResponse)=>{
 
                 const allItemCategories = itemcategoriesResponse.map((c)=>{
@@ -765,7 +769,7 @@ export class BudgetEntriesComponent extends Component{
           (approvalsResponse)=>{
               const allApprovals = approvalsResponse;
               this.setState({ allApprovals })
-              console.log('Approvals response', approvalsResponse)
+              // console.log('Approvals response', approvalsResponse)
           }
       ).catch((error)=>{
           // const errorNotification = {
@@ -791,7 +795,6 @@ export class BudgetEntriesComponent extends Component{
             async (departmentAggregatesResponse)=>{
                isFetching = false;
                viewedDepartmentAggregate = departmentAggregatesResponse;
-
                const { aggregate_history } = viewedDepartmentAggregate;
                aggregate_history.forEach((tale)=>{
                  const { role, user } = tale;
@@ -821,6 +824,8 @@ export class BudgetEntriesComponent extends Component{
                  viewedDepartmentAggregate,usdConversionRate, activeBudgetCycle,
                  historyRoles, historyUsers, initial_totals }); // so allBudgetEntries is set
               await this.getApprovalMessage();
+              this.getAllItemCategories();
+
 
               this.setViewMode();
 
@@ -978,29 +983,35 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
-    getAllDepartmentAggregatesByBudgetCycleAndDepartment = async() =>{
+    getAllDepartmentAggregatesByActiveVersion = async() =>{
 
       let isFetching = true;
       let { aggregateList, navigate } = this.state;
       const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
+      const { active_version } = activeBudgetCycle;
       const budgetCycleId = activeBudgetCycle.id;
-      const departmentId = 5;
+      const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+      const {department, role } = activeDepartmentRole;
+      const departmentId = department.id;
       this.setState({ isFetching })
 
-     this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, departmentId).then(
+     this.preparationService.getAllDepartmentAggregatesByActiveVersion(active_version.id, departmentId).then(
          async (departmentaggregatesResponse)=>{
             isFetching = false;
             aggregateList = departmentaggregatesResponse;
+            // console.log("DEPTHASBEGUNCAPT", aggregateList );
             if(aggregateList.length && !this.props.updateentries){
               this.setState({ navigate:true });
               new AppNotification(
                 {
                   type:"info",
-                  msg:`Your department has begun capture for ${activeBudgetCycle.year}!`
+                  msg:`Your department has begun capture for version ${active_version.version_code.name} (${active_version.version_code.code}) of ${activeBudgetCycle.year}.`
                 }
               )
             }
            await  this.setState({ aggregateList, isFetching, navigate });
+           this.getAllItemCategories();
+
 
          }
      ).catch((error)=>{

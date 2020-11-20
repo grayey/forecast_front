@@ -51,6 +51,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         firstVersion:{},
         active_version:{},
         activeBudgetCycle:{},
+        single_department:{},
         entryTypes:[
           "PRINCIPAL",
 
@@ -90,9 +91,9 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         this.appMainService = new AppMainService();
     }
 
-    componentDidMount(){
+    componentDidMount = async () =>{
        const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
-       this.setState({ activeDepartmentRole })
+       await this.setState({ activeDepartmentRole })
       // this.getAllDepartmentAggregates();
          this.getAllDepartmentAggregatesByActiveVersion();
          this.getAllVersionCodes();
@@ -172,13 +173,17 @@ export class DepartmentAggregatesApprovalComponent extends Component{
     getAllDepartmentAggregatesByActiveVersion = async() =>{
 
       let isFetching = true;
+      const { activeDepartmentRole } = this.state
       const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
       const { active_version } = activeBudgetCycle;
       const budgetCycleId = activeBudgetCycle.id;
       const ACTIVE_VERSION_ID = active_version.id;
-      const { department } = jwtAuthService.getActiveDepartmentRole();
-      this.setState({ isFetching, active_version, activeBudgetCycle })
-     this.preparationService.getAllDepartmentAggregatesByActiveVersion(ACTIVE_VERSION_ID).then(
+      const { department, role } = jwtAuthService.getActiveDepartmentRole();
+      const { approval } = role;
+      const DEPARTMENT_ID = approval && approval.approval_type == 'SINGLE_DEPARTMENTAL' ? department.id : null;
+      const single_department = DEPARTMENT_ID ? department : {};
+      await this.setState({ isFetching, active_version, activeBudgetCycle, single_department })
+     this.preparationService.getAllDepartmentAggregatesByActiveVersion(ACTIVE_VERSION_ID, DEPARTMENT_ID).then(
          async (departmentaggregatesResponse)=>{
             isFetching = false;
             const { department_aggregates, budget_versions } = this.buildGroupedEntries(departmentaggregatesResponse);
@@ -718,14 +723,15 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
     buildGroupedEntries = (allDepartmentAggregates) => {
 
-      const { entryTypes, activeDepartmentRole } = this.state;
+      const { entryTypes } = this.state;
+      const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
       const { role } = activeDepartmentRole;
+      console.log('BUIKLSLLS',role, activeDepartmentRole)
       const { approval } = role ;
       const budgetVersions = [];
       allDepartmentAggregates.forEach((aggregate) => {
 
         const { approval_stage } = aggregate;
-        console.log("AAAA", approval_stage , "BBB", approval )
         const a_stage = approval_stage ? approval_stage.stage : "x";
         const r_stage = approval ? approval.stage : "y";
         aggregate['is_my_stage'] = a_stage == r_stage;
@@ -1851,7 +1857,10 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3"><b>Departmental budgets for</b> <em>{this.state?.activeBudgetCycle?.year} {this.state?.active_version?.version_code?.name} ({this.state?.active_version?.version_code?.code})</em></h4>
+                                <h4 className="card-title mb-3">
+                                <b>{this.state?.single_department?.id ? `${this.state?.single_department?.name} (${this.state?.single_department?.code}) budget ` : 'Departmental budgets'} for </b>
+
+                                <em>{this.state?.activeBudgetCycle?.year} {this.state?.active_version?.version_code?.name} ({this.state?.active_version?.version_code?.code})</em></h4>
 
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
@@ -1860,9 +1869,17 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                     <table className="display table tabel-lg table-striped " id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
-                                                <th>#</th>
+                                            {
+                                              this.state?.single_department?.id ? null : (
+                                              <>
+                                              <th>#</th>
 
-                                                <th>Department</th>
+                                              <th>Department</th>
+                                              </>
+                                            )
+
+                                            }
+
                                               <th colSpan="3" className="text-center">Summary</th>
                                                 <th>Progress</th>
                                                 <th>Status</th>
@@ -1876,6 +1893,12 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                             const { version_code, budgetcycle } = budgetversion
                                                 return (
                                                     <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white divide_row':'divide_row'}>
+
+                                                    {
+                                                      this.state?.single_department?.id ? null : (
+
+                                                        <>
+
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
@@ -1892,6 +1915,12 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
 
                                                         </td>
+
+                                                        </>
+                                                      )
+                                                    }
+
+
                                                         <td colSpan="3" className="no_padding">
                                                           <table className="w-100">
                                                             <thead>
@@ -2040,7 +2069,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='9'>
+                                                    <td className='text-center' colSpan={this.state?.single_department?.id ?'6' :'8'}>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -2050,8 +2079,16 @@ export class DepartmentAggregatesApprovalComponent extends Component{
                                         </tbody>
                                         <tfoot>
                                             <tr>
+                                            {
+                                              this.state?.single_department?.id ? null : (
+                                              <>
                                               <th>#</th>
+
                                               <th>Department</th>
+                                              </>
+                                            )
+
+                                            }
                                             <th colSpan="3" className="text-center">Summary</th>
                                               <th>Progress</th>
                                               <th>Status</th>

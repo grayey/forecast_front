@@ -41,7 +41,7 @@ class ConsolidatedApproval extends Component {
         "ADD",
         "ADE"
       ],
-      grandTotals:{
+      grandTotalsN:{
         naira:0,
         dollar:0,
         in_naira:0,
@@ -81,6 +81,7 @@ class ConsolidatedApproval extends Component {
          }
      ).catch((error)=>{
        isFetching = !isFetching;
+       console.log('ERRERRERE',error)
          this.setState({isFetching})
          const errorNotification = {
              type:'error',
@@ -101,22 +102,22 @@ class ConsolidatedApproval extends Component {
    t_aggregate.is_open = !t_aggregate.is_open;
 
    allAggregates.splice(index, 1, t_aggregate);
-   allAggregates = await this.buildGroupedEntries(allAggregates);
+   // allAggregates = await this.buildGroupedEntries(allAggregates);
    this.setState({ allAggregates });
 
  }
 
 
      buildGroupedEntries = (allDepartmentAggregates) =>{
-       let { entryTypes, grandTotals } = this.state;
+       let { entryTypes, grandTotalsN } = this.state;
        allDepartmentAggregates.forEach((aggregate) =>{
          const { total_naira_portion, total_currency_portion, total_functional_currency, total_functional_naira } = aggregate;
-         let { naira, dollar, in_naira, in_dollar } = grandTotals;
+         let { naira, dollar, in_naira, in_dollar } = grandTotalsN;
          dollar+=total_currency_portion;
          naira+=total_naira_portion;
          in_dollar+= total_functional_currency;
          in_naira += total_functional_naira;
-         grandTotals = { naira, dollar, in_naira, in_dollar };
+         grandTotalsN = { naira, dollar, in_naira, in_dollar };
 
          const { budgetversion } = aggregate;
          aggregate['summary'] = {};
@@ -125,7 +126,7 @@ class ConsolidatedApproval extends Component {
            aggregate['summary'][entryType] = this.buildEntriesByType(entries, entryType)
          })
        })
-       this.setState({grandTotals });
+       this.setState({grandTotalsN });
 
        return allDepartmentAggregates;
      }
@@ -167,18 +168,18 @@ class ConsolidatedApproval extends Component {
 
              return  (
                <>
-               <tr>
+               <tr key={`${key}_${aggregate.id}`}>
                  <td colSpan="9" className="text-center">
                    <b><em>{key}</em></b>
                  </td>
                </tr>
 
                        {
-                         entries_length ? entries.map((entry)=>{
+                         entries_length ? entries.map((entry,index)=>{
                            const { costitem, currency_portion, description, unit_value,quantity, naira_portion, total_currency, total_naira }  = entry;
                            const { category } = costitem;
                            return (
-                           <tr>
+                           <tr key={`${index}_${aggregate.id}`}>
                            <td>{category?.name} ({category?.code})</td>
                            <td>{costitem?.name} ({costitem?.code})</td>
                            <td>{description}</td>
@@ -475,19 +476,19 @@ class ConsolidatedApproval extends Component {
                       </tr>
                       <tr>
                         <th className="text-right">
-                          <b>{utils.formatNumber(this.state?.grandTotals?.naira)}</b>
+                          <b>{utils.formatNumber(this.state?.grandTotalsN?.naira)}</b>
 
                         </th>
                         <th className="text-right">
-                          <b>{utils.formatNumber(this.state?.grandTotals?.dollar)}</b>
+                          <b>{utils.formatNumber(this.state?.grandTotalsN?.dollar)}</b>
 
                         </th>
                         <th className="text-right">
-                          <b>{utils.formatNumber(this.state?.grandTotals?.in_naira)}</b>
+                          <b>{utils.formatNumber(this.state?.grandTotalsN?.in_naira)}</b>
 
                         </th>
                         <th className="text-right">
-                        <b>{utils.formatNumber(this.state?.grandTotals?.in_dollar)}</b>
+                        <b>{utils.formatNumber(this.state?.grandTotalsN?.in_dollar)}</b>
 
                         </th>
                       </tr>
@@ -509,8 +510,8 @@ class ConsolidatedApproval extends Component {
         <div className="card-footer">
           <div className="float-right">
             <div className="btn-group">
-              <button className="btn btn-danger btn-lg">Reject <FaTimes/></button>
               <button className="btn btn-success btn-lg">Approve <FaCheck/> </button>
+              <button className="btn btn-danger btn-lg">Reject <FaTimes/></button>
 
             </div>
           </div>

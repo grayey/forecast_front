@@ -37,6 +37,10 @@ export class BudgetCyclesComponent extends Component{
         updateMsg:'Update',
         editedBudgetCycle: {},
         viewedBudgetCycle:{},
+        versionMigrationOptions:[
+          'AUTO',
+          'MANUAL'
+        ],
         createBudgetCycleForm: {
             year: "",
             start_date: "",
@@ -964,7 +968,8 @@ export class BudgetCyclesComponent extends Component{
                                                 <th>Year</th>
                                               <th>Active Version</th>
                                                 <th>Instructions</th>
-                                                <th>USD Rate</th>
+                                                  <th>USD Rate</th>
+                                                <th>Version Migration</th>
                                                 <th>Start Date</th>
                                                 <th>End Date</th>
                                                 <th>Status</th>
@@ -993,8 +998,23 @@ export class BudgetCyclesComponent extends Component{
                                                           <a onClick={()=>this.viewInstructions(budgetcycle)}  className="text-primary long-view">View</a>
                                                         </td>
                                                         <td>
-                                                          {budgetcycle?.currency_conversion_rate}
+                                                          {utils.formatNumber(budgetcycle?.currency_conversion_rate, false)}
                                                         </td>
+                                                          <td className="text-center">
+                                                            <select className="form-controlx">
+
+                                                              {
+                                                                this.state?.versionMigrationOptions?.map((migration)=>{
+                                                                  return <option selected={budgetcycle?.version_migration == migration} value={migration} key={migration}>{migration}</option>
+                                                                })
+                                                              }
+
+
+                                                            </select>
+
+
+
+                                                          </td>
                                                         <td>
                                                           {utils.formatDate(budgetcycle?.start_date)}
 
@@ -1056,7 +1076,7 @@ export class BudgetCyclesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='11'>
+                                                    <td className='text-center' colSpan='12'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -1068,9 +1088,10 @@ export class BudgetCyclesComponent extends Component{
                                             <tr>
                                               <th>#</th>
                                               <th>Year</th>
-                                                <th>Version</th>
+                                                <th>Active Version</th>
                                               <th>Description</th>
-                                              <th>USD Rate</th>
+                                                <th>USD Rate</th>
+                                              <th>Version Migration</th>
                                               <th>Start Date</th>
                                               <th>End Date</th>
                                               <th>Status</th>

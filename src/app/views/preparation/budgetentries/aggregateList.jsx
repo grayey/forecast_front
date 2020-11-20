@@ -53,6 +53,7 @@ export class DepartmentAggregatesComponent extends Component{
         firstVersion:{},
         activeBudgetCycle:{},
         active_version:{},
+        single_department:{},
 
         entryTypes:[
           "PRINCIPAL",
@@ -175,7 +176,7 @@ export class DepartmentAggregatesComponent extends Component{
       const budgetCycleId = activeBudgetCycle.id;
       const ACTIVE_VERSION_ID = active_version.id;
       const { department } = jwtAuthService.getActiveDepartmentRole();
-      this.setState({ isFetching })
+      this.setState({ isFetching, single_department:department, activeBudgetCycle, active_version })
      this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, department.id).then(
          async (departmentaggregatesResponse)=>{
             isFetching = false;
@@ -1757,7 +1758,9 @@ export class DepartmentAggregatesComponent extends Component{
            {
              !this.state.canCreate ? null :(
                <div className='float-right'>
-                   <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }><i className='i-Add'></i> Budget Entries</Button>
+                   <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }>
+                   <i className='i-Add'></i> Budget Entries for {this.state?.active_version?.version_code?.name} ({this.state?.active_version?.version_code?.code})
+                   </Button>
                </div>
              )
 
@@ -1778,8 +1781,10 @@ export class DepartmentAggregatesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">Budget Entries</h4>
-                                <p>List of budget entries.</p>
+                                <h4 className="card-title mb-3">
+                                <b> {this.state?.single_department?.name} ({this.state?.single_department?.code})</b> budget entries for <em>{this.state?.activeBudgetCycle?.year}</em>
+                                </h4>
+
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
@@ -1790,7 +1795,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                 <th>#</th>
 
                                               <th >Version</th>
-                                                <th>Department</th>
+                                            {/*<th>Department</th> */}
                                               <th colSpan="3" className="text-center">Summary</th>
                                                 <th>Progress</th>
                                                 <th>Status</th>
@@ -1812,10 +1817,13 @@ export class DepartmentAggregatesComponent extends Component{
                                                             {budgetcycle?.year} &nbsp; {version_code?.name} ({version_code?.code})
                                                           </NavLink>
                                                         </td>
-                                                        <td>
-                                                          {departmentaggregate?.department?.name} ({departmentaggregate?.department?.code})
+                                                        {/*
+                                                          <td>
+                                                            {departmentaggregate?.department?.name} ({departmentaggregate?.department?.code})
 
-                                                        </td>
+                                                          </td>
+                                                        */}
+
                                                         <td colSpan="3" className="no_padding">
                                                           <table className="w-100">
                                                             <thead>
@@ -1958,7 +1966,7 @@ export class DepartmentAggregatesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='10'>
+                                                    <td className='text-center' colSpan='11'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -1970,7 +1978,7 @@ export class DepartmentAggregatesComponent extends Component{
                                             <tr>
                                               <th>#</th>
                                             <th>Version</th>
-                                              <th>Department</th>
+                                              {/*<th>Department</th> */}
                                             <th colSpan="3" className="text-center">Summary</th>
                                               <th>Progress</th>
                                               <th>Status</th>
