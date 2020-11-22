@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import AppMainService from "./services/appMainService";
 import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
-import { Dropdown, Modal } from "react-bootstrap";
+import { Dropdown, Modal, ProgressBar } from "react-bootstrap";
 import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion } from "react-icons/fa";
 import * as utils from "@utils";
 import { saveAs } from 'file-saver';
@@ -34,6 +34,60 @@ export const FetchingRecords = (props)=>{
         </div>
       </>
     )
+
+}
+
+export const CustomProgressBar = (props)=>{
+
+  const { departmentaggregate, allApprovals, budgetVersion, } = props;
+  let { approval_stage, entries_status } = departmentaggregate;
+  let sub_text = "Submission";
+
+  if(budgetVersion){
+     approval_stage = budgetVersion.approval;
+     entries_status = 0; //change this later
+     sub_text = `Initial Approvals`;
+  }
+
+
+
+
+    // const { allApprovals } = this.state;
+    let padding = 0; // so that the progress bar displays
+    let prefix = entries_status < 3 ? "Awaiting" : "Completed";
+    let shift = entries_status < 3 ? 1 : 0;
+    let progressObject = {
+      percentage:0,
+      variant:null,
+      text:sub_text
+    };
+    // text-${progressObject.percentage < 100 ? 'info':'success'}
+    if(approval_stage){
+      const percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
+      const variant = percentage < 100 ? "info_custom" : "success";
+      const text = approval_stage.description;
+      progressObject = { percentage,variant,text }
+      padding = entries_status < 3 ? 5 : 100; // once approved/discarded fill the progress bar
+    }
+    return (
+      <div>
+      <ProgressBar
+        now={progressObject.percentage + padding}
+        label={`${progressObject.percentage}%`}
+        animated
+        striped
+        variant={progressObject.variant}
+      ></ProgressBar>
+      <p className={`text-center`}>
+        <small><b><em>{prefix} {progressObject.text}</em></b></small>
+      </p>
+    </div>
+    )
+
+
+
+
+
 
 }
 

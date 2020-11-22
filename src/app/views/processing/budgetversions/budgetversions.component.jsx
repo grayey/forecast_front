@@ -8,7 +8,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords} from "../../../appWidgets";
+import {FetchingRecords, CustomProgressBar} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
@@ -53,7 +53,8 @@ export class BudgetVersionsComponent extends Component{
             currency_conversion_rate: "",
             instructions: "",
           },
-          availableYears:[]
+          availableYears:[],
+          allApprovals:[],
 
     }
     processingService;
@@ -69,6 +70,7 @@ export class BudgetVersionsComponent extends Component{
     componentDidMount(){
          this.getAllBudgetVersions();
          this.getAllVersionCodes();
+         this.getAllApprovals();
     }
 
     /**
@@ -114,6 +116,25 @@ export class BudgetVersionsComponent extends Component{
         })
     }
 
+    /**
+   * This method lists all approvals
+   */
+   getAllApprovals = async ()=>{
+
+      this.appMainService.getAllApprovals().then(
+          (approvalsResponse)=>{
+              const allApprovals = approvalsResponse;
+              this.setState({ allApprovals })
+              console.log('Approvals response', approvalsResponse)
+          }
+      ).catch((error)=>{
+          // const errorNotification = {
+          //     type:'error',
+          //     msg:utils.processErrors(error)
+          // }
+          console.log('Error', error)
+      })
+  }
 
 
 
@@ -1005,7 +1026,7 @@ export class BudgetVersionsComponent extends Component{
                                                         </td>
 
                                                         <td>
-                                                          STAGE
+                                                          <CustomProgressBar departmentaggregate={{}} budgetVersion={budgetversion} allApprovals={this.state.allApprovals}/>
                                                         </td>
 
                                                         <td>

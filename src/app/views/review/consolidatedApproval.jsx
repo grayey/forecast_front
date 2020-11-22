@@ -1,11 +1,22 @@
 import React, { Component } from "react";
-import { Accordion, Button, Card } from "react-bootstrap";
+import { Dropdown, Row, Col, Accordion, Button, Card, Form, ButtonToolbar, Modal, } from "react-bootstrap";
 import {FaCheck, FaTimes, FaList, FaPlusCircle, FaMinusCircle }from "react-icons/fa";
 import ProcessingService from "../../services/processing.service";
 import AppMainService from "../../services/appMainService";
+import jwtAuthService from "../../services/jwtAuthService";
 import AppNotification from "../../appNotifications";
-import { FetchingRecords } from "../../appWidgets";
+import { FetchingRecords, CustomProgressBar } from "../../appWidgets";
 import * as utils from "@utils";
+import { RichTextEditor } from "@gull";
+
+import LaddaButton, {
+    XL,
+    EXPAND_LEFT,
+    EXPAND_RIGHT,
+    EXPAND_UP,
+
+    CONTRACT,
+  } from "react-ladda";
 
 
 class ConsolidatedApproval extends Component {
@@ -24,6 +35,9 @@ class ConsolidatedApproval extends Component {
       allBudgetVersionDetails:[],
       showEditModal:false,
       showCreateModal:false,
+      showHistoryModal:false,
+      showApprovalModal:false,
+      showRejectionModal:false,
       showInstructionsModal:false,
       activeBudgetCycle:{},
       active_version:{},
@@ -47,7 +61,11 @@ class ConsolidatedApproval extends Component {
         in_naira:0,
         in_dollar:0
       },
-      availableYears:[]
+      availableYears:[],
+      allApprovals:[],
+      user_approval:{},
+      rejection_comment:"",
+      approval_cooment:"",
 
   }
 
@@ -55,14 +73,19 @@ class ConsolidatedApproval extends Component {
 
    componentDidMount = async () => {
      this.getBudgetVersionBySlug();
+      this.getAllApprovals();
    }
 
   getBudgetVersionBySlug = async ()=>{
-      let { viewedBudgetVersionDetail, allBudgetEntries, allAggregates, isFetching } = this.state;
+      let { viewedBudgetVersionDetail, allBudgetEntries, allAggregates, isFetching, user_approval } = this.state;
       isFetching = !isFetching;
       const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
       const { active_version }  =  activeBudgetCycle;
-      this.setState({ isFetching, activeBudgetCycle, active_version });
+
+      let { role } = jwtAuthService.getActiveDepartmentRole();
+      user_approval = role.approval;
+
+      this.setState({ isFetching, activeBudgetCycle, active_version, user_approval });
 
 
 
@@ -91,6 +114,106 @@ class ConsolidatedApproval extends Component {
          console.log('Error', error)
      })
  }
+
+ /**
+* This method lists all approvals
+*/
+getAllApprovals = async ()=>{
+
+   this.appMainService.getAllApprovals().then(
+       (approvalsResponse)=>{
+           const allApprovals = approvalsResponse;
+           this.setState({ allApprovals })
+           // console.log('Approvals response', approvalsResponse)
+       }
+   ).catch((error)=>{
+       // const errorNotification = {
+       //     type:'error',
+       //     msg:utils.processErrors(error)
+       // }
+       console.log('Error', error)
+   })
+}
+
+submitApproval = async (event, approved) =>{
+  event.preventDefault();
+  const { role, department } = jwtAuthService.getActiveDepartmentRole();
+  const user = jwtAuthService.getUser();
+  let { viewedBudgetVersionDetail, rejection_comment, approval_comment, showApprovalModal, showRejectionModal } = this.state;
+  this.setState({isSaving:true })
+  const comment = approved ? approval_comment : rejection_comment;
+  const approvalObject = { approved, comment, role:role.id, user:+user.id, department:department.id }
+
+  this.processingService.approveBudgetVersion(viewedBudgetVersionDetail, approvalObject).then(
+  async  (approvedVersionResponse)=>{
+      viewedBudgetVersionDetail = approvedVersionResponse;
+      console.log("VEWV V ",viewedBudgetVersionDetail)
+      const action = approved ? "Approved":"Rejected";
+      const notified  = approved ? "":"";
+      const successNotification ={
+        msg:`Budget ${action}. A notification has been sent to`,
+        type:"success"
+      }
+    await this.setState({isSaving:false, approvalModal:false, rejectionModal:false,viewedBudgetVersionDetail   });
+    // this.getApprovalMessage();
+      new AppNotification(successNotification);
+    }).catch((error)=>{
+      // console.error("ERROR", error);
+      const errorNotification ={
+        msg:utils.processErrors(error),
+        type:"error"
+      }
+      this.setState({isSaving:false })
+
+      new AppNotification(errorNotification);
+  })
+
+}
+
+handleRichEditorChange = (html, form='approve') => {
+  let { rejection_comment, approval_comment} = this.state
+  if(form=='approve'){
+  approval_comment = html;
+  }else{
+    rejection_comment = html;
+  }
+  this.setState({ rejection_comment, approval_comment });
+
+}
+
+setApproval = ()=> {
+  let { user_approval, viewedBudgetVersionDetail } = this.state;
+    let { approval } = viewedBudgetVersionDetail;
+  if(!user_approval.id) return null;
+
+  return (approval && approval.stage==user_approval.stage) ? (
+      <div className="btn-group">
+        <button className="btn btn-success btn-lg" onClick={()=>this.toggleModal('approve')}>Approve <FaCheck/> </button>
+      <button className="btn btn-danger btn-lg" onClick={()=>this.toggleModal('reject')}>Reject <FaTimes/></button>
+    </div>
+  ) : (
+    <div>
+      <span className="badge badge-info p-2">This budget version is currently not at the <em>{user_approval?.description} desk.</em></span>
+    </div>
+  );
+
+}
+
+toggleModal = (modalName='approve')=> {
+
+  let { showApprovalModal, showHistoryModal, showRejectionModal } = this.state;
+  if(modalName=='approve'){
+    showApprovalModal = !showApprovalModal;
+  }else if(modalName=='reject'){
+    showRejectionModal = !showRejectionModal;
+  }else if(modalName=='history'){
+    showHistoryModal = !showHistoryModal;
+  }
+
+  this.setState({ showApprovalModal, showHistoryModal, showRejectionModal });
+}
+
+
 
  toggleAccordion = async (aggregate, index)=>{
    const t_aggregate = JSON.parse(JSON.stringify(aggregate))
@@ -203,7 +326,7 @@ class ConsolidatedApproval extends Component {
 
                      <tr className="sub_row line_entries">
                        <th className="text-muted">
-                         <h6 className="text-muted"><em><b>Sub Total:</b></em></h6>
+                         <h6 className="text-muted"><em><b>{key} Total:</b></em></h6>
                        </th>
                        <th colSpan="4">
                          <div className="dash-mid w-100"></div>
@@ -350,14 +473,178 @@ class ConsolidatedApproval extends Component {
 
 
   render(){
-    const { activeBudgetCycle, active_version, allAggregates } = this.state;
+    const { activeBudgetCycle, active_version, allAggregates, user_approval, viewedBudgetVersionDetail } = this.state;
     return(
-      <div className="card">
+
+      <>
+      <Modal show={this.state.showApprovalModal} onHide={
+          ()=>{ this.toggleModal('approve')}
+        } {...this.props} id='approval_modal'>
+          <Modal.Header closeButton>
+
+          <Modal.Title className="text-success">
+            <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+            Approval
+        </Modal.Title>
+          </Modal.Header>
+
+          <form onSubmit={(event)=>this.submitApproval(event,1)}>
+
+                   <Modal.Body>
+
+
+                       <div className="form-row">
+                        <div className="col-md-12">
+                          <label><b>Comment:</b><small>(Please provide an approval comment.)<span className="text-success">*</span></small></label>
+                          <RichTextEditor
+                            theme="snow"
+                            modules={{
+                              toolbar: [
+                                [{ size: ["small", false, "large", "huge"] }],
+                                ["bold", "italic", "underline", "strike"],
+                                [{ list: "ordered" }, { list: "bullet" }],
+                                ["clean"]
+                              ]
+                            }}
+                            content={this.state.approval_comment}
+                            handleContentChange={html =>
+                              this.handleRichEditorChange(html, 'approve')
+                            }
+                            placeholder="insert text here..."
+                          />
+                        </div>
+                       </div>
+
+
+
+                   </Modal.Body>
+
+
+                  <Modal.Footer>
+
+
+
+
+                          <LaddaButton
+                              className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                              loading={this.state.isSaving}
+                              progress={0.5}
+                              type='button'
+                              onClick={()=>this.toggleModal('approve')}
+
+                              >
+                              Close
+                          </LaddaButton>
+
+                          <LaddaButton
+                              className={`btn btn-${this.state.approval_comment !=="<p><br></p>" || this.state.approval_comment ? 'success':'info_custom'} border-0 mr-2 text-white mb-2 position-relative`}
+                              loading={this.state.isSaving}
+                              progress={0.5}
+                              type='submit'
+                              disabled={this.state.approval_comment=="<p><br></p>"  || !this.state.approval_comment }
+
+                              >
+                              <FaCheck/> Approve
+                          </LaddaButton>
+
+
+                          </Modal.Footer>
+                        </form>
+
+
+
+
+      </Modal>
+
+
+      <Modal show={this.state.showRejectionModal} onHide={
+          ()=>{ this.toggleModal('reject')}
+        } {...this.props} id='rejection_modal'>
+          <Modal.Header closeButton>
+
+          <Modal.Title className="text-danger">
+            <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+            Rejection
+        </Modal.Title>
+          </Modal.Header>
+          <form onSubmit={(event)=>this.submitApproval(event, 0)}>
+
+
+                   <Modal.Body>
+
+
+                       <div className="form-row">
+                        <div className="col-md-12">
+                          <label><b>Comment:</b><small>(Please provide a reason for rejecting.)<span className="text-danger">*</span></small></label>
+                          <RichTextEditor
+                            theme="snow"
+                            modules={{
+                              toolbar: [
+                                [{ size: ["small", false, "large", "huge"] }],
+                                ["bold", "italic", "underline", "strike"],
+                                [{ list: "ordered" }, { list: "bullet" }],
+                                ["clean"]
+                              ]
+                            }}
+                            content={this.state.rejection_comment}
+                            handleContentChange={html =>
+                              this.handleRichEditorChange(html, 'reject')
+                            }
+                            placeholder="insert text here..."
+                          />
+                        </div>
+                       </div>
+
+                   </Modal.Body>
+
+
+                  <Modal.Footer>
+
+
+
+
+                <LaddaButton
+                    className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                    loading={false}
+                    progress={0.5}
+                    type='button'
+                    onClick={()=>this.toggleModal('reject')}
+
+                    >
+                    Close
+                </LaddaButton>
+
+                <LaddaButton
+                    className={`btn btn-${this.state.rejection_comment !=="<p><br></p>" || this.state.rejection_comment ? 'danger':'warning'} border-0 mr-2 text-white mb-2 position-relative`}
+                    loading={false}
+                    progress={0.5}
+                    type='submit'
+                    disabled={this.state.rejection_comment=="<p><br></p>"  || !this.state.rejection_comment }
+
+                    >
+                    <FaTimes/> Reject
+                </LaddaButton>
+
+
+              </Modal.Footer>
+
+            </form>
+
+
+
+
+      </Modal>
+
+
+      <div className={`card ${user_approval?.stage == viewedBudgetVersionDetail?.approval?.stage ?'success-border':''}`}>
         <div className="card-header">
           <div className="float-right">
             <button className="btn btn-primary">View History <FaList/></button>
           </div>
           <h3><b><em>{activeBudgetCycle?.year} {active_version?.version_code?.name} ({active_version?.version_code?.code})</em></b></h3>
+
+
+
         </div>
         <div className="card-body">
 
@@ -381,7 +668,18 @@ class ConsolidatedApproval extends Component {
                           aggregate?.is_open ? <FaMinusCircle className="text-danger"/> : <FaPlusCircle/>
                         }
                       </Accordion.Toggle>
+
+                      {
+                        !this.state.viewedBudgetVersionDetail?.approval ? null :(
+                          <div >
+                            <CustomProgressBar departmentaggregate={aggregate}  allApprovals={this.state.allApprovals}/>
+
+                          </div>
+                        )
+                      }
+
                       <div className="d-flex">
+
                         <table className="table">
                           <thead>
                             <tr>
@@ -507,17 +805,23 @@ class ConsolidatedApproval extends Component {
 
 
         </div>
-        <div className="card-footer">
-          <div className="float-right">
-            <div className="btn-group">
-              <button className="btn btn-success btn-lg">Approve <FaCheck/> </button>
-              <button className="btn btn-danger btn-lg">Reject <FaTimes/></button>
+        <div className="card-footer bg-warningx">
 
+          <div className="float-right">{this.setApproval()}</div>
+          <div className="row">
+
+            <div className="col-md-10">
+              <CustomProgressBar departmentaggregate={{}} budgetVersion={this.state.viewedBudgetVersionDetail} allApprovals={this.state.allApprovals}/>
             </div>
+
           </div>
+
         </div>
 
       </div>
+
+
+      </>
 
     )
   }

@@ -138,4 +138,16 @@ budgetversion.is_current = !budgetversion.is_current;
 return this.updateBudgetVersion(budgetversion, budgetversion.id);
 }
 
+
+
+/**
+*
+* @param {*} budgetversion
+* This method approves or rejects a budgetversion
+*/
+async approveBudgetVersion(budgetversion, approvalObject){
+ const url = `budgetversions/${budgetversion.id}/approval/`
+ return await apiService.put(url, approvalObject);
+}
+
 }

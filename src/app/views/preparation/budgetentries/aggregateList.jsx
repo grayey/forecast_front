@@ -11,7 +11,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords} from "../../../appWidgets";
+import {FetchingRecords, CustomProgressBar} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
@@ -1914,7 +1914,11 @@ export class DepartmentAggregatesComponent extends Component{
                                                           </table>
 
                                                         </td>
-                                                        <td> {this.setProgressBar(departmentaggregate)} </td>
+                                                        <td>
+
+                                                          <CustomProgressBar departmentaggregate={departmentaggregate} allApprovals={this.state.allApprovals}/>
+                                                           {/* {this.setProgressBar(departmentaggregate)}  */}
+                                                        </td>
                                                         <td>{this.setEntriesStatus(departmentaggregate)}</td>
 
 

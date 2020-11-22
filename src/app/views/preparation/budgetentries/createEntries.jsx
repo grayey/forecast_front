@@ -12,7 +12,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import { FetchingRecords, BulkTemplateDownload } from "../../../appWidgets";
+import { FetchingRecords, BulkTemplateDownload, CustomProgressBar } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
@@ -2941,7 +2941,8 @@ export class BudgetEntriesComponent extends Component{
                                           </div>
 
                                           <div className="float-right mt-1">
-                                            {this.setProgressBar(this?.state?.viewedDepartmentAggregate)}
+                                            <CustomProgressBar departmentaggregate={this?.state?.viewedDepartmentAggregate} allApprovals={this.state.allApprovals}/>
+                                            {/* {this.setProgressBar(this?.state?.viewedDepartmentAggregate)} */}
                                           </div>
                                         </div>
 
