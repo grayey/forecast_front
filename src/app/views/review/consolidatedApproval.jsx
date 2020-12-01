@@ -183,8 +183,8 @@ handleRichEditorChange = (html, form='approve') => {
 
 setApproval = ()=> {
   let { user_approval, viewedBudgetVersionDetail } = this.state;
-    let { approval } = viewedBudgetVersionDetail;
-  if(!user_approval.id) return null;
+    let { approval, post_status } = viewedBudgetVersionDetail;
+  if(!user_approval.id || post_status) return null; //post_status is non-zero once approved etc
 
   return (approval && approval.stage==user_approval.stage) ? (
       <div className="btn-group">
@@ -670,7 +670,7 @@ toggleModal = (modalName='approve')=> {
                       </Accordion.Toggle>
 
                       {
-                        !this.state.viewedBudgetVersionDetail?.approval ? null :(
+                        viewedBudgetVersionDetail?.approval ? null :(
                           <div >
                             <CustomProgressBar departmentaggregate={aggregate}  allApprovals={this.state.allApprovals}/>
 

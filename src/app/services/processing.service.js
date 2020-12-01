@@ -71,6 +71,18 @@ async toggleBudgetCycle(budgetcycle){
 }
 
 
+
+/**
+ * [enableNextBudgetCycleVersion description]
+ * @return {Promise} [description]
+ * This method enables the next version of a budget cycle
+ */
+async enableNextBudgetCycleVersion(budgetcycle){
+  const { id, next_version } = budgetcycle
+  const url =`budgetcycles/${id}/enable-next-version/${next_version.id}/`;
+  return await apiService.put(url);
+}
+
 /**
  * BUDGET VERSIONS SECTION
  */

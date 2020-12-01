@@ -20,7 +20,12 @@ const handle = props => {
 const marks = {
   "-10": "-10°C",
   0: <strong>0°C</strong>,
-  26: "26°C",
+  26: {
+    style: {
+      color: "green"
+    },
+    label: <strong>26°C</strong>
+  },
   37: "37°C",
   50: "50°C",
   100: {

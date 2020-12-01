@@ -4,6 +4,8 @@ import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
 import { Dropdown, Modal, ProgressBar } from "react-bootstrap";
 import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion } from "react-icons/fa";
+import Slider from "rc-slider";
+import Tooltip from "rc-tooltip";
 import * as utils from "@utils";
 import { saveAs } from 'file-saver';
 
@@ -45,17 +47,17 @@ export const CustomProgressBar = (props)=>{
 
   if(budgetVersion){
      approval_stage = budgetVersion.approval;
-     entries_status = 0; //change this later
+     entries_status = budgetVersion.post_status + 1; //post status is just 1 once version is approved so increment so that entries_status >=2
      sub_text = `Initial Approvals`;
   }
 
 
-
+const isDraftOrSubmitted = entries_status < 2;
 
     // const { allApprovals } = this.state;
     let padding = 0; // so that the progress bar displays
-    let prefix = entries_status < 3 ? "Awaiting" : "Completed";
-    let shift = entries_status < 3 ? 1 : 0;
+    let prefix =  isDraftOrSubmitted ? "Awaiting" : "Completed";
+    let shift = isDraftOrSubmitted ? 1 : 0;
     let progressObject = {
       percentage:0,
       variant:null,
@@ -63,11 +65,17 @@ export const CustomProgressBar = (props)=>{
     };
     // text-${progressObject.percentage < 100 ? 'info':'success'}
     if(approval_stage){
-      const percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
-      const variant = percentage < 100 ? "info_custom" : "success";
+      let percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
+        percentage = isDraftOrSubmitted ? percentage - 3 : percentage;
+      let variant = percentage < 100 || isDraftOrSubmitted ? "info_custom" : "success";
       const text = approval_stage.description;
       progressObject = { percentage,variant,text }
-      padding = entries_status < 3 ? 5 : 100; // once approved/discarded fill the progress bar
+      // don't fill the progress bar if still isDraftOrSubmitted
+      padding = isDraftOrSubmitted ? -3 : percentage;
+
+
+       // disabled color if discarded
+      variant = entries_status == 3 ? "secondary" : variant;
     }
     return (
       <div>
@@ -284,3 +292,64 @@ export const BulkTemplateDownload = (props) =>{
       </>
     )
 }
+
+// SLIDER AREA
+//
+ export const CustomSlider = (props) => {
+
+   const [value, setValue] = useState(30);
+
+   const handleChange = value => {
+     setValue(value);
+   };
+
+   const handle = props => {
+     const { value, dragging, index, ...restProps } = props;
+     return (
+       <Tooltip
+         prefixCls="rc-slider-tooltip"
+         overlay={value}
+         visible={dragging}
+         placement="top"
+         key={index}
+       >
+         <Slider.Handle value={value} {...restProps} />
+       </Tooltip>
+     );
+   };
+
+   const marks = {
+     "-10": "-10°C",
+     0: <strong>0°C</strong>,
+     26: {
+       style: {
+         color: "green"
+       },
+       label: <strong>26°C</strong>
+     },
+     37: "37°C",
+     50: "50°C",
+     100: {
+       style: {
+         color: "red"
+       },
+       label: <strong>100°C</strong>
+     }
+   };
+
+   return (
+     <div className="px-3 pb-3">
+       <Slider
+         step={25}
+         min={-10}
+         dots={true}
+         included={true}
+         marks={marks}
+         value={value}
+         handle={handle}
+         onChange={handleChange}
+       />
+     </div>
+   );
+
+ }

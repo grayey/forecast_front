@@ -8,9 +8,10 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords} from "../../../appWidgets";
+import { FetchingRecords, CustomSlider } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
+import { FaArrowRight } from "react-icons/fa";
 
 
 import LaddaButton, {
@@ -33,6 +34,7 @@ export class BudgetCyclesComponent extends Component{
         isSaving:false,
         isFetching:true,
         firstVersion:{},
+        allVersionCodes:[],
         saveMsg:'Save',
         updateMsg:'Update',
         editedBudgetCycle: {},
@@ -68,9 +70,9 @@ export class BudgetCyclesComponent extends Component{
         this.appMainService = new AppMainService();
     }
 
-    componentDidMount(){
-         this.getAllBudgetCycles();
-         this.getAllVersionCodes();
+    componentDidMount = async () => {
+           this.getAllVersionCodes();
+
     }
 
     /**
@@ -107,11 +109,15 @@ export class BudgetCyclesComponent extends Component{
      getAllVersionCodes = async ()=>{
         this.appMainService.getAllVersionCodes().then(
             async(versioncodesResponse)=>{
-                // const allVersionCodes = versioncodesResponse;
+                const allVersionCodes = versioncodesResponse;
                 const firstVersion = versioncodesResponse.find(v => v.step == 1);
-                this.setState({ firstVersion })
+                await this.setState({ firstVersion, allVersionCodes })
+                this.getAllBudgetCycles();
+
             }
         ).catch((error)=>{
+          this.getAllBudgetCycles();
+
           console.error('Version Error', error)
         })
     }
@@ -125,6 +131,7 @@ export class BudgetCyclesComponent extends Component{
      */
      getAllBudgetCycles = async ()=>{
          let isFetching = false;
+         const { allVersionCodes } = this.state;
 
         this.processingService.getAllBudgetCycles().then(
             async (budgetcyclesResponse)=>{
@@ -132,6 +139,12 @@ export class BudgetCyclesComponent extends Component{
               allBudgetCycles.forEach((cycle)=>{
                 const { budgetversions } = cycle;
                 cycle.active_version = budgetversions.find(version=>version.is_active);
+                const present_v = cycle.active_version.version_code;
+                const next_v = allVersionCodes.find(av => av.step == present_v.step + 1);
+                if(next_v){
+                  cycle.next_version = next_v
+                }
+
               })
               await  this.setState({ allBudgetCycles, isFetching }); // so allBudgetCycles is set
               this.filterYears();
@@ -290,6 +303,50 @@ export class BudgetCyclesComponent extends Component{
     }
 
 
+enableNextVersion = (budgetcycle) => {
+  const title = `<small>Enable&nbsp;<b><em>${budgetcycle.year} ${budgetcycle.next_version.name} (${budgetcycle.next_version.code})</em></b>?</small>`
+  const suffix = budgetcycle.version_migration == 'AUTO' ? `, and current budget entries will be auto-migrated.` : "!"
+  const text = `${budgetcycle.active_version.version_code.name} (${budgetcycle.active_version.version_code.code}) will be archived${suffix}`
+  swal.fire({
+         title,
+         text,
+         icon: "warning",
+         type: "question",
+         showCancelButton: true,
+         confirmButtonColor: "#007BFF",
+         cancelButtonColor: "#d33",
+         confirmButtonText: "Yes!",
+         cancelButtonText: "No"
+       })
+       .then(result => {
+         if (result.value) {
+         let { allBudgetCycles } = this.state
+           this.processingService.enableNextBudgetCycleVersion(budgetcycle).then(
+             async (versionedCycle) => {
+                 const cycleIndex = allBudgetCycles.findIndex(r=> r.id == versionedCycle.id);
+                 // versionedCycle.active_version = budgetcycle.next_version;
+                 // allBudgetCycles.splice(cycleIndex, 1, versionedCycle);
+
+               await this.setState({ allBudgetCycles });
+               this.filterYears();
+                 const successNotification = {
+                     type:'success',
+                     msg:`Budget cycle ${budgetcycle.year} successfully deleted!`
+                 }
+                 new AppNotification(successNotification)
+             }
+         ).catch(
+             (error)=>{
+                 const errorNotification = {
+                     type:'error',
+                     msg:utils.processErrors(error)
+                 }
+                 new AppNotification(errorNotification)
+         })}
+
+       });
+
+}
 
     /**
      *
@@ -359,6 +416,8 @@ export class BudgetCyclesComponent extends Component{
 
           });
     }
+
+
 
     /**
      *
@@ -665,6 +724,8 @@ export class BudgetCyclesComponent extends Component{
                                                                       Provide instructions
                                                                       </div>
                                                                   </div>
+
+
 
                                                                   </div>
                                                               </Modal.Body>
@@ -1056,14 +1117,19 @@ export class BudgetCyclesComponent extends Component{
                                                             }} className='border-bottom'>
                                                                 <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                             </Dropdown.Item>
+
+                                                            <Dropdown.Item onClick={()=> {
+                                                                this.enableNextVersion(budgetcycle);
+                                                            }} className='border-bottom'>
+                                                                <FaArrowRight/> Enable <b><em>{budgetcycle?.year} {budgetcycle?.next_version?.name} ({budgetcycle?.next_version?.code})</em></b>?
+                                                            </Dropdown.Item>
+
                                                             <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteBudgetCycle(budgetcycle);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
                                                             </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
+
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 
