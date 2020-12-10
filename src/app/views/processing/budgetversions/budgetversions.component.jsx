@@ -984,8 +984,8 @@ export class BudgetVersionsComponent extends Component{
                                                 <th>Approval Date</th>
                                                 <th>Status</th>
                                                 <th>Progress</th>
-                                                <th>Tracking Account</th>
-                                              <th className="text-center">Ledger Activity</th>
+                                                <th>Integration Account</th>
+                                                <th className="text-center">Ledger Activity</th>
                                                 <th>Date Created</th>
                                                 <th>Action</th>
                                             </tr>

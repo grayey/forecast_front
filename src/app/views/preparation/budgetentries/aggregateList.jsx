@@ -11,7 +11,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords, CustomProgressBar} from "../../../appWidgets";
+import { FetchingRecords, CustomProgressBar, CustomSlider} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
@@ -40,6 +40,7 @@ export class DepartmentAggregatesComponent extends Component{
         },
         editedIndex:0,
         allDepartmentAggregates:[],
+        allVersionCodes:[],
         allApprovals:[],
         showEditModal:false,
         showCreateModal:false,
@@ -51,6 +52,7 @@ export class DepartmentAggregatesComponent extends Component{
         isFetching:true,
         canCreate:false,
         firstVersion:{},
+        budget_versions:[],
         activeBudgetCycle:{},
         active_version:{},
         single_department:{},
@@ -139,9 +141,9 @@ export class DepartmentAggregatesComponent extends Component{
      getAllVersionCodes = async ()=>{
         this.appMainService.getAllVersionCodes().then(
             async(versioncodesResponse)=>{
-                // const allVersionCodes = versioncodesResponse;
+                const allVersionCodes = versioncodesResponse;
                 const firstVersion = versioncodesResponse.find(v => v.step == 1);
-                this.setState({firstVersion})
+                this.setState({firstVersion, allVersionCodes})
             }
         ).catch((error)=>{
           console.error('Version Error', error)
@@ -174,7 +176,7 @@ export class DepartmentAggregatesComponent extends Component{
       const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
       const { active_version } = activeBudgetCycle;
       const budgetCycleId = activeBudgetCycle.id;
-      const ACTIVE_VERSION_ID = active_version.id;
+      const ACTIVE_VERSION_ID = active_version ? active_version.id : null;
       const { department } = jwtAuthService.getActiveDepartmentRole();
       this.setState({ isFetching, single_department:department, activeBudgetCycle, active_version })
      this.preparationService.getAllDepartmentAggregatesByBudgetCycleAndDepartment(budgetCycleId, department.id).then(
@@ -185,8 +187,8 @@ export class DepartmentAggregatesComponent extends Component{
 
             let canCreate = !version_exists; // cannot create if version exists
 
-           const allDepartmentAggregates = department_aggregates.reverse();
-           await  this.setState({ allDepartmentAggregates, isFetching, canCreate, activeBudgetCycle, active_version });
+           const allDepartmentAggregates = department_aggregates.sort((a, b) => (a.id > b.id) ? -1 : 1); //reverse
+           await  this.setState({ allDepartmentAggregates, isFetching, canCreate, activeBudgetCycle, active_version, budget_versions });
 
          }
      ).catch((error)=>{
@@ -336,22 +338,38 @@ export class DepartmentAggregatesComponent extends Component{
 
     setEntriesStatus = (departmentAggregate)=>{
 
-      const { entries_status } = departmentAggregate;
+      const { entries_status, is_archived } = departmentAggregate;
       const key = entries_status ? entries_status.toString() : "0";
       const variants = {
-        "0":"secondary_custom",
+        "0":"primary",
         "1":"info_custom",
         "2":"success",
-        "3":"warning"
+
       }
       const statuses = {
         "0":"DRAFT",
         "1":"SUBMITTED",
         "2":"APPROVED",
-        "3":"DISCARDED"
       }
 
-      return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+      return(
+        <>
+        {
+          is_archived ? (
+            <span>
+              <span className={`badge badge-${variants[key]}`}><del>{statuses[key] } </del></span>
+              <span className="badge badge-secondary_custom ml-1">ARCHIVED</span>
+            </span>
+          ):(
+            <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span>
+
+          )
+
+        }
+
+        </>
+
+        )
 
     }
     downloadHistoryDetail = async (histo)=>{
@@ -1779,17 +1797,27 @@ export class DepartmentAggregatesComponent extends Component{
                 <div className="row mb-4">
 
                     <div className="col-md-12 mb-4">
-                        <div className="card text-left">
+                        <div className="card text-leftx">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">
-                                <b> {this.state?.single_department?.name} ({this.state?.single_department?.code})</b> budget entries for <em>{this.state?.activeBudgetCycle?.year}</em>
-                                </h4>
+                              <div className="row">
+                                <div className="col-md-4">
+                                  <h4 className="card-title mb-3">
+                                  <b> {this.state?.single_department?.name} ({this.state?.single_department?.code})</b> budget entries for <em>{this.state?.activeBudgetCycle?.year}</em>
+                                  </h4>
+                                </div>
+                              <div className="col-md-4">
+                                {/* <CustomSlider budget_versions={this.state.budget_versions} allVersionCodes={this.state.allVersionCodes}/> */}
+                              </div>
+                              <div className="col-md-4"></div>
+
+                              </div>
+
 
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
                             <div className="table-responsive">
-                                    <table className="display table tabel-lg table-striped " id="zero_configuration_table" style={{"width":"100%"}}>
+                                    <table className="display table tabel-lg table-striped table-hoverx" id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
@@ -1805,7 +1833,7 @@ export class DepartmentAggregatesComponent extends Component{
                                         <tbody>
                                         {
                                           this.state.allDepartmentAggregates.length ?  this.state.allDepartmentAggregates.map( (departmentaggregate, index)=>{
-                                            const { budgetversion } = departmentaggregate;
+                                            const { budgetversion, entries_status, is_archived } = departmentaggregate;
                                             const { version_code, budgetcycle } = budgetversion
                                                 return (
                                                     <tr key={departmentaggregate.id} className={departmentaggregate.temp_flash ? 'bg-success text-white divide_row':'divide_row'}>
@@ -1814,8 +1842,10 @@ export class DepartmentAggregatesComponent extends Component{
                                                         </td>
                                                         <td>
                                                           <NavLink className="underline" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
-                                                            {budgetcycle?.year} &nbsp; {version_code?.name} ({version_code?.code})
+                                                            <b className={is_archived ? "text-muted":""}>{budgetcycle?.year} &nbsp; {version_code?.name} ({version_code?.code})</b>
                                                           </NavLink>
+
+
                                                         </td>
                                                         {/*
                                                           <td>
@@ -1935,7 +1965,7 @@ export class DepartmentAggregatesComponent extends Component{
                                                             </Dropdown.Item>
 
                                                             {
-                                                              departmentaggregate?.entries_status ? null :
+                                                              departmentaggregate?.entries_status || departmentaggregate?.is_archived  ? null :
                                                               <Dropdown.Item className="border-bottom text-success"
                                                                 onClick={()=>{
                                                                   this.submitDepartmentAggregate(departmentaggregate)

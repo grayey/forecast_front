@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, { useState, useEffect } from "react";
 import AppMainService from "./services/appMainService";
 import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
@@ -42,8 +42,15 @@ export const FetchingRecords = (props)=>{
 export const CustomProgressBar = (props)=>{
 
   const { departmentaggregate, allApprovals, budgetVersion, } = props;
-  let { approval_stage, entries_status } = departmentaggregate;
+  let { approval_stage, is_archived } = departmentaggregate;
+  let entries_status = departmentaggregate.entries_status || "0";
   let sub_text = "Submission";
+  const isDraftOrSubmitted = entries_status < 2;
+  const status_prefixes = {
+    "0":"Awaiting",
+    "1":"Awaiting",
+    "2":"Completed",
+  }
 
   if(budgetVersion){
      approval_stage = budgetVersion.approval;
@@ -51,12 +58,15 @@ export const CustomProgressBar = (props)=>{
      sub_text = `Initial Approvals`;
   }
 
+  // const prefix_key = entries_status ? entries_status.toString() : "3"
+  let prefix =  status_prefixes[entries_status.toString()];
 
-const isDraftOrSubmitted = entries_status < 2;
+
+
 
     // const { allApprovals } = this.state;
     let padding = 0; // so that the progress bar displays
-    let prefix =  isDraftOrSubmitted ? "Awaiting" : "Completed";
+
     let shift = isDraftOrSubmitted ? 1 : 0;
     let progressObject = {
       percentage:0,
@@ -64,27 +74,33 @@ const isDraftOrSubmitted = entries_status < 2;
       text:sub_text
     };
     // text-${progressObject.percentage < 100 ? 'info':'success'}
+
     if(approval_stage){
       let percentage = Math.round(approval_stage.stage/(allApprovals.length) * 100 );
-        percentage = isDraftOrSubmitted ? percentage - 3 : percentage;
-      let variant = percentage < 100 || isDraftOrSubmitted ? "info_custom" : "success";
+        percentage = prefix == "awaiting" ? percentage - 2 : percentage;
+      let variant = percentage < 100  ? "info_custom" : "success";
+
+      // disabled color if discarded
+      variant = is_archived ? "secondary_custom" : variant;
+
       const text = approval_stage.description;
       progressObject = { percentage,variant,text }
       // don't fill the progress bar if still isDraftOrSubmitted
-      padding = isDraftOrSubmitted ? -3 : percentage;
-
-
-       // disabled color if discarded
-      variant = entries_status == 3 ? "secondary" : variant;
+      padding = prefix == "awaiting"  ? -2 : percentage;
+    }
+    const barAttributes = {
+      now:progressObject.percentage + padding,
+      label: `${progressObject.percentage}%`,
+      variant:progressObject.variant
+    }
+    if(!is_archived){
+      barAttributes.striped = true;
+      barAttributes.animated = true;
     }
     return (
       <div>
       <ProgressBar
-        now={progressObject.percentage + padding}
-        label={`${progressObject.percentage}%`}
-        animated
-        striped
-        variant={progressObject.variant}
+      {...barAttributes}
       ></ProgressBar>
       <p className={`text-center`}>
         <small><b><em>{prefix} {progressObject.text}</em></b></small>
@@ -297,7 +313,21 @@ export const BulkTemplateDownload = (props) =>{
 //
  export const CustomSlider = (props) => {
 
-   const [value, setValue] = useState(30);
+    const [value, setValue] = useState(10);
+
+   const { budget_versions, allVersionCodes } = props;
+   const marks = {};
+   const bv_steps = [];
+
+   const version_steps = allVersionCodes.map((vc) => {
+     let { step, code } = vc;
+     step = step*10;
+     marks[step] = code
+     return step;
+   });
+   const max_version_step = Math.max(...version_steps);
+
+
 
    const handleChange = value => {
      setValue(value);
@@ -318,7 +348,20 @@ export const BulkTemplateDownload = (props) =>{
      );
    };
 
-   const marks = {
+
+
+   useEffect(() =>{
+     budget_versions.forEach((bv, index)=>{
+       const { version_code } = bv;
+       let { step } = version_code;
+       step = step*10;
+       bv_steps.push(step);
+     })
+     const max_bv_steps = Math.max(...bv_steps);
+     setValue(max_bv_steps);
+   },[value])
+
+   const marks_ = {
      "-10": "-10°C",
      0: <strong>0°C</strong>,
      26: {
@@ -340,8 +383,8 @@ export const BulkTemplateDownload = (props) =>{
    return (
      <div className="px-3 pb-3">
        <Slider
-         step={25}
-         min={-10}
+         step={5}
+         min={10}
          dots={true}
          included={true}
          marks={marks}

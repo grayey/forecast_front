@@ -663,7 +663,7 @@ toggleModal = (modalName='approve')=> {
                         eventKey={aggregate?.id?.toString()}
                         onClick={()=>this.toggleAccordion(aggregate,index)}
                       >
-                        {aggregate?.department?.name} ({aggregate?.department?.code})&nbsp;
+                        <a href='#' onClick={(e)=> e.preventDefault()} className="underline">{aggregate?.department?.name} ({aggregate?.department?.code})</a>&nbsp;
                         {
                           aggregate?.is_open ? <FaMinusCircle className="text-danger"/> : <FaPlusCircle/>
                         }

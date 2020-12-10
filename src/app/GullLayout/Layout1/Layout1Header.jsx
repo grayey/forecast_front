@@ -181,9 +181,10 @@ class Layout1Header extends Component {
           const allBudgetCycles = budgetCycleResponse.filter((cycle)=>{
             return cycle.is_current;
           })
+          const activeBudgetCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : allBudgetCycles[0];
 
           allBudgetCycles.reverse();
-          const activeBudgetCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : allBudgetCycles[0];
+          // const activeBudgetCycle = allBudgetCycles.find(bc=> bc.id == storedCycle.id);// because the stored cycle might have old active version 
 
           localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(activeBudgetCycle));
         this.setState({ allBudgetCycles,fetching, activeBudgetCycle })

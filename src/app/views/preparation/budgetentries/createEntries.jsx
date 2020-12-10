@@ -675,7 +675,7 @@ export class BudgetEntriesComponent extends Component{
 
 
     viewOrEditButton = ()=>{
-      let { viewOrEditSelections } = this.state;
+      let { viewOrEditSelections, viewedDepartmentAggregate } = this.state;
       const { is_view_only } = viewOrEditSelections;
 
       return !this.props.isApproval ?(
@@ -700,12 +700,19 @@ export class BudgetEntriesComponent extends Component{
             {
               this.state.viewedDepartmentAggregate.id && this.state.activeDepartmentRole?.role?.approval ?(
                 <>
-                <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
-                  Approve <FaCheck/>
-                </button>
-                <button className="btn btn-lg btn-danger" onClick={()=>this.toggleModal('reject')}>
-                  Reject <FaTimes/>
-                </button>
+                {
+                 !viewedDepartmentAggregate.is_archived ?(
+                   <>
+                   <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
+                     Approve <FaCheck/>
+                   </button>
+                   <button className="btn btn-lg btn-danger" onClick={()=>this.toggleModal('reject')}>
+                     Reject <FaTimes/>
+                   </button>
+                   </>
+               ) : null
+                }
+
                 </>
             ) :null
             }
@@ -846,10 +853,10 @@ export class BudgetEntriesComponent extends Component{
 
     setViewMode = ()=>{
         const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
-        const { entries_status, department, capturer, budgetversion } = viewedDepartmentAggregate;
+        const { entries_status, department, capturer, budgetversion, is_archived } = viewedDepartmentAggregate;
         const { version_code, budgetcycle } = budgetversion
 
-        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current || this.props.isApproval)
+        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current || this.props.isApproval || is_archived)
         // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
         // Or userRole is not a capture role // departmentHasbegun capture
         // (entries_status || !budgetcycle.is_current)
@@ -902,22 +909,38 @@ export class BudgetEntriesComponent extends Component{
 
     setEntriesStatus = (departmentAggregate)=>{
 
-      const { entries_status } = departmentAggregate;
+      const { entries_status, is_archived } = departmentAggregate;
       const key = entries_status ? entries_status.toString() : "0";
       const variants = {
-        "0":"secondary_custom",
+        "0":"primary",
         "1":"info_custom",
         "2":"success",
-        "3":"warning"
+
       }
       const statuses = {
         "0":"DRAFT",
         "1":"SUBMITTED",
         "2":"APPROVED",
-        "3":"DISCARDED"
       }
 
-      return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+      return(
+        <>
+        {
+          is_archived ? (
+            <span>
+              <span className={`badge badge-${variants[key]}`}><del>{statuses[key] } </del></span>
+              <span className="badge badge-secondary_custom ml-1">ARCHIVED</span>
+            </span>
+          ):(
+            <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span>
+
+          )
+
+        }
+
+        </>
+
+        )
 
     }
 

@@ -177,7 +177,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
       const activeBudgetCycle  = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : {};
       const { active_version } = activeBudgetCycle;
       const budgetCycleId = activeBudgetCycle.id;
-      const ACTIVE_VERSION_ID = active_version.id;
+      const ACTIVE_VERSION_ID = active_version ? active_version.id : null;
       const { department, role } = jwtAuthService.getActiveDepartmentRole();
       const { approval } = role;
       const DEPARTMENT_ID = approval && approval.approval_type == 'SINGLE_DEPARTMENTAL' ? department.id : null;
@@ -821,24 +821,38 @@ export class DepartmentAggregatesApprovalComponent extends Component{
 
     setEntriesStatus = (departmentAggregate)=>{
 
-      const { entries_status, is_my_stage } = departmentAggregate;
+      const { entries_status, is_my_stage, is_archived } = departmentAggregate;
       const key = entries_status ? entries_status.toString() : "0";
       const variants = {
-        "0":"secondary_custom",
+        "0":"primary",
         "1":"info_custom",
         "2":"success",
-        "3":"warning"
+
       }
       const statuses = {
         "0":"DRAFT",
         "1":"SUBMITTED",
         "2":"APPROVED",
-        "3":"DISCARDED"
       }
 
+      return(
+        <>
+        {
+          is_archived ? (
+            <span>
+              <span className={`badge badge-${variants[key]}`}><del>{statuses[key] } </del></span>
+              <span className="badge badge-secondary_custom ml-1">ARCHIVED</span>
+            </span>
+          ):(
+            <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span>
 
+          )
 
-      return( <span className={`badge badge-${variants[key]}`}>{statuses[key] }</span> )
+        }
+
+        </>
+
+        )
 
     }
 

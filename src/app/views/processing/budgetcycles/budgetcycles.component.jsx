@@ -324,14 +324,14 @@ enableNextVersion = (budgetcycle) => {
            this.processingService.enableNextBudgetCycleVersion(budgetcycle).then(
              async (versionedCycle) => {
                  const cycleIndex = allBudgetCycles.findIndex(r=> r.id == versionedCycle.id);
-                 // versionedCycle.active_version = budgetcycle.next_version;
-                 // allBudgetCycles.splice(cycleIndex, 1, versionedCycle);
+                 versionedCycle.active_version = budgetcycle.next_version;
+                 allBudgetCycles.splice(cycleIndex, 1, versionedCycle);
 
                await this.setState({ allBudgetCycles });
                this.filterYears();
                  const successNotification = {
                      type:'success',
-                     msg:`Budget cycle ${budgetcycle.year} successfully deleted!`
+                     msg:`${budgetcycle.next_version.name} (${budgetcycle.next_version.code}) of ${budgetcycle.year} successfully enabled!`
                  }
                  new AppNotification(successNotification)
              }
@@ -1021,7 +1021,7 @@ enableNextVersion = (budgetcycle) => {
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
-                            <div className="table-responsive">
+                            <div className="table-responsivex">
                                     <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
                                         <thead>
                                             <tr className="ul-widget6__tr--sticky-th">
@@ -1118,11 +1118,17 @@ enableNextVersion = (budgetcycle) => {
                                                                 <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                             </Dropdown.Item>
 
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.enableNextVersion(budgetcycle);
-                                                            }} className='border-bottom'>
-                                                                <FaArrowRight/> Enable <b><em>{budgetcycle?.year} {budgetcycle?.next_version?.name} ({budgetcycle?.next_version?.code})</em></b>?
-                                                            </Dropdown.Item>
+                                                            {
+                                                              budgetcycle.next_version ? (
+                                                                <Dropdown.Item onClick={()=> {
+                                                                    this.enableNextVersion(budgetcycle);
+                                                                }} className='border-bottom'>
+                                                                    <FaArrowRight/> Enable <b><em>{budgetcycle?.year} {budgetcycle?.next_version?.name} ({budgetcycle?.next_version?.code})</em></b>?
+                                                                </Dropdown.Item>
+                                                              ): null
+                                                            }
+
+
 
                                                             <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteBudgetCycle(budgetcycle);}
