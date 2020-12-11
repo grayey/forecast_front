@@ -554,6 +554,77 @@ export default class AppMainService extends Component {
     }
 
 
+    /**
+      *
+      * --- EMAIL TEMPLATES SECTION HERE ----
+      *
+      */
+
+
+      /**
+       * This method returns a list of all emailtemplates
+       */
+      async getAllEmailTemplates(){
+        let url = 'mailtemplates';
+        // url += departmentId ? `/${departmentId}/by-department` : '';
+         return await apiService.get(url);
+     }
+
+     async getAllTemplateTypes(){
+       let url = 'templatetypes';
+       // url += departmentId ? `/${departmentId}/by-department` : '';
+        return await apiService.get(url);
+    }
+
+    async getTemplateTypeById(typeId){
+      let url = 'templatetypes/'+typeId;
+       return await apiService.get(url);
+   }
+
+
+     /**
+      *
+      * @param {*} emailtemplateData
+      * this method creates a new emailtemplate
+      */
+     async saveEmailTemplate(emailtemplateData){
+         const url = 'mailtemplates/';
+         return await apiService.post(url,emailtemplateData);
+     }
+
+     /**
+      *
+      * @param {*} emailtemplate
+      * @param {*} id
+      * This method updates a emailtemplate
+      */
+     async updateEmailTemplate(emailtemplate, id){
+         const url =`mailtemplates/${id}/`;
+         return await apiService.put(url,emailtemplate);
+
+     }
+
+     /**
+      *
+      * @param {*} emailtemplate
+      * This method deletes a emailtemplate
+      */
+     async deleteEmailTemplate(emailtemplate){
+         const url = `mailtemplates/${emailtemplate.id}`
+         return await apiService.del(url);
+     }
+
+     /**
+      *
+      * @param {*} emailtemplate
+      * This method toggles a emailtemplate
+      */
+     async toggleEmailTemplate(emailtemplate){
+         emailtemplate.status = !emailtemplate.status
+       return this.updateEmailTemplate(emailtemplate, emailtemplate.id);
+     }
+
+
       /**
        APP SETTINGS SECTION
        */

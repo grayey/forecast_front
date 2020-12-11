@@ -163,7 +163,7 @@ export const navigations = [
       {
         icon: "i-Clock-3",
         name: "Email templates",
-        path: "/admin/email-template",
+        path: "/admin/email-templates",
         type: "link"
       },
       {
