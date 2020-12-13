@@ -9,7 +9,7 @@ import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 import {FetchingRecords, BulkTemplateDownload} from "../../appWidgets";
 
-import  { FaPlus, FaList, FaClone } from "react-icons/fa";
+import  { FaPlus, FaList, FaClone, FaSpinner } from "react-icons/fa";
 import { RichTextEditor } from "@gull";
 
 
@@ -24,6 +24,8 @@ import LaddaButton, {
 
 export class EmailTemplatesComponent extends Component{
 
+
+
     state = {
         editedIndex:0,
         allEmailTemplates:[],
@@ -35,6 +37,7 @@ export class EmailTemplatesComponent extends Component{
         saveMsg:'Save',
         updateMsg:'Update',
         editedEmailTemplate: {},
+        selectedTemplateType:{},
         createEmailTemplateForm: {
             name: "",
             code: "",
@@ -56,6 +59,7 @@ export class EmailTemplatesComponent extends Component{
             template_type:"",
             subject:""
           },
+
           emaillVariables:[
             {
               name:'~employee~',
@@ -111,16 +115,16 @@ export class EmailTemplatesComponent extends Component{
      * @param {*} errors
      * @param {*} form
      */
-
-    handleChange = (event, form='create') => {
-        const {createEmailTemplateForm, updateEmailTemplateForm} = this.state
-        if(form=='create'){
-            createEmailTemplateForm[event.target.name] = event.target.value;
-        }else if(form=='edit'){
-            updateEmailTemplateForm[event.target.name] = event.target.value;
-        }
-        this.setState({ createEmailTemplateForm, updateEmailTemplateForm });
-    }
+    //
+    // handleChange = (event, form='create') => {
+    //     const {createEmailTemplateForm, updateEmailTemplateForm} = this.state
+    //     if(form=='create'){
+    //         createEmailTemplateForm[event.target.name] = event.target.value;
+    //     }else if(form=='edit'){
+    //         updateEmailTemplateForm[event.target.name] = event.target.value;
+    //     }
+    //     this.setState({ createEmailTemplateForm, updateEmailTemplateForm });
+    // }
 
 
 
@@ -175,27 +179,71 @@ export class EmailTemplatesComponent extends Component{
         }
 
 
+        /**
+         * [getTemplateTypeById description]
+         * @return {Promise} [description]
+         */
+        getTemplateTypeById = async (typeId)=>{
+          this.setState({isFetching:true})
+                this.appMainService.getTemplateTypeById(typeId).then(
+                    (templatetypesResponse)=>{
+                      this.setState({isViewMode: true}); //initiate light-speed rerender
+                        const selectedTemplateType = templatetypesResponse;
+                        delete selectedTemplateType.id;
+                        const { mailtemplate } = selectedTemplateType;
+                        const updateObject = mailtemplate ? mailtemplate : {
+                          mail_body:"",
+                          template_type:typeId,
+                          subject:""
+                        }
+                        const templatePreview =this.getTemplatePreview(updateObject.mail_body);
+                        const createOrUpdateEmailTemplateForm = Object.assign(selectedTemplateType, updateObject); //
+                        this.setState({ selectedTemplateType, createOrUpdateEmailTemplateForm, templatePreview,  isViewMode:false, isFetching:false  });
+                    }
+                ).catch((error)=>{
+                  this.setState({isFetching:false})
+
+                    const errorNotification = {
+                        type:'error',
+                        msg:utils.processErrors(error)
+                    }
+                    new AppNotification(errorNotification)
+                    // console.log('Error', error)
+                })
+            }
+
     /**
      * This method saves an emailtemplate
      */
     saveEmailTemplate = async ()=>{
-        const {createOrUpdateEmailTemplateForm, allEmailTemplates} = this.state;
+        let {createOrUpdateEmailTemplateForm, allEmailTemplates, selectedTemplateType } = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
-        this.setState({isSaving, saveMsg})
-        this.appMainService.saveEmailTemplate(createOrUpdateEmailTemplateForm).then(
+        this.setState({isSaving, saveMsg});
+        // createOrUpdateEmailTemplateForm['template_type_id'] = createOrUpdateEmailTemplateForm['template_type']
+        // delete createOrUpdateEmailTemplateForm['template_type'];
+        const { id } = createOrUpdateEmailTemplateForm;
+        this.appMainService.saveEmailTemplate(createOrUpdateEmailTemplateForm,id).then(
             (emailtemplateData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
-                allEmailTemplates.unshift(emailtemplateData)
-                this.setState({ allEmailTemplates, isSaving, saveMsg })
+                let suffix = 'created';
+                if(id){
+                  suffix = 'updated';
+                  const editedIndex = allEmailTemplates.findIndex(em => em.id == id);
+                  allEmailTemplates.splice(editedIndex, 1, emailtemplateData);
+                }else{
+                  allEmailTemplates.unshift(emailtemplateData);
+                  this.resetForm();
+
+                }
                 const successNotification = {
                     type:'success',
-                    msg:`${emailtemplateData.name} successfully created!`
+                    msg:`${selectedTemplateType.name} template successfully ${suffix}!`
                 }
+                this.setState({ allEmailTemplates, isSaving, saveMsg, isViewMode:true });
+
                 new AppNotification(successNotification)
-                this.toggleModal();
-                this.resetForm();
 
             }
         ).catch(
@@ -307,9 +355,12 @@ export class EmailTemplatesComponent extends Component{
    }, 1500)
   }
 
-  handleChange = (event) => {
+  handleChange = async (event) => {
       const { createOrUpdateEmailTemplateForm } = this.state
       const { name, value }= event.target;
+      if(name == 'template_type'){
+        await this.getTemplateTypeById(value);
+      }
       createOrUpdateEmailTemplateForm[name] = value;
       this.setState({ createOrUpdateEmailTemplateForm });
   }
@@ -355,12 +406,20 @@ export class EmailTemplatesComponent extends Component{
      *
      */
     editEmailTemplate = (editedEmailTemplate) => {
-        const updateEmailTemplateForm = {...editedEmailTemplate}
-        const editedIndex = this.state.allEmailTemplates.findIndex(emailtemplate => editedEmailTemplate.id == emailtemplate.id)
-        this.setState({editedEmailTemplate, editedIndex, updateEmailTemplateForm});
-        this.toggleModal('edit')
+        const createOrUpdateEmailTemplateForm = {...editedEmailTemplate}
+        createOrUpdateEmailTemplateForm['template_type'] = createOrUpdateEmailTemplateForm['template_type'].id;
+        const templatePreview = this.getTemplatePreview(createOrUpdateEmailTemplateForm['mail_body']);
+        const selectedTemplateType =  this.state.allTemplateTypes.find(tt => tt.id == createOrUpdateEmailTemplateForm['template_type']);
+        this.setState({createOrUpdateEmailTemplateForm, templatePreview, isViewMode:false, selectedTemplateType});
     }
 
+    switchView = async(view = 'list') => {
+        this.setState({ isViewMode:true });
+
+      const isViewMode = view == 'list';
+      await this.resetForm();
+      this.setState({ isViewMode, templatePreview:"" });
+    }
 
     /**
      *
@@ -461,11 +520,12 @@ export class EmailTemplatesComponent extends Component{
      * @param {*} modalName
      */
     resetForm = ()=> {
-        const createEmailTemplateForm = {
-            name: "",
-            description: "",
-          }
-          this.setState({createEmailTemplateForm})
+        const createOrUpdateEmailTemplateForm ={
+          mail_body:"",
+          template_type:"",
+          subject:""
+        }
+          this.setState({createOrUpdateEmailTemplateForm})
 
     }
 
@@ -736,9 +796,9 @@ export class EmailTemplatesComponent extends Component{
 
                 <div className='float-right'>
                   <div className="btn-group">
-                    <button className={`btn btn-info${this.state.isViewMode ? '_custom shadow-lg' :''}`} onClick={()=> this.setState({isViewMode:true})}><FaList/> View Templates</button>
+                    <button className={`btn btn-info${this.state.isViewMode ? '_custom shadow-lg' :''}`} onClick={()=> this.switchView()}><FaList/> View Templates</button>
 
-                    <button className={`btn btn-info${this.state.isViewMode ? '' :'_custom shadow-lg'}`} onClick={()=> this.setState({isViewMode:false})}><FaPlus/> Create | Update Template</button>
+                  <button className={`btn btn-info${this.state.isViewMode ? '' :'_custom shadow-lg'}`} onClick={()=> this.switchView('create')}><FaPlus/> Create | Update Template</button>
 
                   </div>
                 </div>
@@ -840,7 +900,7 @@ export class EmailTemplatesComponent extends Component{
                                                                   (
                                                                       <tr>
                                                                           <td className='text-center' colSpan='7'>
-                                                                          <FetchingRecords isFetching={this.state.isFetching}/>
+                                                                          <FetchingRecords isFetching={this.state.isFetching} emptyMsg='No templates found.'/>
                                                                           </td>
                                                                       </tr>
                                                                   )
@@ -901,8 +961,8 @@ export class EmailTemplatesComponent extends Component{
 
                                   <div className="row">
                                     <div className="col-md-3 p-4 border-right">
+                                      <label><b>Template:</b> {this.state.isFetching ? <FaSpinner className='spin'/> : null}</label>
                                       <div className="form-row mb-3">
-                                        <label><b>Template type:</b></label>
                                       <select className='form-control'
                                         name="template_type"
                                         value={values.template_type}

@@ -742,7 +742,7 @@ export class CostItemsComponent extends Component{
                                                             {costitem.name}
                                                         </td>
                                                         <td>
-                                                        {costitem.code}
+                                                        <code>{costitem.code}</code>
                                                         </td>
                                                         <td>
                                                         {costitem?.category?.name} ({costitem?.category?.code})

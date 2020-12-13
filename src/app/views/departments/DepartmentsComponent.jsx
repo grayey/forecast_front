@@ -678,7 +678,7 @@ export class DepartmentsComponent extends Component{
                                                             {department.name}
                                                         </td>
                                                         <td>
-                                                            {department.code}
+                                                            <code>{department.code}</code>
                                                         </td>
                                                         <td>
                                                         {department.description}

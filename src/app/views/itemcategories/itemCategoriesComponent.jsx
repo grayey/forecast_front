@@ -641,7 +641,7 @@ export class ItemCategoriesComponent extends Component{
                                                             {itemcategory.name}
                                                         </td>
                                                         <td>
-                                                        {itemcategory.code}
+                                                        <code>{itemcategory.code}</code>
                                                         </td>
                                                         <td>
                                                         <Form>

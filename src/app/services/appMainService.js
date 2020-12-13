@@ -587,9 +587,14 @@ export default class AppMainService extends Component {
       * @param {*} emailtemplateData
       * this method creates a new emailtemplate
       */
-     async saveEmailTemplate(emailtemplateData){
-         const url = 'mailtemplates/';
-         return await apiService.post(url,emailtemplateData);
+     async saveEmailTemplate(emailtemplateData, id=null){
+        let url = 'mailtemplates/';
+        let method = 'post';
+        if(id){
+          url+=`${id}/`;
+          method = 'put';
+        }
+         return await apiService[method](url,emailtemplateData);
      }
 
      /**
