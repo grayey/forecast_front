@@ -182,6 +182,9 @@ handleRichEditorChange = (html, form='approve') => {
 }
 
 setApproval = ()=> {
+  if(this.props.viewOnly){
+    return null;
+  }
   let { user_approval, viewedBudgetVersionDetail } = this.state;
     let { approval, post_status } = viewedBudgetVersionDetail;
   if(!user_approval.id || post_status) return null; //post_status is non-zero once approved etc
