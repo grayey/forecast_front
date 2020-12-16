@@ -77,20 +77,20 @@ export const navigations = [
     sub: [
       {
         icon: "i-Clock-3",
-        name: "Consolidated budget",
+        name: "Consolidated View",
         path: "/reports/consolidated-view",
         type: "link"
       },
       {
         icon: "i-Clock-3",
         name: "Departmental overview",
-        path:"/reports/analytics-playground",
+        path:"/reports/by-departments",
         type: "link"
       },
       {
         icon: "i-Clock-3",
         name: "Audit trail",
-        path: "/reports/by-departments",
+        path: "/reports/analytics-playground",
         type: "link"
       },
     ]

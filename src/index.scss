@@ -254,3 +254,30 @@ margin-left: 1rem;
 .ql-toolbar.ql-snow + .ql-container.ql-snow{
   min-height: 320px !important;
 }
+
+.filter{
+  border: 0.5px dashed lightgrey !important;
+  padding: 4px 0 4px 0;
+  border-radius: 2px;
+}
+
+/* The heart of the matter */
+       //
+       .horizontal-scrollable > .rowx {
+           overflow-x: auto !important;
+           white-space: nowrap !important;
+       }
+
+       .horizontal-scrollable > .rowx > .colx-6 {
+           display: inline-block !important;
+           margin-right: 2rem;
+           // flex: 0 0 50%;
+           // max-width: 50%;
+           float: none !important;
+           position: relative;
+       }
+
+       .empty_data{
+         min-height: 105px;
+         min-width: 450px !important;
+       }

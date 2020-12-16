@@ -717,13 +717,13 @@ export class VersionCodesComponent extends Component{
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            {versioncode.name}
+                                                            {versioncode?.name}
                                                         </td>
                                                         <td>
-                                                        {versioncode.code}
+                                                          <code>{versioncode?.code}</code>
                                                         </td>
                                                         <td>
-                                                        {versioncode.step}
+                                                        {versioncode?.step}
                                                         </td>
                                                         <td>
                                                         <Form>

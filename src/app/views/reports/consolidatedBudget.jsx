@@ -13,7 +13,25 @@ class ConsolidatedBudget extends Component {
 
   render(){
 
-    return (<ConsolidatedApproval viewOnly={true}  {...this.props}/>)
+    return (
+      <>
+        <div className="breadcrumb">
+            <h1>Consolidated</h1>
+            <ul>
+                <li><a href="#">Report</a></li>
+              <li>View</li>
+            </ul>
+        </div>
+
+        <div className="separator-breadcrumb border-top"></div>
+          <div className="row mb-4">
+
+            <div className="col-md-12 mb-4">
+                <ConsolidatedApproval viewOnly={true}  {...this.props}/>
+            </div>
+          </div>
+        </>
+      )
   }
 
 

@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
 import AppMainService from "./services/appMainService";
+import ProcessingService from './services/processing.service';
+import ReportsService from './services/reports.service';
+
 import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
-import { Dropdown, Modal, ProgressBar } from "react-bootstrap";
-import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion } from "react-icons/fa";
+import { Dropdown, Modal, ProgressBar,  } from "react-bootstrap";
+import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion, FaList, FaCog, FaDownload, FaFilter } from "react-icons/fa";
 import Slider from "rc-slider";
 import Tooltip from "rc-tooltip";
 import * as utils from "@utils";
 import { saveAs } from 'file-saver';
+import Select from 'react-select';
+import makeAnimated from 'react-select/animated';
+
 
 import LaddaButton, {
     XL,
@@ -36,7 +42,6 @@ export const FetchingRecords = (props)=>{
         </div>
       </>
     )
-
 }
 
 export const CustomProgressBar = (props)=>{
@@ -108,10 +113,221 @@ export const CustomProgressBar = (props)=>{
     </div>
     )
 
+}
 
 
+export const ReportsFilter = (props) =>{
+  const appMainService = new AppMainService();
+  const processingService = new ProcessingService();
+  const reportsService = new ReportsService();
+  const animatedComponents = makeAnimated();
+
+  const [allDepartments, setDepartments] = useState([]);
+  const [allBudgetCycles, setBudgetCycles] = useState([]);
+  const [selectedBudgetCycle, setSelectedBudgetCycle] = useState([]);
+  const [isFetching, setIsFetching] = useState(false);
+
+  const [reportsForm, setReportsForm] = useState({
+    'department_id':''
+  })
+
+  const getAllBudgetCycles = async() => {
+
+    processingService.getAllBudgetCycles().then(
+        async (budgetcyclesResponse)=>{
+          const budgetCycles =   budgetcyclesResponse.map((b)=>{
+                  const value = b.id;
+                  const label = `${b.year}`;
+                  const id = value;
+
+                  return { id, value, label };
+              });
+              setBudgetCycles(budgetCycles);
+        }
+    ).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        new AppNotification(errorNotification)
+    })
+  }
+
+  const getAllDepartments = async()=>{
+    appMainService.getAllDepartments().then(
+        (departmentsResponse)=>{
+            setDepartments(departmentsResponse);
+            console.log('Departments response', departmentsResponse)
+        }
+    ).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        new AppNotification(errorNotification)
+    })
+  }
+
+  const handleMultiSelectChange =  async (event, fieldName) => {
+    if(fieldName=='budget_cycle'){
+      await setSelectedBudgetCycle(event);
+    }
+  }
+
+  const handleReportFilterChange = (event)=>{
+    const {name, value} = event.target;
+    setReportsForm({ [name]:value });
+  }
+
+  const getReportByDepartment = (event)=> {
+    let fetching = true;
+    props.setFetching(fetching);
+    setIsFetching(fetching);
+
+    const budget_years= [];
+    const budgetcycle_ids = selectedBudgetCycle.map((c) => {
+      budget_years.push(c.label);
+      return c.id;
+    });
+   const filter_action = event.target.id
+    const filterObject = {...reportsForm, filter_action, budgetcycle_ids};
+    reportsService.getReportByDepartment(filterObject).then(
+        (reportsResponse)=>{
+          fetching = false;
+          props.setFetching(fetching);
+          setIsFetching(fetching)
 
 
+          if(!filter_action.includes('export')){
+            const responseData = groupByYears(budget_years, reportsResponse);
+            props.refresh(responseData);
+          }else{
+
+            //download file
+            console.log('Downloading fileee')
+          }
+
+
+        }
+    ).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        console.log('errooror', error)
+        new AppNotification(errorNotification);
+        fetching = false;
+        props.setFetching(fetching);
+        setIsFetching(fetching)
+    })
+  }
+
+  const groupByYears = (budget_years, responseData) =>{
+    const groupObject  = {};
+    budget_years.forEach((b_y) =>{
+      groupObject[b_y] = responseData.filter(rc => rc.budgetcycle.year == b_y);
+    });
+    return groupObject;
+
+  }
+
+  useEffect(()=>{
+    getAllBudgetCycles();
+    getAllDepartments();
+  }, [])
+
+
+  return (
+
+    <>
+
+
+      <div className='row filter'>
+
+        <div className='col-1'>
+          <div className='mt-2'>
+            <b>
+              <u>
+                <em>Filter <small><FaFilter/></small></em>
+              </u>
+            </b>
+
+          </div>
+        </div>
+        <div className='col-4'>
+          <div className='input-group mt-1'>
+            <div className="input-group-prepend">
+              <span className="input-group-text bg-info_custom text-white">
+                <b>
+                  Department:
+                </b>
+              </span>
+            </div>
+            <select className='form-control' name="department_id" value={reportsForm.department_id} onChange={handleReportFilterChange}>
+              <option>Select</option>
+            {
+              allDepartments.map((department, index)=>{
+                return(
+                  <option value={department.id} key={department.code}>{department?.name} ({department?.code})</option>
+                )
+              })
+            }
+            </select>
+          </div>
+
+        </div>
+        <div className='col-1'>
+          <div className='mt-2'>
+              <span className='float-right'><b>Year<em>(s)</em>:</b></span>
+          </div>
+        </div>
+        <div className='col-5'>
+
+            <div className='input-groupx '>
+
+              {/* <div className="input-group-prepend">
+                <span className="input-group-text bg-info_custom text-white">
+                  <b>
+                  Budgtet year<em>(s)</em>:
+                  </b>
+                </span>
+              </div> */}
+
+              <Select
+                   value={selectedBudgetCycle}
+                   components={animatedComponents}
+                   onChange={(event)=>handleMultiSelectChange(event,'budget_cycle')}
+                   options={allBudgetCycles}
+                   isMulti
+                   placeholder="Search budget years (cycles)"
+                   noOptionsMessage={ () => "No budget years (cycles)" }
+
+               />
+          </div>
+        </div>
+
+        <div className='col-1'>
+          <div className='mt-1'>
+          <Dropdown    className=''>
+              <Dropdown.Toggle variant="secondary_custom" className="text-white">
+                 <FaCog className={isFetching ? 'spin':''}/>
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item id='get_view' onClick={getReportByDepartment}><FaList/> View</Dropdown.Item>
+                <Dropdown.Divider />
+              <Dropdown.Header className='border-bottom'><h5><em>Export <FaDownload/></em></h5></Dropdown.Header>
+            <Dropdown.Item id='export_excel' onClick={getReportByDepartment}><FaFileExcel/> Excel</Dropdown.Item>
+          <Dropdown.Item id='export_csv' onClick={getReportByDepartment}><FaFileCsv/> CSV</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+
+          </div>
+        </div>
+
+      </div>
+    </>
+
+  )
 
 }
 
