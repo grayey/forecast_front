@@ -204,3 +204,19 @@ export function formatNumber(numberValue, toDecimal=true, no_places = 2){
 export function isValid(schema,initialValues){
     return schema.isValidSync(initialValues);
 }
+
+export function getGraphColors(){
+  let colors = [];
+  while (colors.length < 100) {
+    let color = Math.floor((Math.random()*1000000)+1);
+    const colorCaptured = colors.indexOf(color) >= 0;
+    if(!colorCaptured){
+      colors.push("#" + ("000000" + color.toString(16)).slice(-6));
+      
+    }
+
+    // while (colors.indexOf(color) >= 0);
+  }
+  return colors;
+
+}

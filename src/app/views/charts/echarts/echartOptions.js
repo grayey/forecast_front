@@ -594,6 +594,7 @@ export const echartMultipleBar2Option = {
     ]
 }
 
+
 export const echartZoomBarOption = {
     tooltip: {
         trigger: 'axis',

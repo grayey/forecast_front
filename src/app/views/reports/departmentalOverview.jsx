@@ -4,6 +4,11 @@ import { FaList, FaCheck, FaTimes, FaPlusCircle, FaMinusCircle  } from "react-ic
 import { FetchingRecords, ReportsFilter } from "../../appWidgets";
 import * as utils from "@utils";
 
+import { MultipleBarChart } from "../../appCharts";
+
+
+
+
 
 
 
@@ -17,6 +22,7 @@ class DepartmentalOverview extends Component {
     entryTypes:[
       'PRINCIPAL'
     ],
+    graphColors:[],
   }
 
 
@@ -32,9 +38,20 @@ class DepartmentalOverview extends Component {
     //   reportData[key] = [];
     // }
     console.log(reportData);
+    const graphColors = utils.getGraphColors();
+    this.setState({ reportData, graphColors })
 
-    this.setState({ reportData })
+  }
 
+  displayEntityCategoryGraph = (aggregate) =>{
+    console.log('Entity Category graph', aggregate)
+
+
+    // console.log('graphColors',graphColors)
+    return (
+      <MultipleBarChart caller='entity_category' colors={graphColors} chartData={summary}/>
+
+    )
   }
 
   buildGroupedEntries = (aggregates) =>{
@@ -42,12 +59,12 @@ class DepartmentalOverview extends Component {
     const { entryTypes } = this.state;
     aggregates.forEach((aggregate) =>{
     aggregate['summary'] = {};
-      const entries = aggregate['entries']
+      const entries = aggregate['entries'];
       entryTypes.forEach((entryType)=>{
         aggregate['summary'][entryType] = this.buildEntriesByType(entries, entryType)
       })
     })
-    console.log('BUILD AVGREGATe',aggregates)
+    console.log('BUILD AVGREGATe',aggregates);
 
     return aggregates;
   }
@@ -289,7 +306,7 @@ class DepartmentalOverview extends Component {
 
   render(){
 
-    const { reportData, isFetching } = this.state;
+    const { reportData, isFetching, graphColors } = this.state;
     const yearsData = Object.keys(reportData);
 
     return (
@@ -357,7 +374,7 @@ class DepartmentalOverview extends Component {
                                   const versionAggregates = this.buildGroupedEntries(reportData[year]);
 
                                     return (
-                                        <div className='colx-6'>
+                                        <div className='colx-6 pr-5'>
 
 
                                           <div className='rowx'>
@@ -437,8 +454,16 @@ class DepartmentalOverview extends Component {
                                                       </Card.Header>
                                                       <Accordion.Collapse eventKey={eventKey}>
                                                         <Card.Body>
+                                                          <div>
+                                                            {this.buildVersionRows(aggregate)}
+                                                          </div>
 
-                                                          {this.buildVersionRows(aggregate)}
+                                                          <div>
+                                                            {
+                                                              this.displayEntityCategoryGraph(aggregate)
+                                                            }
+                                                          </div>
+
                                                         </Card.Body>
                                                       </Accordion.Collapse>
                                                     </Accordion>
@@ -510,7 +535,16 @@ class DepartmentalOverview extends Component {
 
                           </Tab.Pane>
                           <Tab.Pane eventKey="graph_view">
-                            GRAPH VIEW
+
+                            <div className='card-header text-center pb-4'>
+                              <h4>Year to year version comparisons</h4>
+                            </div>
+
+                            <div className='cardx'>
+
+                              <MultipleBarChart caller='department_versions' colors={graphColors} chartData={reportData}/>
+                            </div>
+
                           </Tab.Pane>
                         </Tab.Content>
                       </Tab.Container>
