@@ -126,7 +126,6 @@ const getYScale = (maxVal) =>{
 const getMultipleChartForVersions = (graphData, graphColors) => {
 
   const yearsData = Object.keys(graphData);
-  const maxPadding = 10000;
   const c_prefix = true ? 'usd':'naira';
   const yAxisObject = {
           type: 'value',
@@ -150,46 +149,51 @@ const getMultipleChartForVersions = (graphData, graphColors) => {
   const legendData = [];
 
   yearsData.forEach((year, index)=>{
+
     const budgetData = graphData[year];
+    const seriesObject =  {
+            name: 'Online',
+            data: [],
+            label: { show: false, color: '#0168c1' },
+            type: 'bar',
+            barGap: 0,
+            color: '#bcbbdd',
+            smooth: true,
+            itemStyle: {
+                emphasis: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: -2,
+                    shadowColor: 'rgba(0, 0, 0, 0.3)'
+                }
+            }
+        }
+
+        const seriesData = [];
+
     budgetData.forEach((budgetBar, b_index)=>{
-
-      const seriesObject =  {
-              name: 'Online',
-              data: [],
-              label: { show: false, color: '#0168c1' },
-              type: 'bar',
-              barGap: 0,
-              color: '#bcbbdd',
-              smooth: true,
-              itemStyle: {
-                  emphasis: {
-                      shadowBlur: 10,
-                      shadowOffsetX: 0,
-                      shadowOffsetY: -2,
-                      shadowColor: 'rgba(0, 0, 0, 0.3)'
-                  }
-              }
-          }
-
-
       const { total_functional_currency, total_functional_naira } = budgetBar;
 
       let dataValue =  true ? total_functional_currency :  total_functional_naira; // using dollar values as default. make dynamic later
 
-      seriesObject.data.push(dataValue.toFixed(2));
+      seriesData.push(dataValue.toFixed(2));
       yAxisMaxArray.push(Math.round(dataValue));
-
 
       const version = budgetBar.budgetversion.version_code;
       const {code, name} = version;
       const versionName = `${name} (${code})`;
-      if(!legendData.includes(versionName)){
-        legendData.push(versionName);
-      }
       seriesObject.name = versionName;
       seriesObject.color = graphColors[b_index];
-      series.push(seriesObject);
+
+      // if(!legendData.includes(versionName)){ //  commented out because versions exist for other years
+      legendData.push(versionName);
+
+
+      // }
+
     });
+
+    seriesObject.data = seriesData;
 
     })
 
@@ -239,197 +243,192 @@ const getMultipleChartForVersions = (graphData, graphColors) => {
 
 
 const getMultipleEntityCategoryBarChart = (graphData, graphColors) => {
-  const entitiesData = Object.keys(graphData);
-  const maxPadding = 10000;
 
-
-  console.log('graphData Data', graphData);
-
-
-  const yAxis = {
-      type: 'value',
-      min: 0,
-      max: 500,
-      interval: 100,
-      axisLabel: {
-          formatter: '{value}',
-          color: '#333',
-          fontSize: 12,
-          fontStyle: 'normal',
-          fontWeight: 400
-      },
-      axisLine: {
-          show: false,
-          lineStyle: {
-              color: '#ccc',
-              width: 1
-          }
-      },
-      axisTick: {
-          show: false,
-          lineStyle: {
-              color: '#ccc',
-              width: 1
-          }
-      },
-      splitLine: {
-          lineStyle: {
-              color: '#ddd',
-              width: 1,
-              opacity: 0.5
+  const c_prefix = true ? 'usd':'naira';
+  const yAxisObject = {
+          type: 'value',
+          axisLabel: {
+              formatter: '{value}'
+          },
+          min: 0,
+          max: 100000,
+          interval: 25000,
+          axisLine: {
+              show: false
+          },
+          splitLine: {
+              show: true,
+              interval: 'auto'
           }
       }
-  }
-
-
-
-
-
 
   const series = [];
   const yAxisMaxArray = [];
+  const legendData = [];
 
-  entitiesData.forEach((entity, index)=>{
-    const budgetData = graphData[entity];
-    const entity_entries = `${entity}_ENTREIS`;
-    let categoryNames = budgetData[entity_entries].map((entry)=>{
-      const { category } = entry.costitem;
-    return `${category.name} (${category.code})`
-    });
-     categoryNames = new Set(categoryNames);
-    budgetData.forEach((budgetBar, b_index)=>{
+  const { summary, department } = graphData;
+  const { itemcategories } = department;
+  let categoryCodes = [];
+  let categoryNames = [];
+  let categoryLabels = [];
+  const total_labels = [];
+  const graphObjects = [];
 
-      const seriesObject = {
-          color: '#74c475',
-          name: 'Steppe',
-          type: 'bar',
-          label: {
-              normal: {
-                  show: false,
-                  position: 'insideBottom',
-                  distance: 5,
-                  align: 'left',
-                  verticalAlign: 'middle',
-                  rotate: 90,
-                  formatter: '{c}  {name|{a}}',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  rich: {
-                      name: {
-                          color: '#fff',
+  itemcategories.forEach((category)=>{
+    const { name, code } = category;
+    categoryCodes.push(code);
+    categoryNames.push(name);
+    categoryLabels.push(`${name} (${code})`);
 
-                      }
-                  }
-              }
-          },
-          data: []
-      }
-
-      const { total_functional_currency, total_functional_naira } = budgetBar;
-
-      const dataValue =  true ? total_functional_currency :  total_functional_naira; // using dollar values as default. make dynamic later
-
-      seriesObject.data.push(dataValue);
-      yAxisMaxArray.push(dataValue);
+  })
 
 
-      const version = budgetBar.budgetversion.version_code;
-      const {code, name} = version;
-      const versionName = `${name} (${code})`;
-      seriesObject.name = versionName;
-      seriesObject.color = graphColors[b_index];
-      series.push(seriesObject);
-    });
+
+  const entitiesData = Object.keys(summary);
+  console.log("ENTITIES DATTATTA", entitiesData)
+  entitiesData.forEach((entity, index) => {
+    const budgetData = summary[entity]; //eg PRINCIPAL
+    const entity_entries = `${entity}_ENTRIES`;
+    const category_label = `${entity}_LABELS`;
+    const { total_in_currency, total_in_naira } = budgetData;
+    const grand_total = true ? total_in_currency : total_in_naira;
+    const total_label =  `${entity} TOTAL`;
+    const total_code = `${entity}_TOTAL`;
+    budgetData[category_label] = {};
+
+    categoryCodes.push(total_code);
+    categoryNames.push(entity);
+    categoryLabels.push(total_label);
+    total_labels.push(total_label);
+
+
+    categoryCodes.forEach((code)=>{
+      budgetData[category_label][code] = {
+        total: code == total_code ? grand_total : 0,
+        total_array:[]
+      };
+    })
+
+
+
+    budgetData[entity_entries].forEach((budgetBar, b_index) => {
+
+        const { category } = budgetBar.costitem;
+        const { name, code } = category;
+        const dataValue = true ? budgetBar.total_currency : budgetBar.total_naira; // default to dollar
+        budgetData[category_label][code].total +=  dataValue;
 
     })
 
-    let maxVal  = Math.round(Math.max(...yAxisMaxArray)) + maxPadding;
-    const { suffix, factor, interval } = getYScale(maxVal);
-    yAxis.interval = interval;
-     maxVal = (maxVal/(10**factor));
-    yAxis.max = maxVal;
-    yAxis.axisLabel.formatter+=suffix;
-    console.log('MAX VALUE', maxVal, 'Interval', interval);
+    const categoryKeys = Object.keys(budgetData[category_label]);
+    console.log("CATEGORY KEYS :: ", categoryKeys, entity)
+    const categoryKeysLength = categoryKeys.length;
 
-    // min: 0,
-    // max: 500,
-    // interval: 100,
 
-return {
 
-  series,
-  tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-          type: 'shadow'
-      }
-  },
-  grid: {
-      top: '8%',
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-  },
-  yAxis,
-  xAxis: {
-      type: 'category',
-      boundaryGap: true,
-      data:yearsData,
-      axisLabel: {
-          formatter: '{value}',
-          color: '#333',
-          fontSize: 12,
-          fontStyle: 'normal',
-          fontWeight: 400,
+    categoryKeys.forEach((key) => {
+      const seriesValue = budgetData[category_label][key].total;
+      budgetData[category_label][key].total_array.push(seriesValue.toFixed(2));
+    });
 
+    categoryCodes.forEach((code, c_index) =>{
+      const label = categoryLabels[c_index];
+      const seriesObject =  {
+             name: label,
+             data:budgetData[category_label][code].total_array,
+             label: { show: false, color: '#0168c1' },
+             type: 'bar',
+             barGap: 0,
+             color: graphColors[c_index],
+             smooth: true,
+             itemStyle: {
+                 emphasis: {
+                     shadowBlur: 10,
+                     shadowOffsetX: 0,
+                     shadowOffsetY: -2,
+                     shadowColor: 'rgba(0, 0, 0, 0.3)'
+                 }
+             }
+         };
+         series.push(seriesObject);
+         console.log("CATEGORY CODES CREATED CATEGORY KEYS",  category_label, budgetData[category_label])
+
+         // budgetData[category_label][code].total_array = [];
+    })
+    yAxisMaxArray.push(grand_total);
+
+    const cLength = categoryCodes.length;
+
+// remove the appended '{entity} TOTAL' bar
+    categoryCodes.splice(cLength-1,1);
+    categoryNames.splice(cLength-1,1);
+    categoryLabels.splice(cLength-1,1);
+
+
+  });
+
+
+    let maxVal  = Math.round(Math.max(...yAxisMaxArray));
+    const { suffix, factor, interval, padding } = getYScale(maxVal);
+    yAxisObject.interval = interval;
+     maxVal = (maxVal+padding)/(10**factor);
+    yAxisObject.max = maxVal;
+    yAxisObject.axisLabel.formatter= currencySymbols[c_prefix]+yAxisObject.axisLabel.formatter+suffix;
+
+    return {
+    legend: {
+          borderRadius: 0,
+          orient: 'horizontal',
+          x: 'right',
+          data: categoryLabels.concat(total_labels)
       },
-      axisLine: {
-          show: false,
-          lineStyle: {
-              color: '#ccc',
-              width: 1
-          }
+      grid: {
+          left: '8px',
+          right: '8px',
+          bottom: '0',
+          containLabel: true
       },
-      axisTick: {
-          show: false,
-          lineStyle: {
-              color: '#ccc',
-              width: 1
-          }
+      tooltip: {
+          show: true,
+          backgroundColor: 'rgba(0, 0, 0, .8)'
       },
-      splitLine: {
-          show: false,
-          lineStyle: {
-              color: '#ccc',
-              width: 1
+      xAxis: [{
+          type: 'category',
+          data: entitiesData,
+          axisTick: {
+              alignWithLabel: true
+          },
+          splitLine: {
+              show: false
+          },
+          axisLine: {
+              show: true
           }
-      }
-  },
+      }],
+      series,
+      yAxis: [yAxisObject],
+    }
 
 
 }
 
-
-}
-
-export const MultipleBarChart = (props)=> {
+export const MultipleBarChart =  (props)=> {
 
   const { chartData, colors, caller } = props;
 
   const optionObject = {
     department_versions:{
       method:getMultipleChartForVersions,
-      style:{ height: "350px" }
+      style:{ height: "400px" }
     },
     entity_category:{
       method:getMultipleEntityCategoryBarChart,
-      style:{ height: "150px" }
+      style:{ height: "250px" }
     }
   }
 
   const { method, style } = optionObject[caller];
-  const option = method(chartData, colors);
+  const option =  method(chartData, colors);
 
   const graphProps = { option, style }
 

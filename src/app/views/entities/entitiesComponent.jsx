@@ -7,9 +7,7 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
-import { Link, Redirect } from "react-router-dom";
-
+import {FetchingRecords, BulkTemplateDownload} from "../../appWidgets";
 
 
 import LaddaButton, {
@@ -21,26 +19,23 @@ import LaddaButton, {
     CONTRACT,
   } from "react-ladda";
 
-export class RolesComponent extends Component{
+export class EntitiesComponent extends Component{
 
     state = {
         editedIndex:0,
-        navigate:false,
-        allRoles:[],
+        allEntities:[],
         showEditModal:false,
         showCreateModal:false,
         isSaving:false,
         isFetching:true,
         saveMsg:'Save',
         updateMsg:'Update',
-        editedRole: {},
-        createRoleForm: {
+        editedEntity: {},
+        createEntityForm: {
             name: "",
-            description: "",
           },
-          updateRoleForm: {
+          updateEntityForm: {
             name: "",
-            description: "",
           },
 
     }
@@ -54,7 +49,7 @@ export class RolesComponent extends Component{
     }
 
     componentDidMount(){
-         this.getAllRoles()
+         this.getAllEntities();
     }
 
     /**
@@ -65,30 +60,32 @@ export class RolesComponent extends Component{
      */
 
     handleChange = (event, form='create') => {
-        const {createRoleForm, updateRoleForm} = this.state
+        const {createEntityForm, updateEntityForm} = this.state
         if(form=='create'){
-            createRoleForm[event.target.name] = event.target.value;
+            createEntityForm[event.target.name] = event.target.value;
         }else if(form=='edit'){
-            updateRoleForm[event.target.name] = event.target.value;
+            updateEntityForm[event.target.name] = event.target.value;
         }
-        this.setState({ createRoleForm, updateRoleForm });
+        this.setState({ createEntityForm, updateEntityForm });
     }
 
 
 
 
 
+
+
     /**
-     * This method lists all roles
+     * This method lists all entities
      */
-     getAllRoles = async ()=>{
+     getAllEntities = async ()=>{
          let isFetching = false;
 
-        this.appMainService.getAllRoles().then(
-            (rolesResponse)=>{
-                const allRoles = rolesResponse;
-                this.setState({ allRoles, isFetching })
-                console.log('Roles response', rolesResponse)
+        this.appMainService.getAllEntities().then(
+            (entitiesResponse)=>{
+                const allEntities = entitiesResponse;
+                this.setState({ allEntities, isFetching })
+                console.log('Entities response', entitiesResponse)
             }
         ).catch((error)=>{
             this.setState({isFetching})
@@ -102,22 +99,22 @@ export class RolesComponent extends Component{
     }
 
     /**
-     * This method creates a new role
+     * This method creates a new entity
      */
-    createRole = async ()=>{
-        const {createRoleForm, allRoles} = this.state;
+    createEntity = async ()=>{
+        const {createEntityForm, allEntities} = this.state;
         let isSaving = true;
         let saveMsg = 'Saving';
         this.setState({isSaving, saveMsg})
-        this.appMainService.createRole(createRoleForm).then(
-            (roleData)=>{
+        this.appMainService.createEntity(createEntityForm).then(
+            (entityData)=>{
                 isSaving = false;
                 saveMsg = 'Save';
-                allRoles.unshift(roleData)
-                this.setState({ allRoles, isSaving, saveMsg })
+                allEntities.unshift(entityData)
+                this.setState({ allEntities, isSaving, saveMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${roleData.name} successfully created!`
+                    msg:`${entityData.name} successfully created!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal();
@@ -139,34 +136,34 @@ export class RolesComponent extends Component{
 
 
     /**
-     * This method updates a new role
+     * This method updates a new entity
      */
-    updateRole = async ()=>{
+    updateEntity = async ()=>{
 
 
 
-        let {updateRoleForm, allRoles, editedRole} = this.state;
+        let {updateEntityForm, allEntities, editedEntity} = this.state;
         let isSaving = true;
         let updateMsg = 'Updating';
         this.setState({isSaving, updateMsg})
-        this.appMainService.updateRole(updateRoleForm, editedRole.id).then(
-            (updatedRole)=>{
-                updatedRole.temp_flash = true
+        this.appMainService.updateEntity(updateEntityForm, editedEntity.id).then(
+            (updatedEntity)=>{
+                updatedEntity.temp_flash = true
                 isSaving = false;
                 updateMsg = 'Update';
-                allRoles.splice(this.state.editedIndex, 1, updatedRole)
-                this.setState({ allRoles, isSaving, updateMsg })
+                allEntities.splice(this.state.editedIndex, 1, updatedEntity)
+                this.setState({ allEntities, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${updatedRole.name} successfully updated!`
+                    msg:`${updatedEntity.name} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
              setTimeout(()=>{
-                    updatedRole.temp_flash = false
-                    allRoles.splice(this.state.editedIndex, 1, updatedRole)
-                    this.setState({ allRoles, isSaving, updateMsg })
+                    updatedEntity.temp_flash = false
+                    allEntities.splice(this.state.editedIndex, 1, updatedEntity)
+                    this.setState({ allEntities, isSaving, updateMsg })
                 }, 10000);
 
             }
@@ -201,42 +198,34 @@ export class RolesComponent extends Component{
     }
 
 
-    viewRole = (event, role) => {
-
-           event.preventDefault();
-           const newRoute = `/admin/roles/${role.slug}`
-           this.setState({ navigate:true, newRoute })
-
-       }
-
 
     /**
      *
-     * This method sets the role to be edited
+     * This method sets the entity to be edited
      *  and opens the modal for edit
      *
      */
-    editRole = (editedRole) => {
-        const updateRoleForm = {...editedRole}
-        const editedIndex = this.state.allRoles.findIndex(role => editedRole.id == role.id)
-        this.setState({editedRole, editedIndex, updateRoleForm});
+    editEntity = (editedEntity) => {
+        const updateEntityForm = {...editedEntity}
+        const editedIndex = this.state.allEntities.findIndex(entity => editedEntity.id == entity.id)
+        this.setState({editedEntity, editedIndex, updateEntityForm});
         this.toggleModal('edit')
     }
 
 
     /**
      *
-     * @param {*} role
-     * This method toggles a role's status
+     * @param {*} entity
+     * This method toggles a entity's status
      */
-    toggleRole = (role)=>{
-        const toggleMsg = role.status? "Disable":"Enable";
-        const gL = role.status? "lose":"gain"
+    toggleEntity = (entity)=>{
+        const toggleMsg = entity.status? "Disable":"Enable";
+        const gL = entity.status ? "not":""
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${role.name}</b>?</small>`,
-            text: `${role.name} members will ${gL} permissions.`,
+            title: `<small>${toggleMsg}&nbsp;<b>${entity.name}</b>?</small>`,
+            text: `${entity.name} will ${gL} be available as an entry type during capture.`,
             icon: "warning",
             type: "question",
             showCancelButton: true,
@@ -247,17 +236,17 @@ export class RolesComponent extends Component{
           })
           .then(result => {
             if (result.value) {
-                let { allRoles } = this.state
-                const toggleIndex = allRoles.findIndex(r => r.id == role.id)
-                // role.status = !role.status;
+                let { allEntities } = this.state
+                const toggleIndex = allEntities.findIndex(r => r.id == entity.id)
+                // entity.status = !entity.status;
 
-              this.appMainService.toggleRole(role).then(
-                (toggledRole)=>{
-                    allRoles.splice(toggleIndex, 1, toggledRole)
-                    this.setState({ allRoles })
+              this.appMainService.toggleEntity(entity).then(
+                (toggledEntity)=>{
+                    allEntities.splice(toggleIndex, 1, toggledEntity)
+                    this.setState({ allEntities })
                     const successNotification = {
                         type:'success',
-                        msg:`${toggledRole.name} successfully ${toggleMsg}d!`
+                        msg:`${toggledEntity.name} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }
@@ -275,13 +264,13 @@ export class RolesComponent extends Component{
 
     /**
      *
-     * @param {*} role
-     * This method deletes a role
+     * @param {*} entity
+     * This method deletes a entity
      *
      */
-    deleteRole = (role)=>{
+    deleteEntity = (entity)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${role.name}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${entity.name}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -293,14 +282,14 @@ export class RolesComponent extends Component{
               })
               .then(result => {
                 if (result.value) {
-                let { allRoles } = this.state
-                  this.appMainService.deleteRole(role).then(
-                    (deletedRole)=>{
-                        allRoles = allRoles.filter(r=> r.id !== role.id)
-                        this.setState({ allRoles })
+                let { allEntities } = this.state
+                  this.appMainService.deleteEntity(entity).then(
+                    (deletedEntity)=>{
+                        allEntities = allEntities.filter(r=> r.id !== entity.id)
+                        this.setState({ allEntities })
                         const successNotification = {
                             type:'success',
-                            msg:`${role.name} successfully deleted!`
+                            msg:`${entity.name} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -316,24 +305,24 @@ export class RolesComponent extends Component{
               });
      }
 
+
       /**
      *
      * @param {*} modalName
      */
     resetForm = ()=> {
-        const createRoleForm = {
+        const createEntityForm = {
             name: "",
-            description: "",
+            category: "",
+            code: "",
           }
-          this.setState({createRoleForm})
+          this.setState({createEntityForm})
 
     }
 
     render(){
 
-      const { navigate, newRoute } = this.state;
-
-        return navigate ? <Redirect to={newRoute} /> : (
+        return (
 
             <>
                 <div className="specific">
@@ -342,13 +331,16 @@ export class RolesComponent extends Component{
                     ()=>{ this.toggleModal('edit')}
                     } {...this.props} id='edit_modal'>
                     <Modal.Header closeButton>
-                    <Modal.Title>Update {this.state.editedRole.name}</Modal.Title>
+                    <Modal.Title>
+                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                      Update {this.state.editedEntity.name}
+                    </Modal.Title>
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.updateRoleForm}
-                    validationSchema={this.updateRoleSchema}
-                    onSubmit={this.updateRole}
+                    initialValues={this.state.updateEntityForm}
+                    validationSchema={this.updateEntitySchema}
+                    onSubmit={this.updateEntity}
                     >
                     {({
                         values,
@@ -370,6 +362,7 @@ export class RolesComponent extends Component{
                         >
                              <Modal.Body>
                                 <div className="form-row">
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
@@ -379,13 +372,13 @@ export class RolesComponent extends Component{
                                         errors.name && touched.name
                                     })}
                                 >
-                                    <label htmlFor="role_name">
+                                    <label htmlFor="entity_name">
                                         <b>Name<span className='text-danger'>*</span></b>
                                     </label>
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="role_name"
+                                    id="entity_name"
                                     placeholder=""
                                     name="name"
                                     value={values.name}
@@ -396,29 +389,6 @@ export class RolesComponent extends Component{
                                     <div className="valid-feedback"></div>
                                     <div className="invalid-feedback">
                                     Name is required
-                                    </div>
-                                </div>
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        touched.description && !errors.description,
-                                    "invalid-field":
-                                        touched.description && errors.description
-                                    })}
-                                >
-                                    <label htmlFor="update_role_description">
-                                         <b>Description<span className='text-danger'>*</span></b>
-                                    </label>
-
-                                    <textarea className="form-control"
-                                    id="update_role_description"  onChange={(event)=>this.handleChange(event,'edit')}
-                                    name="description"
-                                    defaultValue={values.description}
-                                   />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Description is required
                                     </div>
                                 </div>
 
@@ -439,7 +409,7 @@ export class RolesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.updateRoleSchema, this.state.updateRoleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.updateEntitySchema, this.state.updateEntityForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -463,13 +433,15 @@ export class RolesComponent extends Component{
                     ()=>{ this.toggleModal('create')}
                     } {...this.props} id='create_modal'>
                     <Modal.Header closeButton>
-                    <Modal.Title>Create Role</Modal.Title>
+                    <Modal.Title>
+                        <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+                      Create Entry Type</Modal.Title>
                     </Modal.Header>
 
                     <Formik
-                    initialValues={this.state.createRoleForm}
-                    validationSchema={this.createRoleSchema}
-                    onSubmit={this.createRole}
+                    initialValues={this.state.createEntityForm}
+                    validationSchema={this.createEntitySchema}
+                    onSubmit={this.createEntity}
                     >
                     {({
                         values,
@@ -490,6 +462,9 @@ export class RolesComponent extends Component{
                         >
                              <Modal.Body>
                                 <div className="form-row">
+
+
+
                                 <div
                                     className={utils.classList({
                                     "col-md-12 mb-2": true,
@@ -499,13 +474,13 @@ export class RolesComponent extends Component{
                                         errors.name && touched.name
                                     })}
                                 >
-                                    <label htmlFor="role_name">
+                                    <label htmlFor="entity_name">
                                         <b>Name<span className='text-danger'>*</span></b>
                                     </label>
                                     <input
                                     type="text"
                                     className="form-control"
-                                    id="role_name"
+                                    id="entity_name"
                                     placeholder=""
                                     name="name"
                                     value={values.name}
@@ -518,29 +493,7 @@ export class RolesComponent extends Component{
                                     Name is required
                                     </div>
                                 </div>
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        touched.description && !errors.description,
-                                    "invalid-field":
-                                        touched.description && errors.description
-                                    })}
-                                >
-                                    <label htmlFor="create_role_description">
-                                         <b>Description<span className='text-danger'>*</span></b>
-                                    </label>
 
-                                    <textarea className="form-control"
-                                    id="create_role_description"  onChange={(event)=>this.handleChange(event)}
-                                    name="description"
-                                    defaultValue={values.description}
-                                   />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Description is required
-                                    </div>
-                                </div>
 
                                 </div>
                             </Modal.Body>
@@ -559,7 +512,7 @@ export class RolesComponent extends Component{
                                     </LaddaButton>
 
                                     <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.createRoleSchema, this.state.createRoleForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                        className={`btn btn-${utils.isValid(this.createEntitySchema, this.state.createEntityForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
                                         loading={this.state.isSaving}
                                         progress={0.5}
                                         type='submit'
@@ -580,15 +533,16 @@ export class RolesComponent extends Component{
                 </Modal>
 
                 <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Role</Button>
+                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create entry type</Button>
                 </div>
 
                 <div className="breadcrumb">
-                    <h1>Roles</h1>
+                    <h1>Entry Types</h1>
                     <ul>
                         <li><a href="#">List</a></li>
                         <li>View</li>
                     </ul>
+
                 </div>
 
                 <div className="separator-breadcrumb border-top"></div>
@@ -597,8 +551,8 @@ export class RolesComponent extends Component{
                     <div className="col-md-12 mb-4">
                         <div className="card text-left">
                             <div className="card-body">
-                                <h4 className="card-title mb-3">Roles</h4>
-                                <p>List of roles.</p>
+                                <h4 className="card-title mb-3">Entry Types</h4>
+                              <p>List of entry types.</p>
 
                             {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}
 
@@ -608,84 +562,70 @@ export class RolesComponent extends Component{
                                             <tr className="ul-widget6__tr--sticky-th">
                                                 <th>#</th>
                                                 <th>Name</th>
-                                                <th>Description</th>
+
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
-                                                <th>Action</th>
+                                                {/* <th>Action</th> */}
                                             </tr>
                                         </thead>
                                         <tbody>
                                         {
-                                          this.state.allRoles.length ?  this.state.allRoles.map( (role, index)=>{
+                                          this.state.allEntities.length ?  this.state.allEntities.map( (entity, index)=>{
                                                 return (
-                                                    <tr key={role.id} className={role.temp_flash ? 'bg-success text-white':''}>
+                                                    <tr key={entity.id} className={entity.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                          <Link  key={role.id} className='underline' to={`/admin/roles/${role.slug}}`} onClick={
-                                                                (event)=>{
-                                                                    this.viewRole(event, role)
-                                                                }
-                                                            }>
-                                                            {role.name}
-                                                          </Link>
+                                                            {entity.name}
                                                         </td>
-                                                        <td>
-                                                        {role.description}
-                                                        </td>
+
                                                         <td>
                                                         <Form>
 
                                                              <Form.Check
-                                                                    checked={role.status}
+                                                                    checked={entity.status}
                                                                     type="switch"
-                                                                    id={`custom-switch${role.id}`}
-                                                                    label={role.status ? 'Enabled' : 'Disabled'}
-                                                                    className={role.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleRole(role)}
+                                                                    id={`custom-switch${entity.id}`}
+                                                                    label={entity.status ? 'Enabled' : 'Disabled'}
+                                                                    className={entity.status ? 'text-success' : 'text-danger'}
+                                                                    onChange={()=> this.toggleEntity(entity)}
                                                                 />
 
 
                                                             </Form>
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(role.created_at)}
+                                                        {utils.formatDate(entity.created_at)}
                                                         </td>
                                                         <td>
-                                                        {utils.formatDate(role.updated_at)}
+                                                        {utils.formatDate(entity.updated_at)}
                                                         </td>
 
-                                                        <td>
-                                                        <Dropdown key={role.id}>
+                                                        {/* <td>
+                                                        <Dropdown key={entity.id}>
                                                             <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-
-
-                                                           <Dropdown.Item  className='border-bottom' onClick={(event)=>{this.viewRole(event, role)}}>
-                                                               <i className="nav-icon i-Eye text-info font-weight-bold"> </i> View | Configure
-                                                           </Dropdown.Item>
-
                                                             <Dropdown.Item onClick={()=> {
-                                                                this.editRole(role);
+                                                                this.editEntity(entity);
                                                             }} className='border-bottom'>
                                                                 <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                             </Dropdown.Item>
                                                             <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteRole(role);}
+                                                                ()=>{this.deleteEntity(entity);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
                                                             </Dropdown.Item>
-                                                            {/* <Dropdown.Item>
+                                                            <Dropdown.Item>
                                                                 <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
+                                                            </Dropdown.Item>
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 
-                                                        </td>
+                                                        </td> */}
 
                                                     </tr>
                                                 )
@@ -694,7 +634,7 @@ export class RolesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='7'>
+                                                    <td className='text-center' colSpan='6'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -706,11 +646,10 @@ export class RolesComponent extends Component{
                                             <tr>
                                                 <th>#</th>
                                                 <th>Name</th>
-                                                <th>Description</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
-                                                <th>Action</th>
+                                                {/* <th>Action</th> */}
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -735,15 +674,13 @@ export class RolesComponent extends Component{
 
     }
 
-createRoleSchema = yup.object().shape({
+createEntitySchema = yup.object().shape({
         name: yup.string().required("Name is required"),
-        description: yup.string().required("Description is required"),
       });
 
 
-updateRoleSchema = yup.object().shape({
+updateEntitySchema = yup.object().shape({
         name: yup.string().required("Name is required"),
-        description: yup.string().required("Description is required"),
         });
 
 }
@@ -751,4 +688,4 @@ updateRoleSchema = yup.object().shape({
 
 
 
-export default RolesComponent
+export default EntitiesComponent;

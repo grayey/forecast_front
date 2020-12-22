@@ -64,9 +64,9 @@ getUserFromParams = (urlParams) => {
 
 // decryptparrams
 
-let {usn, usac } = urlParams;
-usn.replace(/" "/g,"+")
-usac.replace(/" "/g,"+")
+let { usn, usac } = urlParams;
+// usn.replace(/" "/g,"+")
+// usac.replace(/" "/g,"+")
 
 const email = encryptionService.decryptData(usn);
 const password = encryptionService.decryptData(usac);

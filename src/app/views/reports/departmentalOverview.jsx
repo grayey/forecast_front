@@ -20,7 +20,7 @@ class DepartmentalOverview extends Component {
     reportData:{},
     isFetching:false,
     entryTypes:[
-      'PRINCIPAL'
+
     ],
     graphColors:[],
   }
@@ -31,12 +31,13 @@ class DepartmentalOverview extends Component {
 
   }
 
+  componentDidMount() {
+    const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
+    this.setState({ entryTypes })
+  }
+
 
   renderReportData = (reportData) => {
-
-    // for(const key in reportData){
-    //   reportData[key] = [];
-    // }
     console.log(reportData);
     const graphColors = utils.getGraphColors();
     this.setState({ reportData, graphColors })
@@ -44,12 +45,14 @@ class DepartmentalOverview extends Component {
   }
 
   displayEntityCategoryGraph = (aggregate) =>{
-    console.log('Entity Category graph', aggregate)
+    const { graphColors } = this.state;
+
 
 
     // console.log('graphColors',graphColors)
+    //
     return (
-      <MultipleBarChart caller='entity_category' colors={graphColors} chartData={summary}/>
+      <MultipleBarChart caller='entity_category' colors={graphColors} chartData={aggregate}/>
 
     )
   }

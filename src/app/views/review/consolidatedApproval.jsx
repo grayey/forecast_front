@@ -51,9 +51,7 @@ class ConsolidatedApproval extends Component {
       allBudgetEntries:[],
       allAggregates:[],
       entryTypes:[
-        "PRINCIPAL",
-        "ADD",
-        "ADE"
+      
       ],
       grandTotalsN:{
         naira:0,
@@ -74,6 +72,8 @@ class ConsolidatedApproval extends Component {
    componentDidMount = async () => {
      this.getBudgetVersionBySlug();
       this.getAllApprovals();
+      const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
+      this.setState({ entryTypes })
    }
 
   getBudgetVersionBySlug = async ()=>{

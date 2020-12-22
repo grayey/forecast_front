@@ -53,7 +53,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
         activeBudgetCycle:{},
         single_department:{},
         entryTypes:[
-          "PRINCIPAL",
+
 
         ], //dummy entry type
         historyDetail:{},
@@ -98,6 +98,8 @@ export class DepartmentAggregatesApprovalComponent extends Component{
          this.getAllDepartmentAggregatesByActiveVersion();
          this.getAllVersionCodes();
          this.getAllApprovals();
+         const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
+         this.setState({ entryTypes })
     }
 
     // componentWillReceiveProps(nextProps){

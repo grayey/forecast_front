@@ -1,4 +1,6 @@
 import moment from "moment";
+import * as titleCase from "titlecase";
+
 
 
 export function debounce(func, wait, immediate) {
@@ -212,11 +214,16 @@ export function getGraphColors(){
     const colorCaptured = colors.indexOf(color) >= 0;
     if(!colorCaptured){
       colors.push("#" + ("000000" + color.toString(16)).slice(-6));
-      
+
     }
 
     // while (colors.indexOf(color) >= 0);
   }
   return colors;
 
+}
+
+
+export function toTiltle(stringVal){
+  return titleCase(stringVal)
 }

@@ -117,6 +117,13 @@ export const navigations = [
 
       {
         icon: "i-Clock-3",
+        name: "Entry Types",
+        path: "/admin/entry-types",
+        type: "link"
+      },
+
+      {
+        icon: "i-Clock-3",
         name: "Roles",
         path: "/admin/roles",
         type: "link"
@@ -168,8 +175,8 @@ export const navigations = [
       },
       {
         icon: "i-Clock-3",
-        name: "Tasks",
-        path: "/admin/tasks",
+        name: "System tasks",
+        path: "/admin/system-tasks",
         type: "link"
       },
     ]

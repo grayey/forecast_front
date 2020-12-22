@@ -173,6 +173,50 @@ export default class AppMainService extends Component {
     }
 
 
+    /**
+     *
+     * @param {*} slug
+     * This method retrieves a role by it's slug
+     */
+  async  getRoleBySlug(slug){
+    const url = `roles/${slug}/by-slug/`
+    return await apiService.get(url);
+  }
+
+    /**
+   *
+   * --- TASKS SECTION HERE ----
+   *
+   */
+
+
+   /**
+    * This method returns a list of all tasks
+    */
+  async getAllTasks(){
+      const url = 'tasks';
+      return await apiService.get(url);
+  }
+
+
+  /**
+   *
+   * @param {*} taskData
+   * this method generates system tasks
+   */
+  async generateSystemTasks(){
+      const url = 'tasks/';
+      return await apiService.post(url,{});
+  }
+
+
+
+
+
+
+
+
+
 
     /**
      * This method returns a list of all users
@@ -430,6 +474,77 @@ export default class AppMainService extends Component {
            costitem.status = !costitem.status
          return this.updateCostItem(costitem, costitem.id);
        }
+
+
+       /**
+       *
+       * --- ENTITIES SECTION HERE ----
+       *
+       */
+
+
+       /**
+        * This method returns a list of all entities
+        */
+       async getAllEntities(){
+          const url = 'entities';
+          return await apiService.get(url);
+      }
+
+
+        /**
+         * This method returns a list of all entities by category
+         */
+        async getEntitiesByCategory(categoryId){
+           const url = `entities/${categoryId}/by-category`;
+           return await apiService.get(url);
+       }
+
+
+
+
+
+      /**
+       *
+       * @param {*} entityData
+       * this method creates a new entity
+       */
+      async createEntity(entityData){
+          const url = 'entities/';
+          return await apiService.post(url,entityData);
+      }
+
+      /**
+       *
+       * @param {*} entity
+       * @param {*} id
+       * This method updates a entity
+       */
+      async updateEntity(entity, id){
+          const url =`entities/${id}/`;
+          return await apiService.put(url,entity);
+
+      }
+
+      /**
+       *
+       * @param {*} entity
+       * This method deletes a entity
+       */
+      async deleteEntity(entity){
+          const url = `entities/${entity.id}`
+          return await apiService.del(url);
+      }
+
+      /**
+       *
+       * @param {*} entity
+       * This method toggles a entity
+       */
+      async toggleEntity(entity){
+          entity.status = !entity.status
+        return this.updateEntity(entity, entity.id);
+      }
 
        /**
         *

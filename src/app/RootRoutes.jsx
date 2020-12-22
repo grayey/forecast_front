@@ -20,12 +20,14 @@ import ecommerceRoutes from "./views/app/ecommerce/ecommerceRoutes";
 import contactRoutes from "./views/app/contact/contactRoutes";
 import departmentRoutes from "./views/departments/departmentsRoute";
 import rolesRoutes from "./views/roles/rolesRoutes";
+import tasksRoutes from "./views/tasks/tasksRoutes";
 import approvalsRoutes from "./views/approvals/approvalsRoutes";
 import usersRoutes from "./views/users/usersRoutes";
 import processingRoutes from "./views/processing/processing.routes";
 import preparationRoutes from "./views/preparation/preparation.routes";
 import itemCategoriesRoutes from "./views/itemcategories/itemCategoriesRoutes";
 import costItemRoutes from "./views/costitems/costitemsRoutes";
+import entityRoutes from "./views/entities/entitiesRoutes";
 import versionCodesRoutes from "./views/versioncodes/versionCodesRoutes";
 import reviewRoutes from "./views/review/reviewRoutes";
 import reportRoutes from "./views/reports/reportRoutes";
@@ -60,6 +62,7 @@ const routes = [
       ...dashboardRoutes,
       ...departmentRoutes,
       ...rolesRoutes,
+      ...tasksRoutes,
       ...approvalsRoutes,
       ...usersRoutes,
       ...processingRoutes,
@@ -67,6 +70,7 @@ const routes = [
       ...itemCategoriesRoutes,
       ...emailTemplatesRoutes,
       ...costItemRoutes,
+      ...entityRoutes,
       ...versionCodesRoutes,
       ...reviewRoutes,
       ...reportRoutes,

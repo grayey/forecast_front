@@ -131,7 +131,9 @@ export class BudgetEntriesComponent extends Component{
             total_naira_amount:""
           },
           availableYears:[],
-          allEntities:[],
+          allEntities:[
+
+          ],
           totals:{
             naira_part:0,
             currency_part:0,
@@ -162,6 +164,8 @@ export class BudgetEntriesComponent extends Component{
 
     componentDidMount = async ()=>{
       const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+      // const allEntities = JSON.parse( localStorage.getItem('ENTITIES'))
+      await this.getAllEntities();
       await this.setState({ activeDepartmentRole });
       if(this.props.updateentries){
       await  this.getAllBudgetEntriesByDepartmentSlug();
@@ -187,6 +191,27 @@ export class BudgetEntriesComponent extends Component{
     //   }
     //
     // }
+    //
+    //
+
+
+
+        /**
+         * This method lists all entities
+         */
+         getAllEntities = async ()=>{
+
+            this.appMainService.getAllEntities().then(
+                (entitiesResponse)=>{
+                    const allEntities = entitiesResponse.filter(e => e.status).map(e => e.name);
+                    this.setState({ allEntities })
+                    console.log('Entities response', entitiesResponse)
+                }
+            ).catch((error)=>{
+
+                console.log('Error', error)
+            })
+        }
 
 
 
@@ -587,9 +612,9 @@ export class BudgetEntriesComponent extends Component{
      getAllItemCategories = async ()=>{
        // Move to a getAllEntities method
        let { allEntities, createDepartmentAggregateForm, activeDepartmentRole, viewedDepartmentAggregate } = this.state;
-       if(!allEntities.length){
-         createDepartmentAggregateForm.entity = "PRINCIPAL" // default entity
-       }
+       // if(!allEntities.length){
+       //   createDepartmentAggregateForm.entity = "PRINCIPAL" // default entity
+       // }
        this.setState({allEntities, createDepartmentAggregateForm})
        // End getAllEntities method
 
@@ -2568,13 +2593,20 @@ export class BudgetEntriesComponent extends Component{
                                             required
                                             >
                                             <option value="">Select</option>
-                                            <option value="PRINCIPAL">Principal</option>
+                                          {
+                                            this.state?.allEntities?.map((en)=>{
+
+                                              return (
+                                                <option value={en}>{en}</option>
+                                              )
+                                            })
+                                          }
 
 
                                           </select>
 
                                           <div className="valid-feedback"></div>
-                                          <div className="invalid-feedback">Entity is required</div>
+                                        <div className="invalid-feedback">Entry type is required</div>
                                       </div>
 
                                       <div

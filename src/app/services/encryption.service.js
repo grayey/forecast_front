@@ -22,26 +22,32 @@ export const encryptData = (data) =>{
  * This function is used to decrypt tokens
  */
 export const decryptData = (ciphertext)=>{
-  let decryptionKey = process.env.REACT_APP_DECRYPTION_KEY;
-  decryptionKey = decryptionKey.slice(0,16);
-  // because backend was prepending b' and appending '
-
-  const str_length = ciphertext.length;
-  const str = ciphertext.slice(2,str_length-1);
-  console.log("STRTTRT", str)
-  return new_decrypt(str, decryptionKey)
+  let decryptionKey = process.env.REACT_APP_DECRYPTION_KEY.slice(0,16);
+  // decryptionKey = btoa(decryptionKey);
+  const key = CryptoJS.enc.Utf8.parse(decryptionKey);
 
 
-  // const bytes  = CryptoJS.AES.decrypt(str, decryptionKey);
-  // // const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-  //   console.log(bytes, "BYTESS", "dddd")
+ console.log('KEY', decryptionKey)
+
+  const iv = CryptoJS.enc.Utf8.parse(ciphertext.substring(0, 16));
+  const padding = CryptoJS.pad.Pkcs7;
+  const mode = CryptoJS.mode.CBC
+  const encrypted_text = ciphertext.substring(16);
+
+  // Decrypt
+  // const plainText = CryptoJS.AES.decrypt({ ciphertext:  encrypted_text}, decryptionKey, {iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7}).toString(CryptoJS.enc.Utf8);
+
+    const plainText = CryptoJS.AES.decrypt(encrypted_text, key, { iv, mode, padding });
+  // console.log('plainText', plainText);
+  return plainText.toString(CryptoJS.enc.Utf8);
   //
-  //  // console.log(str,"Sttrtrttrtr", bytes.toString(CryptoJS.enc.Utf8))
-  // return ciphertext;
+  // return new_decrypt(encrypted_text, decryptionKey)
 
 }
 
 export const new_decrypt = (ciphertext, decryptionKey)=>{
+
+
 
 
   // Decode the base64 data so we can separate iv and crypt text.
@@ -51,10 +57,11 @@ export const new_decrypt = (ciphertext, decryptionKey)=>{
    var crypttext = ciphertext.substring(16);
 
 
+
    //Parsers
    // crypttext = CryptoJS.enc.Utf8.parse(crypttext);
 
-   const uint8array = new TextEncoder().encode(ciphertext);
+   const uint8array = new TextEncoder().encode(crypttext);
    crypttext = new TextDecoder('utf-8').decode(uint8array);
 
 

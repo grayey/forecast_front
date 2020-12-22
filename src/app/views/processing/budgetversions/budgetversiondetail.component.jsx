@@ -42,9 +42,7 @@ export class BudgetVersionDetailsComponent extends Component{
         allBudgetEntries:[],
         allAggregates:[],
         entryTypes:[
-          "PRINCIPAL",
-          "ADD",
-          "ADE"
+
         ],
         grandTotals:{
           naira:0,
@@ -84,7 +82,8 @@ export class BudgetVersionDetailsComponent extends Component{
          this.getBudgetVersionBySlug();
          // this.getAllVersionCodes();
          this.getAllApprovals();
-
+         const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
+         this.setState({ entryTypes })
 
          //
     }

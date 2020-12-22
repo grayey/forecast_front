@@ -58,7 +58,6 @@ export class DepartmentAggregatesComponent extends Component{
         single_department:{},
 
         entryTypes:[
-          "PRINCIPAL",
 
         ], //dummy entry type
         groupedEntries:[],
@@ -98,6 +97,9 @@ export class DepartmentAggregatesComponent extends Component{
          this.getAllDepartmentAggregatesByBudgetCycleAndDepartment();
          this.getAllVersionCodes();
          this.getAllApprovals();
+         const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
+         this.setState({ entryTypes })
+
     }
 
     // componentWillReceiveProps(nextProps){

@@ -20,6 +20,7 @@ import MegaMenu from "@gull/components/MegaMenu";
 
 import ProcessingService from "../../services/processing.service";
 import jwtAuthService from "../../services/jwtAuthService";
+import AppMainService from "../../services/appMainService";
 
 import * as utils from "@utils";
 import AppNotification from "../../appNotifications";
@@ -27,10 +28,12 @@ import AppNotification from "../../appNotifications";
 class Layout1Header extends Component {
 
   processingService;
+  appMainService;
 
   constructor(props){
     super(props);
     this.processingService = new ProcessingService();
+    this.appMainService = new AppMainService();
   }
   state = {
 
@@ -152,7 +155,8 @@ class Layout1Header extends Component {
     activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
     userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
     activeUser = jwtAuthService.getUser();
-    console.log("ACTIVE USER", activeUser)
+    console.log("ACTIVE USER", activeUser);
+    this.getAllEntities();
     this.setState({ activeDepartmentRole, userDepartmentRoles, activeUser })
     // const { activeBudgetCycle } = this.props.bugetcycleData;
     // this.props.setactivebudgetcycle(activeBudgetCycle.id)
@@ -167,7 +171,24 @@ class Layout1Header extends Component {
 
   handleBudgetCycleSelection = (event) => {
     this.setactivebudgetcycle(event.target.value);
+  }
 
+  /**
+   * This method lists all entities
+   */
+   getAllEntities = async ()=>{
+
+      this.appMainService.getAllEntities().then(
+          (entitiesResponse)=>{
+              const allEntities = entitiesResponse.map(e => e.name);
+                localStorage.setItem('ENTITIES', JSON.stringify(allEntities));
+
+              console.log('Entities response', allEntities)
+          }
+      ).catch((error)=>{
+
+          console.log('Error', error)
+      })
   }
 
   getactivebudgetcycle = () => {
