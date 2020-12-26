@@ -8,10 +8,14 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import { FetchingRecords, CustomSlider } from "../../../appWidgets";
+import jwtAuthService  from "../../../services/jwtAuthService";
+
+import { FetchingRecords, CustomSlider, ErrorView } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { FaArrowRight } from "react-icons/fa";
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 
 import LaddaButton, {
@@ -24,6 +28,13 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class BudgetCyclesComponent extends Component{
+
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_ENABLE_NEW_VERSION  = false;
+  CAN_TOGGLE_STATUS = false;
+
 
     state = {
         editedIndex:0,
@@ -68,6 +79,18 @@ export class BudgetCyclesComponent extends Component{
         super(props)
         this.processingService = new ProcessingService();
         this.appMainService = new AppMainService();
+
+        const componentName = "Processing___Budget_Cycles";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_ENABLE_NEW_VERSION = this.userPermissions.includes(`${componentName}__CAN_ENABLE_NEW_VERSION`);
+        this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
+
+
+
     }
 
     componentDidMount = async () => {
@@ -478,7 +501,10 @@ enableNextVersion = (budgetcycle) => {
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_TOGGLE_STATUS, CAN_EDIT, CAN_ENABLE_NEW_VERSION } = this;
+
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -764,6 +790,7 @@ enableNextVersion = (budgetcycle) => {
 
                                                   </Modal>
 
+
                 <Modal show={this.state.showCreateModal} onHide={
                     ()=>{ this.toggleModal('create')}
                     } {...this.props} id='create_modal'>
@@ -998,9 +1025,14 @@ enableNextVersion = (budgetcycle) => {
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Cycle</Button>
-                </div>
+                {
+                  CAN_CREATE ? (
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} } disabled={!this.state.availableYears.length}><i className='i-Add'></i> Budget Cycle</Button>
+                    </div>
+                  ) : null
+                }
+
 
                 <div className="breadcrumb">
                     <h1>Budget Cycles</h1>
@@ -1085,19 +1117,28 @@ enableNextVersion = (budgetcycle) => {
                                                         </td>
 
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            CAN_TOGGLE_STATUS ? (
+                                                              <Form>
 
-                                                             <Form.Check
-                                                                    checked={budgetcycle.is_current}
-                                                                    type="switch"
-                                                                    id={`custom-switch${budgetcycle.id}`}
-                                                                    label={budgetcycle.is_current ? 'Active' : 'Inactive'}
-                                                                    className={budgetcycle.is_current ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleBudgetCycle(budgetcycle)}
-                                                                />
+                                                                   <Form.Check
+                                                                          checked={budgetcycle.is_current}
+                                                                          type="switch"
+                                                                          id={`custom-switch${budgetcycle.id}`}
+                                                                          label={budgetcycle.is_current ? 'Active' : 'Inactive'}
+                                                                          className={budgetcycle.is_current ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleBudgetCycle(budgetcycle)}
+                                                                      />
 
 
-                                                            </Form>
+                                                                  </Form>
+                                                            ): (
+                                                              <span className={budgetcycle.is_current ? `badge  badge-success`: `badge  badge-danger`}>
+                                                                {budgetcycle.is_current ? 'Active' : 'Inactive'}
+                                                              </span>
+                                                            )
+                                                          }
+
                                                         </td>
                                                         <td>
                                                         {utils.formatDate(budgetcycle.created_at)}
@@ -1112,14 +1153,19 @@ enableNextVersion = (budgetcycle) => {
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editBudgetCycle(budgetcycle);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
+                                                              {
+                                                                CAN_EDIT ? (
+                                                                  <Dropdown.Item onClick={()=> {
+                                                                      this.editBudgetCycle(budgetcycle);
+                                                                  }} className='border-bottom'>
+                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                  </Dropdown.Item>
+                                                                ): null
+                                                              }
+
 
                                                             {
-                                                              budgetcycle.next_version ? (
+                                                              budgetcycle.next_version && CAN_ENABLE_NEW_VERSION ? (
                                                                 <Dropdown.Item onClick={()=> {
                                                                     this.enableNextVersion(budgetcycle);
                                                                 }} className='border-bottom'>

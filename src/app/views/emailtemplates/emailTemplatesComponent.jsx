@@ -7,10 +7,13 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords, BulkTemplateDownload} from "../../appWidgets";
 
 import  { FaPlus, FaList, FaClone, FaSpinner } from "react-icons/fa";
 import { RichTextEditor } from "@gull";
+
+import {FetchingRecords, BulkTemplateDownload,  ErrorView} from "../../appWidgets";
+import jwtAuthService  from "../../services/jwtAuthService";
+import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
 import LaddaButton, {
@@ -24,6 +27,11 @@ import LaddaButton, {
 
 export class EmailTemplatesComponent extends Component{
 
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_DELETE = false;
 
 
     state = {
@@ -34,6 +42,7 @@ export class EmailTemplatesComponent extends Component{
         isSaving:false,
         isFetching:true,
         isViewMode:true,
+        headerLabel:"Create New",
         saveMsg:'Save',
         updateMsg:'Update',
         editedEmailTemplate: {},
@@ -102,6 +111,14 @@ export class EmailTemplatesComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Email_Templates";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_DELETE = this.userPermissions.includes(`${componentName}__CAN_DELETE`);
     }
 
     componentDidMount(){
@@ -191,6 +208,7 @@ export class EmailTemplatesComponent extends Component{
                         const selectedTemplateType = templatetypesResponse;
                         delete selectedTemplateType.id;
                         const { mailtemplate } = selectedTemplateType;
+                        const headerLabel = mailtemplate ? "Update" : "Create New"
                         const updateObject = mailtemplate ? mailtemplate : {
                           mail_body:"",
                           template_type:typeId,
@@ -198,7 +216,7 @@ export class EmailTemplatesComponent extends Component{
                         }
                         const templatePreview =this.getTemplatePreview(updateObject.mail_body);
                         const createOrUpdateEmailTemplateForm = Object.assign(selectedTemplateType, updateObject); //
-                        this.setState({ selectedTemplateType, createOrUpdateEmailTemplateForm, templatePreview,  isViewMode:false, isFetching:false  });
+                        this.setState({ selectedTemplateType, createOrUpdateEmailTemplateForm, templatePreview, headerLabel, isViewMode:false, isFetching:false  });
                     }
                 ).catch((error)=>{
                   this.setState({isFetching:false})
@@ -410,15 +428,15 @@ export class EmailTemplatesComponent extends Component{
         createOrUpdateEmailTemplateForm['template_type'] = createOrUpdateEmailTemplateForm['template_type'].id;
         const templatePreview = this.getTemplatePreview(createOrUpdateEmailTemplateForm['mail_body']);
         const selectedTemplateType =  this.state.allTemplateTypes.find(tt => tt.id == createOrUpdateEmailTemplateForm['template_type']);
-        this.setState({createOrUpdateEmailTemplateForm, templatePreview, isViewMode:false, selectedTemplateType});
+        this.setState({createOrUpdateEmailTemplateForm, templatePreview, isViewMode:false, selectedTemplateType, headerLabel:"Update"});
     }
 
     switchView = async(view = 'list') => {
-        this.setState({ isViewMode:true });
+        this.setState({ isViewMode:true }); // for light speed rerender
 
       const isViewMode = view == 'list';
       await this.resetForm();
-      this.setState({ isViewMode, templatePreview:"" });
+      this.setState({ isViewMode, templatePreview:"", headerLabel:"Create New" });
     }
 
     /**
@@ -531,7 +549,10 @@ export class EmailTemplatesComponent extends Component{
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_DELETE, state } = this;
+      const { headerLabel } = state;
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -798,7 +819,13 @@ export class EmailTemplatesComponent extends Component{
                   <div className="btn-group">
                     <button className={`btn btn-info${this.state.isViewMode ? '_custom shadow-lg' :''}`} onClick={()=> this.switchView()}><FaList/> View Templates</button>
 
-                  <button className={`btn btn-info${this.state.isViewMode ? '' :'_custom shadow-lg'}`} onClick={()=> this.switchView('create')}><FaPlus/> Create | Update Template</button>
+                  {
+                    CAN_CREATE ? (
+                      <button className={`btn btn-info${this.state.isViewMode ? '' :'_custom shadow-lg'}`} onClick={()=> this.switchView('create')}><FaPlus/> Create New Template</button>
+
+                    ) : null
+                  }
+
 
                   </div>
                 </div>
@@ -874,16 +901,28 @@ export class EmailTemplatesComponent extends Component{
                                                                                   Manage
                                                                                   </Dropdown.Toggle>
                                                                                   <Dropdown.Menu>
-                                                                                  <Dropdown.Item onClick={()=> {
-                                                                                      this.editEmailTemplate(emailtemplate);
-                                                                                  }} className='border-bottom'>
-                                                                                      <i className="nav-icon i-Gear text-success font-weight-bold"> </i>View | Edit
-                                                                                  </Dropdown.Item>
-                                                                                  <Dropdown.Item className='text-danger' onClick={
-                                                                                      ()=>{this.deleteEmailTemplate(emailtemplate);}
-                                                                                  }>
-                                                                                      <i className="i-Close-Window"> </i> Delete
-                                                                                  </Dropdown.Item>
+
+                                                                                    {
+                                                                                      CAN_EDIT ? (
+                                                                                        <Dropdown.Item onClick={()=> {
+                                                                                            this.editEmailTemplate(emailtemplate);
+                                                                                        }} className='border-bottom'>
+                                                                                            <i className="nav-icon i-Gear text-success font-weight-bold"> </i>View | Edit
+                                                                                        </Dropdown.Item>
+                                                                                      ) : null
+                                                                                    }
+
+
+                                                                                  {
+                                                                                    CAN_DELETE ? (
+                                                                                      <Dropdown.Item className='text-danger' onClick={
+                                                                                          ()=>{this.deleteEmailTemplate(emailtemplate);}
+                                                                                      }>
+                                                                                          <i className="i-Close-Window"> </i> Delete
+                                                                                      </Dropdown.Item>
+                                                                                    ) : null
+                                                                                  }
+
                                                                                   {/* <Dropdown.Item>
                                                                                       <i className="i-Money-Bag"> </i> Something else here
                                                                                   </Dropdown.Item> */}
@@ -954,7 +993,7 @@ export class EmailTemplatesComponent extends Component{
                           <div className="col-md-12 mb-4">
                               <div className="card text-left">
                                   <div className="card-body">
-                                      <h4 className="card-title mb-3">Create | Update Template</h4>
+                                      <h4 className="card-title mb-3">{headerLabel} Template</h4>
 
 
                                   {/* <div style={{"maxHeight":"500px", "overflowY":"scroll"}}> */}

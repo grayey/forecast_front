@@ -3,12 +3,19 @@ import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-boot
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
+
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
+
 import { FaArrowDown } from "react-icons/fa";
+
+import {FetchingRecords, ErrorView} from "../../appWidgets";
+
+import jwtAuthService  from "../../services/jwtAuthService";
+
+import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
 import LaddaButton, {
@@ -21,6 +28,14 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class UsersComponent extends Component{
+
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_DELETE  = false;
+  CAN_TOGGLE_STATUS  = false;
+
 
     state = {
         editedIndex:0,
@@ -60,12 +75,23 @@ export class UsersComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Users";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_DELETE = this.userPermissions.includes(`${componentName}__CAN_DELETE`);
+        this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
     }
 
     componentDidMount(){
          this.getAllUsers();
          this.getAllDepartments();
          this.getAllRoles();
+
+
     }
 
     /**
@@ -426,7 +452,10 @@ export class UsersComponent extends Component{
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, CAN_DELETE} = this;
+
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> :  (
 
             <>
                 <div className="specific">
@@ -800,9 +829,14 @@ export class UsersComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create User</Button>
-                </div>
+                {
+                  CAN_CREATE ? (
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create User</Button>
+                    </div>
+
+                  ) : null
+                }
 
                 <div className="breadcrumb">
                     <h1>Users</h1>
@@ -861,19 +895,30 @@ export class UsersComponent extends Component{
 
                                                         </td>
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            CAN_TOGGLE_STATUS ? (
+                                                              <Form>
 
-                                                             <Form.Check
-                                                                    checked={userProfile.status}
-                                                                    type="switch"
-                                                                    id={`custom-switch${userProfile.id}`}
-                                                                    label={userProfile.status ? 'Enabled' : 'Disabled'}
-                                                                    className={userProfile.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleUser(userProfile)}
-                                                                />
+                                                                   <Form.Check
+                                                                          checked={userProfile.status}
+                                                                          type="switch"
+                                                                          id={`custom-switch${userProfile.id}`}
+                                                                          label={userProfile.status ? 'Enabled' : 'Disabled'}
+                                                                          className={userProfile.status ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleUser(userProfile)}
+                                                                      />
 
 
-                                                            </Form>
+                                                                  </Form>
+                                                            ) :(
+
+                                                                <span className={userProfile.status ? `badge  badge-success`: `badge  badge-danger`}>
+                                                                  {userProfile.status ? 'Enabled' : 'Disabled'}
+                                                                </span>
+
+                                                            )
+                                                          }
+
                                                         </td>
                                                         <td>
                                                         {utils.formatDate(userProfile.created_at)}
@@ -888,16 +933,29 @@ export class UsersComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editUser(userProfile);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteUser(userProfile);}
-                                                            }>
-                                                                <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item>
+
+                                                              {
+                                                                CAN_EDIT ? (
+                                                                  <Dropdown.Item onClick={()=> {
+                                                                      this.editUser(userProfile);
+                                                                  }} className='border-bottom'>
+                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                  </Dropdown.Item>
+                                                                ): null
+                                                              }
+
+                                                              {
+                                                                CAN_DELETE ? (
+
+                                                                  <Dropdown.Item className='text-danger' onClick={
+                                                                      ()=>{this.deleteUser(userProfile);}
+                                                                  }>
+                                                                      <i className="i-Close-Window"> </i> Delete
+                                                                  </Dropdown.Item>
+
+                                                                ) : null
+                                                              }
+
                                                             {/* <Dropdown.Item>
                                                                 <i className="i-Money-Bag"> </i> Something else here
                                                             </Dropdown.Item> */}

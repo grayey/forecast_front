@@ -7,7 +7,11 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
+import {FetchingRecords, ErrorView} from "../../appWidgets";
+
+import jwtAuthService  from "../../services/jwtAuthService";
+
+import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
 import LaddaButton, {
@@ -20,6 +24,12 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class DepartmentsComponent extends Component{
+
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_TOGGLE_STATUS  = false;
 
     state = {
         editedIndex:0,
@@ -51,6 +61,14 @@ export class DepartmentsComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Departments";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
     }
 
     componentDidMount(){
@@ -323,7 +341,9 @@ export class DepartmentsComponent extends Component{
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS} = this;
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> :  (
 
             <>
                 <div className="specific">
@@ -629,9 +649,14 @@ export class DepartmentsComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Department</Button>
-                </div>
+                {
+                  CAN_CREATE ? (
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Department</Button>
+                    </div>
+                  ) : null
+                }
+
 
                 <div className="breadcrumb">
                     <h1>Departments</h1>
@@ -684,19 +709,29 @@ export class DepartmentsComponent extends Component{
                                                         {department.description}
                                                         </td>
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            CAN_TOGGLE_STATUS ? (
 
-                                                             <Form.Check
-                                                                    checked={department.status}
-                                                                    type="switch"
-                                                                    id={`custom-switch${department.id}`}
-                                                                    label={department.status ? 'Enabled' : 'Disabled'}
-                                                                    className={department.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleDepartment(department)}
-                                                                />
+                                                              <Form>
+
+                                                                   <Form.Check
+                                                                          checked={department.status}
+                                                                          type="switch"
+                                                                          id={`custom-switch${department.id}`}
+                                                                          label={department.status ? 'Enabled' : 'Disabled'}
+                                                                          className={department.status ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleDepartment(department)}
+                                                                      />
 
 
-                                                            </Form>
+                                                                  </Form>
+                                                            ) : (
+                                                              <span className={department.status ? `badge  badge-success`: `badge  badge-danger`}>
+                                                                {department.status ? 'Enabled' : 'Disabled'}
+                                                              </span>
+                                                            )
+                                                          }
+
                                                         </td>
                                                         <td>
                                                         {utils.formatDate(department.created_at)}
@@ -711,16 +746,23 @@ export class DepartmentsComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editDepartment(department);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
-                                                            <Dropdown.Item className='text-danger' onClick={
+                                                              {
+                                                                CAN_EDIT ? (
+
+                                                                  <Dropdown.Item onClick={()=> {
+                                                                      this.editDepartment(department);
+                                                                  }} className='border-bottomx'>
+                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                  </Dropdown.Item>
+
+                                                                ) : null
+                                                              }
+
+                                                            {/* <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteDepartment(department);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item>
+                                                            </Dropdown.Item> */}
                                                             {/* <Dropdown.Item>
                                                                 <i className="i-Money-Bag"> </i> Something else here
                                                             </Dropdown.Item> */}

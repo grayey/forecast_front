@@ -14,6 +14,9 @@ import { saveAs } from 'file-saver';
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
 
+import ErrorComponent from "./views/sessions/Error";
+import { VIEW_FORBIDDEN } from './appConstants';
+
 
 import LaddaButton, {
     XL,
@@ -24,6 +27,25 @@ import LaddaButton, {
   } from "react-ladda";
 
 
+export const TaskIcons = {
+    'Dashboard':'i-Bar-Chart',
+    'Preparation':'i-Computer-Secure',
+    'Processing':'i-Computer-Secure',
+    'Review':'i-Computer-Secure',
+    'Reports':'i-Bar-Chart',
+    'Adiministration':'i-Bar-Chart', //change the spelling later
+  }
+
+
+export  const ErrorView = (props) =>{
+
+    const { errorType } = props;
+    const errorObject = {
+      VIEW_FORBIDDEN:VIEW_FORBIDDEN
+    }
+
+    return <ErrorComponent errorType={errorObject[errorType]}/>
+  }
 
 
 export const FetchingRecords = (props)=>{

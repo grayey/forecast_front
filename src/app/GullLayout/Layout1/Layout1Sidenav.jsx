@@ -141,6 +141,7 @@ class Layout1Sidenav extends Component {
 
   render() {
     let { settings } = this.props;
+    // const sidebarNavigations = navigations();
 
     return (
       <div className="side-content-wrap">
@@ -152,7 +153,7 @@ class Layout1Sidenav extends Component {
           // id="mainsidenav"
         >
           <ul className="navigation-left">
-            {navigations.map((item, i) => (
+            {navigations().map((item, i) => (
               <li
                 className={classList({
                   "nav-item": true,

@@ -44,20 +44,25 @@ export async  function forwardUserIntoApp(user_access){
   let activeUser = null;
   let activeDepartmentRole = null;
   let userDepartmentRoles = [];
+  let userTasks = [];
 
   const appMainService = new AppMainService();
   await appMainService.getUserLoginInfo(user_id).then(
     (loginInfoResponse)=>{
       const { department_roles, profile } = loginInfoResponse;
+      console.log("USER DEPARTMENT ROLES", department_roles)
       activeUser = profile.user;
       userDepartmentRoles = department_roles.map((dr)=>{
         dr.userprofile = undefined; // delete userprofile from department_role
         dr.itemcategories = undefined;
+        dr.role_users = undefined;
         return dr;
       })
       if(userDepartmentRoles.length == 1){ // user belongs to just one department
         pathname = 'dashboard/v1';
         activeDepartmentRole = userDepartmentRoles[0]; // user's active department is his first (and only) department
+        const { role_tasks } = activeDepartmentRole;
+        userTasks = role_tasks ? JSON.parse(role_tasks) : [];
       }
 
     }).catch((error)=>{
@@ -72,9 +77,12 @@ export async  function forwardUserIntoApp(user_access){
   //
 
  // dispatch(setUserData(activeUser));
+
  jwtAuthService.setUser(activeUser);
  jwtAuthService.setActiveDepartmentRole(activeDepartmentRole);
  jwtAuthService.setUserDepartmentRoles(userDepartmentRoles);
+ jwtAuthService.setUserTasks(userTasks);
+
 
  // history.push({ pathname });
  window.location.href += `${pathname}`;

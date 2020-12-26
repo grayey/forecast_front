@@ -71,6 +71,17 @@ class JwtAuthService {
     }
   };
 
+
+
+  setUserTasks = (userTasks) => {
+    localStorageService.setItem("USER_TASKS", userTasks);
+  }
+
+  getUserTasks = () => {
+    return localStorageService.getItem("USER_TASKS");
+  }
+
+
   setUser = (user) => {
     localStorageService.setItem("bms_auth_user", user);
   }

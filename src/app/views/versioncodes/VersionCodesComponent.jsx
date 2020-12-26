@@ -7,7 +7,11 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
+
+import {FetchingRecords, ErrorView} from "../../appWidgets";
+import jwtAuthService  from "../../services/jwtAuthService";
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 
 import LaddaButton, {
@@ -20,6 +24,11 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class VersionCodesComponent extends Component{
+
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
 
     state = {
         editedIndex:0,
@@ -50,6 +59,13 @@ export class VersionCodesComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Versioning";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
     }
 
     componentDidMount(){
@@ -347,7 +363,9 @@ export class VersionCodesComponent extends Component{
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT} = this;
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -671,9 +689,15 @@ export class VersionCodesComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Versioning</Button>
-                </div>
+                {
+                  CAN_CREATE ? (
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Versioning</Button>
+                    </div>
+                  ) : null
+                }
+
+
 
                 <div className="breadcrumb">
                     <h1>Versioning</h1>
@@ -702,7 +726,7 @@ export class VersionCodesComponent extends Component{
                                                 <th>Name</th>
                                                   <th>Code</th>
                                                 <th>Step</th>
-                                                <th>Status</th>
+                                                {/* <th>Status</th> */}
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
                                                 <th>Action</th>
@@ -723,9 +747,11 @@ export class VersionCodesComponent extends Component{
                                                           <code>{versioncode?.code}</code>
                                                         </td>
                                                         <td>
-                                                        {versioncode?.step}
+                                                          <b>
+                                                            {versioncode?.step}
+                                                          </b>
                                                         </td>
-                                                        <td>
+                                                        {/* <td>
                                                         <Form>
 
                                                              <Form.Check
@@ -739,7 +765,7 @@ export class VersionCodesComponent extends Component{
 
 
                                                             </Form>
-                                                        </td>
+                                                        </td> */}
                                                         <td>
                                                         {utils.formatDate(versioncode.created_at)}
                                                         </td>
@@ -753,11 +779,17 @@ export class VersionCodesComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editVersionCode(versioncode);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
+
+                                                              {
+                                                                CAN_EDIT ? (
+                                                                  <Dropdown.Item onClick={()=> {
+                                                                      this.editVersionCode(versioncode);
+                                                                  }} className='border-bottomx'>
+                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                  </Dropdown.Item>
+                                                                ) : null
+                                                              }
+
                                                             {/*  <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteVersionCode(versioncode);}
                                                             }>
@@ -775,7 +807,7 @@ export class VersionCodesComponent extends Component{
                                             }) :
                                             (
                                                 <tr>
-                                                    <td className='text-center' colSpan='8'>
+                                                    <td className='text-center' colSpan='7'>
                                                     <FetchingRecords isFetching={this.state.isFetching}/>
                                                     </td>
                                                 </tr>
@@ -789,7 +821,7 @@ export class VersionCodesComponent extends Component{
                                                 <th>Name</th>
                                                 <th>Code</th>
                                                 <th>Step</th>
-                                                <th>Status</th>
+                                                {/* <th>Status</th> */}
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
                                                 <th>Action</th>

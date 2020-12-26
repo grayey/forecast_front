@@ -12,13 +12,15 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import { FetchingRecords, BulkTemplateDownload, CustomProgressBar } from "../../../appWidgets";
+import { VIEW_FORBIDDEN } from "../../../appConstants";
+
+import { FetchingRecords, BulkTemplateDownload, CustomProgressBar, ErrorView } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
 import { Link, Redirect, withRouter } from "react-router-dom";
 import { getactivebudgetcycle } from "app/redux/actions/BudgetCycleActions";
-import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList,  FaPlus, FaDownload, FaMinus  } from "react-icons/fa";
+import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList,  FaPlus, FaDownload, FaUpload, FaMinus  } from "react-icons/fa";
 import Select from 'react-select';
 
 
@@ -35,6 +37,16 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class BudgetEntriesComponent extends Component{
+
+  CAN_VIEW_ALL = false;
+  CAN_CREATE = false;
+  CAN_EDIT =false;
+  CAN_VIEW_DETAIL = false;
+  CAN_SUBMIT = false;
+  CAN_VIEW_HISTORY = false;
+  CAN_APPROVE_OR_REJECT = false;
+  CAN_IMPORT_PREVIOUS_ENTRIES = false;
+  CAN_BULK_UPLOAD_ENTRIES = false;
 
 
   preparationService;
@@ -160,6 +172,26 @@ export class BudgetEntriesComponent extends Component{
             })
             window.history.back();
         }
+        const componentName = props.isApproval ? 'Review__Default' : "Preparation___Default";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        console.log('USERRERETTETTE',props, this.userPermissions)
+
+        // set permisions
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_SUBMIT = this.userPermissions.includes(`${componentName}__CAN_SUBMIT`);
+        this.CAN_VIEW_HISTORY = this.userPermissions.includes(`${componentName}__CAN_VIEW_HISTORY`);
+        this.CAN_IMPORT_PREVIOUS_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_IMPORT_PREVIOUS_ENTRIES`);
+        this.CAN_BULK_UPLOAD_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_BULK_UPLOAD_ENTRIES`);
+
+
+
+        this.CAN_APPROVE_OR_REJECT  = utils.comparePermissions(jwtAuthService.getUserTasks(),
+         utils.getComponentPermissions('Review__Default', ['CAN_APPROVE_OR_REJECT']));
+
     }
 
     componentDidMount = async ()=>{
@@ -700,7 +732,8 @@ export class BudgetEntriesComponent extends Component{
 
 
     viewOrEditButton = ()=>{
-      let { viewOrEditSelections, viewedDepartmentAggregate } = this.state;
+      const { CAN_EDIT, CAN_APPROVE_OR_REJECT, state } = this;
+      let { viewOrEditSelections, viewedDepartmentAggregate } = state;
       const { is_view_only } = viewOrEditSelections;
 
       return !this.props.isApproval ?(
@@ -709,7 +742,8 @@ export class BudgetEntriesComponent extends Component{
             View { viewOrEditSelections.is_view ? <FaEye/> : null}
           </button>
           {
-            is_view_only ? null :(
+            is_view_only ? null : !CAN_EDIT ? null : (
+
               <button className={`btn btn-lg btn-${viewOrEditSelections.is_edit ? "success shadow":"info"}`} onClick={()=>this.toggleViewOrEdit('edit')}>
                 Edit { viewOrEditSelections.is_edit ? <FaEdit/> : null}
               </button>
@@ -720,13 +754,13 @@ export class BudgetEntriesComponent extends Component{
       ) :
       <>
       {
-        this.state.viewedDepartmentAggregate?.approval_stage?.id == this.state.activeDepartmentRole?.role?.approval?.id ? (
+        this.state.viewedDepartmentAggregate?.approval_stage?.id == this.state.activeDepartmentRole?.role?.approval?.id && CAN_APPROVE_OR_REJECT ? (
           <div className="btn-group">
             {
               this.state.viewedDepartmentAggregate.id && this.state.activeDepartmentRole?.role?.approval ?(
                 <>
                 {
-                 !viewedDepartmentAggregate.is_archived ?(
+                 !viewedDepartmentAggregate.is_archived ? (
                    <>
                    <button className="btn btn-lg btn-success" onClick={()=>this.toggleModal('approve')}>
                      Approve <FaCheck/>
@@ -877,14 +911,15 @@ export class BudgetEntriesComponent extends Component{
 
 
     setViewMode = ()=>{
-        const { viewedDepartmentAggregate, viewOrEditSelections } = this.state;
+        const { CAN_CREATE, CAN_EDIT, state } = this;
+        const { viewedDepartmentAggregate, viewOrEditSelections } = state;
         const { entries_status, department, capturer, budgetversion, is_archived } = viewedDepartmentAggregate;
         const { version_code, budgetcycle } = budgetversion
 
-        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current || this.props.isApproval || is_archived)
+        viewOrEditSelections.is_view_only =  (entries_status || !budgetcycle.is_current || this.props.isApproval || is_archived || (!CAN_EDIT && !CAN_CREATE))
         // not in draft Or it's not user's department Or beyond end_date Or cycle is not active
         // Or userRole is not a capture role // departmentHasbegun capture
-        // (entries_status || !budgetcycle.is_current)
+
 
         viewOrEditSelections.is_view = viewOrEditSelections.is_view_only; // if we're not in view only, then we're in edit mode  by default
         viewOrEditSelections.is_edit = !viewOrEditSelections.is_view;
@@ -1800,10 +1835,12 @@ export class BudgetEntriesComponent extends Component{
 
     render(){
 
-      const { navigate, viewOrEditSelections, activeDepartmentRole, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = this.state;
+      const { CAN_VIEW_ALL, CAN_EDIT, CAN_CREATE, CAN_SUBMIT, CAN_VIEW_DETAIL, CAN_IMPORT_PREVIOUS_ENTRIES,
+         CAN_BULK_UPLOAD_ENTRIES, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT, state, props } = this
+      const { navigate, viewOrEditSelections, activeDepartmentRole, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
       const { active_version } = activeBudgetCycle;
       // const { version_code } = active_version;
-        return navigate ? <Redirect to="/preparation/budget-entries"/> : (
+        return navigate ? <Redirect to="/preparation/budget-entries"/> : (!props.updateentries && !CAN_CREATE) ? <ErrorView errorType={VIEW_FORBIDDEN}/> : (
 
             <>
                 <div className="specific">
@@ -2224,12 +2261,12 @@ export class BudgetEntriesComponent extends Component{
                     (
                       <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={this.viewInstructions} ><i className='i-Add'></i> View  instructions</Button>
 
-                    ) :
+                    ) : CAN_VIEW_HISTORY ?
 
                     (
                       <Button  variant="primary" className="ripple m-1 text-capitalize" onClick={()=>this.toggleModal('history')} ><FaList/> View  History</Button>
 
-                    )
+                    ) : null
                   }
                 </div>
 
@@ -2270,7 +2307,14 @@ export class BudgetEntriesComponent extends Component{
                       : (
 
                     <div className="d-inline pl-5">
-                      <BulkTemplateDownload caller="budgetentries" refresh={this.getAllItemCategories}/>
+                      {
+                        CAN_BULK_UPLOAD_ENTRIES ? (
+                            <BulkTemplateDownload caller="budgetentries" refresh={this.getAllItemCategories}/>
+                        ) : (
+                          <span className='p-1 badge badge-info_custom'>Bulk Upload Disabled <FaUpload/></span>
+                        )
+                      }
+
                     </div>
                   )}
                 </div>
@@ -2722,37 +2766,43 @@ export class BudgetEntriesComponent extends Component{
 
                                    </div>
                                  )
-                                : (
+                                :  (
 
                               <div className="float-right">
-                                <div className="input-group mb-3">
-                                  <div className="input-group-prepend">
-                                    <span className="input-group-text bg-info_custom text-white">
-                                      Import previous entries
+                                {
+                                  CAN_IMPORT_PREVIOUS_ENTRIES  ? (
+                                    <div className="input-group mb-3">
+                                      <div className="input-group-prepend">
+                                        <span className="input-group-text bg-info_custom text-white">
+                                          Import previous entries
 
-                                    </span>
-                                  </div>
-                                  <select className="form-control">
-                                    <option>Select Version</option>
-                                      <option>2020 (BV1)</option>
-                                        <option>2020 (BV2)</option>
-                                    <option>2019 (BV1)</option>
+                                        </span>
+                                      </div>
+                                      <select className="form-control">
+                                        <option>Select Version</option>
+                                          <option>2020 (BV1)</option>
+                                            <option>2020 (BV2)</option>
+                                        <option>2019 (BV1)</option>
 
-                                  </select>
+                                      </select>
 
-                                  <div className="input-group-append">
-                                    <Dropdown>
-                                      <Dropdown.Toggle variant="info_custom" className="text-white">
-                                        <FaCog/>
-                                      </Dropdown.Toggle>
-                                      <Dropdown.Menu>
-                                        <Dropdown.Item onClick={()=>console.log('IMporting')}>Import <FaArrowDown/> </Dropdown.Item>
-                                        <Dropdown.Divider />
-                                        <Dropdown.Item onClick={()=>console.log('Adjusting')}>Adjust Imported Total <FaArrowsAlt/> </Dropdown.Item>
-                                      </Dropdown.Menu>
-                                    </Dropdown>
-                                  </div>
-                                </div>
+                                      <div className="input-group-append">
+                                        <Dropdown>
+                                          <Dropdown.Toggle variant="info_custom" className="text-white">
+                                            <FaCog/>
+                                          </Dropdown.Toggle>
+                                          <Dropdown.Menu>
+                                            <Dropdown.Item onClick={()=>console.log('IMporting')}>Import <FaArrowDown/> </Dropdown.Item>
+                                            <Dropdown.Divider />
+                                            <Dropdown.Item onClick={()=>console.log('Adjusting')}>Adjust Imported Total <FaArrowsAlt/> </Dropdown.Item>
+                                          </Dropdown.Menu>
+                                        </Dropdown>
+                                      </div>
+                                    </div>
+                                  ) :
+                                  (<span className='badge badge-info_custom p-1'>Import Disabled <FaDownload/></span> )
+                                }
+
                               </div>
                             )}
 

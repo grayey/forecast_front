@@ -8,10 +8,13 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import { FetchingRecords, CustomProgressBar } from "../../../appWidgets";
+import { FetchingRecords, CustomProgressBar, ErrorView } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { FaCog, FaCheck } from "react-icons/fa";
+import jwtAuthService  from "../../../services/jwtAuthService";
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 
 import LaddaButton, {
@@ -25,6 +28,9 @@ import LaddaButton, {
 
 export class BudgetVersionDetailsComponent extends Component{
 
+  CAN_VIEW_DETAIL  = false;
+  CAN_TOGGLE_CAPTURE  = false;
+  CAN_ARCHIVE_VERSION  = false;
 
     state = {
         editedIndex:0,
@@ -76,6 +82,14 @@ export class BudgetVersionDetailsComponent extends Component{
         super(props)
         this.processingService = new ProcessingService();
         this.appMainService = new AppMainService();
+
+        const componentName = "Processing___Budget_Versions";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_TOGGLE_CAPTURE = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_CAPTURE`);
+        this.CAN_ARCHIVE_VERSION = this.userPermissions.includes(`${componentName}__CAN_ARCHIVE_VERSION`);
     }
 
     componentDidMount(){
@@ -696,10 +710,11 @@ export class BudgetVersionDetailsComponent extends Component{
 
     render(){
 
-      const { allBudgetEntries, allAggregates, grandTotals } = this.state;
+      const { CAN_VIEW_DETAIL, CAN_TOGGLE_CAPTURE, CAN_ARCHIVE_VERSION, state } = this;
+      const { allBudgetEntries, allAggregates, grandTotals } = state;
       const {naira, dollar, in_naira, in_dollar } = grandTotals;
 
-        return (
+        return !CAN_VIEW_DETAIL ? <ErrorView errorType={VIEW_FORBIDDEN}/>  : (
 
             <>
                 <div className="specific">

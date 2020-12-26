@@ -183,6 +183,17 @@ export default class AppMainService extends Component {
     return await apiService.get(url);
   }
 
+/**
+ *
+ * @param {*} viewedRole
+ * This method syncs a role's tasks
+ */
+  syncRoleTasks = async (viewedRole) =>{
+    const { id, role_tasks} = viewedRole;
+    const url = `roles/${id}/sync-tasks/`;
+    return await apiService.put(url, role_tasks);
+  }
+
     /**
    *
    * --- TASKS SECTION HERE ----

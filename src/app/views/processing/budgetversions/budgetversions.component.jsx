@@ -4,14 +4,18 @@ import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-boot
 import swal from "sweetalert2";
 import ProcessingService from "../../../services/processing.service";
 import AppMainService from "../../../services/appMainService";
+import jwtAuthService  from "../../../services/jwtAuthService";
+
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import {FetchingRecords, CustomProgressBar} from "../../../appWidgets";
+import { FetchingRecords, CustomProgressBar, ErrorView } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 
 
@@ -25,6 +29,11 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class BudgetVersionsComponent extends Component{
+
+  CAN_VIEW_ALL = false;
+  CAN_VIEW_DETAIL  = false;
+  CAN_TOGGLE_CAPTURE  = false;
+  CAN_ARCHIVE_VERSION  = false;
 
     state = {
         editedIndex:0,
@@ -65,6 +74,14 @@ export class BudgetVersionsComponent extends Component{
         super(props)
         this.processingService = new ProcessingService();
         this.appMainService = new AppMainService();
+
+        const componentName = "Processing___Budget_Versions";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_TOGGLE_CAPTURE = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_CAPTURE`);
+        this.CAN_ARCHIVE_VERSION = this.userPermissions.includes(`${componentName}__CAN_ARCHIVE_VERSION`);
     }
 
     componentDidMount(){
@@ -432,7 +449,9 @@ export class BudgetVersionsComponent extends Component{
 
     render(){
 
-        return (
+      const { CAN_VIEW_ALL, CAN_VIEW_DETAIL, CAN_TOGGLE_CAPTURE, CAN_ARCHIVE_VERSION } = this;
+
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -1000,9 +1019,19 @@ export class BudgetVersionsComponent extends Component{
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            <NavLink className="underline" to={`/processing/budget-versions/${budgetversion.slug}`}>
-                                                            {budgetcycle?.year} {version_code?.name} ({version_code?.code})
-                                                          </NavLink>
+                                                          {
+                                                            CAN_VIEW_DETAIL  ? (
+                                                              <NavLink className="underline" to={`/processing/budget-versions/${budgetversion.slug}`}>
+                                                              {budgetcycle?.year} {version_code?.name} ({version_code?.code})
+                                                            </NavLink>
+                                                          ) :
+                                                          (
+                                                            <span>
+                                                              {budgetcycle?.year} {version_code?.name} ({version_code?.code})
+                                                            </span>
+                                                          )
+                                                          }
+
 
                                                         </td>
                                                         <td>
@@ -1010,19 +1039,24 @@ export class BudgetVersionsComponent extends Component{
                                                         </td>
 
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            CAN_TOGGLE_CAPTURE ? (
+                                                              <Form>
 
-                                                             <Form.Check
-                                                                    checked={budgetversion.is_active}
-                                                                    type="switch"
-                                                                    id={`custom-switch${budgetversion.id}`}
-                                                                    label={budgetversion.is_active ? 'Running' : 'Closed'}
-                                                                    className={budgetversion.is_active ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleBudgetVersion(budgetversion)}
-                                                                />
+                                                                   <Form.Check
+                                                                          checked={budgetversion.is_active}
+                                                                          type="switch"
+                                                                          id={`custom-switch${budgetversion.id}`}
+                                                                          label={budgetversion.is_active ? 'Running' : 'Closed'}
+                                                                          className={budgetversion.is_active ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleBudgetVersion(budgetversion)}
+                                                                      />
 
 
-                                                            </Form>
+                                                                  </Form>
+                                                            ) :  null
+                                                          }
+
                                                         </td>
 
                                                         <td>
@@ -1079,23 +1113,39 @@ export class BudgetVersionsComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editBudgetVersion(budgetversion);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Eye text-primary font-weight-bold"> </i> View
-                                                            </Dropdown.Item>
+
+                                                              {
+                                                                CAN_VIEW_DETAIL ? (
+                                                                  <Dropdown.Item onClick={()=> {
+                                                                      this.editBudgetVersion(budgetversion);
+                                                                  }} className='border-bottom'>
+                                                                      <i className="nav-icon i-Eye text-primary font-weight-bold"> </i> View
+                                                                  </Dropdown.Item>
+                                                                ) : null
+                                                              }
+
                                                             {/* <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteBudgetVersion(budgetversion);}
                                                             }>
                                                                 <i className="i-Close-Window"> </i> Delete
                                                             </Dropdown.Item> */}
-                                                            <Dropdown.Item className='border-bottom'>
-                                                                <i className="i-Money-Bag text-info font-weight-bold"> </i>Disable Capture
-                                                            </Dropdown.Item>
+                                                            {
+                                                              CAN_TOGGLE_CAPTURE ? (
+                                                                <Dropdown.Item className='border-bottom'>
+                                                                    <i className="i-Money-Bag text-info font-weight-bold"> </i>Disable Capture
+                                                                </Dropdown.Item>
+                                                              ) : null
+                                                            }
 
-                                                            <Dropdown.Item className='border-bottom'>
-                                                                <i className="i-Money-Bag text-warning font-weight-bold"> </i> Archive Version
-                                                            </Dropdown.Item>
+
+                                                            {
+                                                              CAN_ARCHIVE_VERSION ? (
+                                                                <Dropdown.Item className='border-bottom'>
+                                                                    <i className="i-Money-Bag text-warning font-weight-bold"> </i> Archive Version
+                                                                </Dropdown.Item>
+                                                              ) : null
+                                                            }
+
                                                             </Dropdown.Menu>
                                                         </Dropdown>
 

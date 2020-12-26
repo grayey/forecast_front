@@ -162,6 +162,8 @@ class Dashboard1 extends Component {
       userActivity = []
     } = this.state;
 
+    console.log('DASHBAORDD PROPS', this.props)
+
     return (
       <div>
         <Breadcrumb

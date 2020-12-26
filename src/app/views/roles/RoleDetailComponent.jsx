@@ -3,13 +3,18 @@ import { Dropdown, Row, Col, Accordion, Card, Badge,Button,Form, ButtonToolbar,M
 
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
+import jwtAuthService  from "../../services/jwtAuthService";
+
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
+import {FetchingRecords, TaskIcons, ErrorView } from "../../appWidgets";
 import { Link, Redirect } from "react-router-dom";
 import {FaCheck, FaTimes, FaList, FaPlusCircle, FaMinusCircle }from "react-icons/fa";
+
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 // import queryString from 'query-string';
 
@@ -27,10 +32,20 @@ import { toLength } from "lodash";
 
 export class RoleDetailComponent extends Component{
 
+
+  CAN_VIEW_DETAIL = false;
+  CAN_ASSIGN_TASKS = false;
+  userPermissions = [];
+
+
+
     state = {
 
         roleSlug:"",
-        viewedRole:{},
+        viewedRole:{
+          role_tasks:[],
+        },
+        taskPermissions:[],
         allChecked:false,
         navigate: false,
         newRoute:"",
@@ -77,6 +92,13 @@ export class RoleDetailComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Roles";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_ASSIGN_TASKS = this.userPermissions.includes(`${componentName}__CAN_ASSIGN_TASKS`);
     }
 
     componentDidMount(){
@@ -86,6 +108,8 @@ export class RoleDetailComponent extends Component{
         console.log('Params', params)
          this.getRoleBySlug(roleSlug);
          this.getAllTasks();
+
+
     }
 
  customTabHeader = (title, icon) => (
@@ -103,19 +127,22 @@ export class RoleDetailComponent extends Component{
      * @param {*} task
      * This method saves the permissions for a role
      */
-    addPermission = (task) =>{
-        let {viewedRole,allChecked} = this.state;
-        const tasks = viewedRole['tasks'];
-        const findTask = tasks.findIndex(t => t._id == task._id);
-        if(findTask != -1){
-            tasks.splice(findTask, 1) // remove
+    addPermission = (task_permission) =>{
+        let { viewedRole, allChecked} = this.state;
+        const { role_tasks } = viewedRole;
+        const taskIndex = role_tasks.findIndex(t => t == task_permission);
+        if(taskIndex != -1){
+            role_tasks.splice(taskIndex, 1) // remove
         }else{
-            tasks.push(task) // add
-            console.log('Tasks ', tasks)
+            role_tasks.push(task_permission) // add
         }
-        allChecked = tasks?.length == this.state.allTasks.length && tasks.length
-        viewedRole['tasks'] = tasks;
-        this.setState({viewedRole, allChecked})
+        console.log(taskIndex, 'Tasks ', role_tasks)
+
+        // allChecked = tasks?.length == this.state.allTasks.length && tasks.length
+        // viewedRole['tasks'] = tasks;
+        // this.setState({viewedRole, allChecked})
+        //
+        this.setState({viewedRole:{...viewedRole, role_tasks} })
     }
 
 
@@ -151,6 +178,8 @@ export class RoleDetailComponent extends Component{
         let isFetching = false;
        this.appMainService.getRoleBySlug(slug).then(
            (viewedRole)=>{
+             const { role_tasks } = viewedRole;
+             viewedRole['role_tasks'] = role_tasks ?  JSON.parse(role_tasks) : [];
                this.setState({ viewedRole, isFetching })
                console.log('Roles viewed', viewedRole)
            }
@@ -169,20 +198,44 @@ export class RoleDetailComponent extends Component{
     /**
      * This method lists all tasks
      */
-    getAllTasks = async (round2 = false)=>{
+    getAllTasks = async ()=>{
         let isFetching = false;
+        const { taskPermissions } = this.state;
+        let isRecursive = false;
+
+        const buildTaskPermissions = (task, views, isRecursive) =>{
+          views = !isRecursive ? JSON.parse(views) : views;
+          const viewKeys = Object.keys(views);
+          viewKeys.forEach((view)=>{
+            const actions = views[view];
+            const actions_is_array = actions instanceof Array;
+            if(!actions_is_array){
+              isRecursive = true;
+              buildTaskPermissions(view, actions, isRecursive);
+            }
+            else{
+              actions.forEach((action)=>{
+                const task_permission = `${task.name || task}___${view}__${action}`; //  take note of the double underscore
+                taskPermissions.push(task_permission);
+              })
+
+            }
+          })
+        }
 
        this.appMainService.getAllTasks().then(
            (tasksResponse)=>{
                const allTasks = tasksResponse;
-               if(!allTasks.length && !round2){
-                  return this.getAllTasks(true);
+               allTasks.forEach((task)=>{
+                 let isRecursive = false;
+                 let { views } = task;
+                 buildTaskPermissions(task, views);
+               })
 
-               }
                const allChecked = this.state?.viewedRole?.tasks?.length == allTasks.length && allTasks.length ;
+               console.log('ALL TASK PERMISSIONS', taskPermissions);
 
-               this.setState({ allTasks, isFetching, allChecked })
-               console.log('Tasks response', tasksResponse)
+               this.setState({ allTasks, isFetching, allChecked, taskPermissions })
            }
        ).catch((error)=>{
            this.setState({isFetching})
@@ -230,11 +283,14 @@ export class RoleDetailComponent extends Component{
     savePermissions = async ()=>{
         let isSaving = true;
         let updateMsg = 'Saving';
-        this.setState({isSaving, updateMsg})
-        this.appMainService.updateRole(this.state.viewedRole, this.state.viewedRole._id).then(
+        this.setState({isSaving, updateMsg});
+        const { viewedRole } = this.state;
+        this.appMainService.syncRoleTasks(viewedRole).then(
             (viewedRole)=>{
                 isSaving = false;
                 updateMsg = 'Save';
+                const { role_tasks } = viewedRole;
+                viewedRole['role_tasks'] = role_tasks ?  JSON.parse(role_tasks) : [];
                 this.setState({ viewedRole, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
@@ -328,12 +384,13 @@ toggleAccordion = async (task, index)=>{
 
 
     renderAccordion = (allTasks) =>{
+      const { viewedRole, taskPermissions } = this.state;
 
       return allTasks.map( (task, index)=>{
         let { views } = task;
         views = JSON.parse(views);
         const viewKeys = Object.keys(views);
-        console.log('ACCORDION views', views)
+        const all_checked = true;
 
         return (
           <Card key={task?.id} className="shadow-sm mb-3">
@@ -351,18 +408,22 @@ toggleAccordion = async (task, index)=>{
                   }
                 </Accordion.Toggle>
 
-                {/* {
-                  viewedBudgetVersionDetail?.approval ? null :(
-                    <div >
-                      <CustomProgressBar departmenttask={task}  allApprovals={this.state.allApprovals}/>
-
-                    </div>
-                  )
-                } */}
+                  {/* <i className={`${TaskIcons[task?.name]} fa-4x`}></i> */}
 
                 <div className="d-flex">
 
-                    Select all
+                  {/* <Form.Check
+                    name="task_name"
+                    onChange={(event)=>console.log(event)}
+                    value={task?.name || ''}
+                    checked={all_checked}
+                    type="checkbox"
+                    id={`${task.id}_${task.name}`}
+                    label={all_checked ? `Unselect all`:'Select all'}
+                  /> */}
+
+                  <i className={`${TaskIcons[task?.name]} fa-4x`}></i>
+
 
                   <div>
 
@@ -375,8 +436,25 @@ toggleAccordion = async (task, index)=>{
               <Accordion.Collapse eventKey={task?.id?.toString()}>
                 <Card.Body>
 
+                  <div className='row card-header'>
+
+                    <div className='col-2'>
+                      <h5>#</h5>
+                    </div>
+
+                    <div className='col-4'>
+                      <h5>Views</h5>
+                    </div>
+
+                    <div className='col-6'>
+                      <h5 className='text-center'>Actions</h5>
+
+                    </div>
+
+                  </div>
+
                   {
-                    viewKeys.length ?   viewKeys.map((view)=>{
+                    viewKeys.length ?   viewKeys.map((view, v_index)=>{
 
                       const actions = views[view];
                       const actions_is_array = actions instanceof Array;
@@ -393,37 +471,67 @@ toggleAccordion = async (task, index)=>{
 
                       return(
 
-                        <div className='row p-2' key={view}>
-                          <div className='col-4'>
-                            <h5>
-                              <b>
-                                <code>
-                                  {view?.split('_')?.join(' ')}
-                                </code>
-                              </b>
-                            </h5>
-                          </div>
-                          <div className='col-8'>
-                            <div className='row'>
-                              {
-                                actions.map((action)=>{
-                                  return (
-                                    <div className='col-12 m-2 border-bottom' key={action}>
-                                      {action?.split('_')?.join(' ')}
-                                    </div>
-                                  )
-
-                                })
-
-                            }
+                        <div className='cardx bottom-dash'>
 
 
-                            </div>
+                                                  <div className='row p-2' key={view}>
+                                                    <div className='col-2'>
+                                                      <b>
+                                                        {v_index + 1}.
+                                                      </b>
+                                                    </div>
 
-                          </div>
+                                                    <div className='col-4'>
+                                                      <h5>
+                                                        <b>
+                                                          <code>
+                                                            {view?.split('_')?.join(' ')}
+                                                          </code>
+                                                        </b>
+                                                      </h5>
+                                                    </div>
+                                                    <div className='col-6'>
+                                                      <div className='row'>
+                                                        {
+                                                          actions.map((action)=>{
+                                                            const task_permission = `${task.name}___${view}__${action}`;
+                                                            const { role_tasks } = viewedRole;
+                                                            const is_checked = role_tasks.includes(task_permission);
+                                                            return (
+                                                              <div className='col-12 m-2 border-bottom' key={action}>
+
+                                                                <div className='float-left'>
+                                                                  {action?.split('_')?.join(' ')}
+                                                                </div>
+
+                                                                <div className='float-right'>
+
+                                                                  <Form.Check
+                                                                    name="task_action"
+                                                                    onChange={(event)=>this.addPermission(task_permission)}
+                                                                    value={action || ''}
+                                                                    checked={is_checked}
+                                                                    type="checkbox"
+                                                                    id={`${task_permission}`}
+                                                                    label={is_checked ? `remove`:'assign'}
+                                                                  />
+                                                              </div>
+                                                              </div>
+                                                            )
+
+                                                          })
+
+                                                      }
+
+
+                                                      </div>
+
+                                                    </div>
+
+                                                  </div>
+
 
                         </div>
-
                       )
 
                     }): (
@@ -518,12 +626,14 @@ toggleAccordion = async (task, index)=>{
 
     render(){
 
-        const { navigate, newRoute } = this.state;
+      const {  CAN_VIEW_DETAIL, CAN_ASSIGN_TASKS, state } = this;
+
+        const { navigate, newRoute } = state;
         if (navigate) {
           return <Redirect to={newRoute} />
         }
 
-        return (
+        return !CAN_VIEW_DETAIL ? <ErrorView errorType={VIEW_FORBIDDEN} />  : (
 
             <>
                 <div className="specific">
@@ -688,158 +798,164 @@ toggleAccordion = async (task, index)=>{
                                                 </div>
 
                                             </Tab>
-                                            <Tab
-                                                eventKey="permissions"
-                                                title={this.customTabHeader("Configure permissions", "i-Gear-2")}
-                                            >
-                                                <div className="card ">
-                                                                            <div className="card-header card-title mb-0 d-flex align-items-center justify-content-between border-0">
+                                            {
+                                              !CAN_ASSIGN_TASKS ? null : (
 
-                                                                                    <h3 className="w-50 float-left card-title m-0"><i className="i-Gears"></i> <b>{this.state.viewedRole?.name}</b> permissions</h3>
+                                                <Tab
+                                                    eventKey="permissions"
+                                                    title={this.customTabHeader("Configure permissions", "i-Gear-2")}
+                                                >
+                                                    <div className="card ">
+                                                                                <div className="card-header card-title mb-0 d-flex align-items-center justify-content-between border-0">
 
-                                                                                    <div className='float-right'>
-                                                                                        {/* <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Role</Button> */}
+                                                                                        <h3 className="w-50 float-left card-title m-0"><i className="i-Gears"></i> <b>{this.state.viewedRole?.name}</b> permissions</h3>
 
-                                                                                        <LaddaButton
-                                                                                                className={`btn btn-${true ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
-                                                                                                loading={this.state.isSaving}
-                                                                                                progress={0.5}
-                                                                                                type='button'
-                                                                                                data-style={EXPAND_RIGHT}
-                                                                                                onClick = {this.savePermissions}>
-                                                                                            {this.state.updateMsg} Permissions
-                                                                                        </LaddaButton>
+                                                                                        <div className='float-right'>
+                                                                                            {/* <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Role</Button> */}
+
+                                                                                            <LaddaButton
+                                                                                                    className={`btn btn-${true ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                                                                                    loading={this.state.isSaving}
+                                                                                                    progress={0.5}
+                                                                                                    type='button'
+                                                                                                    data-style={EXPAND_RIGHT}
+                                                                                                    onClick = {this.savePermissions}>
+                                                                                                {this.state.updateMsg} Permissions
+                                                                                            </LaddaButton>
+                                                                                        </div>
+
+
+                                                                                </div>
+
+                                                                                <div className="card-body">
+                                                                                <div className="table-responsive">
+                                                                                <div>
+
+                                                                                  {
+                                                                                  this.state.allTasks.length ?  this.renderAccordion(this.state.allTasks) :
+                                                                                      (
+                                                                                        (
+                                                                                          <>
+                                                                                          <div className="text-center w-100">
+                                                                                            <FetchingRecords isFetching={this.state.isFetching} emptyMsg={`No system tasks`} />
+
+                                                                                          </div>
+                                                                                          </>
+                                                                                        )
+                                                                                      )
+                                                                                  }
+
+
+
+
+                                                                     {/* <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
+                                                                        <thead>
+                                                                            <tr className="ul-widget6__tr--sticky-th">
+                                                                                <th>#</th>
+                                                                                <th>Name</th>
+                                                                                <th>Module</th>
+                                                                                <th>Date Created</th>
+                                                                                <th>Date Updated</th>
+                                                                                <th>
+                                                                                    <div className="form-inline" style={{cursor:"pointer !important"}}>
+                                                                                    Select &nbsp; <b>|</b> &nbsp; <Form.Check
+                                                                                                        name="check_uncheck"
+
+                                                                                                        onChange={this.checkorUncheckAll}
+                                                                                                        value=""
+                                                                                                        checked={this.state.allChecked}
+                                                                                                        type="checkbox"
+                                                                                                        id="check_uncheck"
+                                                                                                        className={`text-${this.state.allChecked ? 'danger':'success'}`}
+                                                                                                        label={this.state.allChecked ?'uncheck all':'check all'}
+                                                                                                        />
                                                                                     </div>
 
 
-                                                                            </div>
+                                                                                    </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                        {
+                                                                        this.state.allTasks.length ?  this.state.allTasks.map( (task, index)=>{
+                                                                                return (
+                                                                                    <tr key={task._id} className={task.temp_flash ? 'bg-success text-white':''}>
+                                                                                        <td>
+                                                                                            <b>{index+1}</b>.
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            {this.formatTaskName(task?.name)} &nbsp;
 
-                                                                            <div className="card-body">
-                                                                            <div className="table-responsive">
-                                                                            <div>
-
-                                                                              {
-                                                                              this.state.allTasks.length ?  this.renderAccordion(this.state.allTasks) :
-                                                                                  (
-                                                                                    (
-                                                                                      <>
-                                                                                      <div className="text-center w-100">
-                                                                                        <FetchingRecords isFetching={this.state.isFetching} emptyMsg={`No system tasks`} />
-
-                                                                                      </div>
-                                                                                      </>
-                                                                                    )
-                                                                                  )
-                                                                              }
-
-
-
-
-                                                                 {/* <table className="display table table-striped table-hover " id="zero_configuration_table" style={{"width":"100%"}}>
-                                                                    <thead>
-                                                                        <tr className="ul-widget6__tr--sticky-th">
-                                                                            <th>#</th>
-                                                                            <th>Name</th>
-                                                                            <th>Module</th>
-                                                                            <th>Date Created</th>
-                                                                            <th>Date Updated</th>
-                                                                            <th>
-                                                                                <div className="form-inline" style={{cursor:"pointer !important"}}>
-                                                                                Select &nbsp; <b>|</b> &nbsp; <Form.Check
-                                                                                                    name="check_uncheck"
-
-                                                                                                    onChange={this.checkorUncheckAll}
-                                                                                                    value=""
-                                                                                                    checked={this.state.allChecked}
-                                                                                                    type="checkbox"
-                                                                                                    id="check_uncheck"
-                                                                                                    className={`text-${this.state.allChecked ? 'danger':'success'}`}
-                                                                                                    label={this.state.allChecked ?'uncheck all':'check all'}
-                                                                                                    />
-                                                                                </div>
+                                                                                            {
+                                                                                                this.includesTask(task) ? (
+                                                                                                    <Badge  pill variant="success" className="m-1">
+                                                                                                        assigned
+                                                                                                    </Badge>
+                                                                                                ): null
+                                                                                            }
 
 
-                                                                                </th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    {
-                                                                    this.state.allTasks.length ?  this.state.allTasks.map( (task, index)=>{
-                                                                            return (
-                                                                                <tr key={task._id} className={task.temp_flash ? 'bg-success text-white':''}>
-                                                                                    <td>
-                                                                                        <b>{index+1}</b>.
+                                                                                        </td>
+                                                                                        <td>
+                                                                                        {utils.toTiltle(task?.module_name)}
+                                                                                        </td>
+                                                                                        <td>
+                                                                                        {utils.formatDate(task.created_at)}
+                                                                                        </td>
+                                                                                        <td>
+                                                                                        {utils.formatDate(task.updated_at)}
+                                                                                        </td>
+
+                                                                                        <td>
+                                                                                        <Form.Check
+                                                                                                        name="checkbox3"
+                                                                                                        key={`check2${task._id}`}
+                                                                                                        onChange={()=>{
+                                                                                                        this.addPermission(task)
+                                                                                                        }}
+                                                                                                        value=""
+                                                                                                        checked={this.includesTask(task)}
+                                                                                                        type="checkbox"
+                                                                                                        id={`check2${task._id}`}
+                                                                                                        label=""
+                                                                                                        />
+
+                                                                                        </td>
+
+                                                                                    </tr>
+                                                                                )
+
+
+                                                                            }) :
+                                                                            (
+                                                                                <tr>
+                                                                                    <td className='text-center' colSpan='6'>
+                                                                                    <FetchingRecords isFetching={this.state.isFetching}/>
                                                                                     </td>
-                                                                                    <td>
-                                                                                        {this.formatTaskName(task?.name)} &nbsp;
-
-                                                                                        {
-                                                                                            this.includesTask(task) ? (
-                                                                                                <Badge  pill variant="success" className="m-1">
-                                                                                                    assigned
-                                                                                                </Badge>
-                                                                                            ): null
-                                                                                        }
-
-
-                                                                                    </td>
-                                                                                    <td>
-                                                                                    {utils.toTiltle(task?.module_name)}
-                                                                                    </td>
-                                                                                    <td>
-                                                                                    {utils.formatDate(task.created_at)}
-                                                                                    </td>
-                                                                                    <td>
-                                                                                    {utils.formatDate(task.updated_at)}
-                                                                                    </td>
-
-                                                                                    <td>
-                                                                                    <Form.Check
-                                                                                                    name="checkbox3"
-                                                                                                    key={`check2${task._id}`}
-                                                                                                    onChange={()=>{
-                                                                                                    this.addPermission(task)
-                                                                                                    }}
-                                                                                                    value=""
-                                                                                                    checked={this.includesTask(task)}
-                                                                                                    type="checkbox"
-                                                                                                    id={`check2${task._id}`}
-                                                                                                    label=""
-                                                                                                    />
-
-                                                                                    </td>
-
                                                                                 </tr>
                                                                             )
+                                                                        }
 
+                                                                        </tbody>
 
-                                                                        }) :
-                                                                        (
+                                                                        <tfoot>
                                                                             <tr>
-                                                                                <td className='text-center' colSpan='6'>
-                                                                                <FetchingRecords isFetching={this.state.isFetching}/>
-                                                                                </td>
+                                                                        <td colSpan='7'>
+
+                                                                        </td>
                                                                             </tr>
-                                                                        )
-                                                                    }
-
-                                                                    </tbody>
-
-                                                                    <tfoot>
-                                                                        <tr>
-                                                                    <td colSpan='7'>
-
-                                                                    </td>
-                                                                        </tr>
-                                                                    </tfoot>
-                                                                </table> */}
-                                                                                  </div>
+                                                                        </tfoot>
+                                                                    </table> */}
+                                                                                      </div>
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        </div>
+                                                                            </div>
 
 
-                                            </Tab>
+                                                </Tab>
+                                              )
+                                            }
+
 
                             </Tabs>
 

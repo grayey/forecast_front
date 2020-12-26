@@ -11,13 +11,14 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
-import { FetchingRecords, CustomProgressBar, CustomSlider} from "../../../appWidgets";
+import { FetchingRecords, CustomProgressBar, CustomSlider, ErrorView} from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { Link, Redirect, NavLink, withRouter } from "react-router-dom";
 import { connect } from "react-redux";
 import { FaCog, FaArrowDown, FaArrowsAlt, FaSpinner, FaTimes, FaEye, FaEdit, FaFileExcel, FaFileCsv, FaCheck, FaList,  FaPlus, FaDownload, FaMinus  } from "react-icons/fa";
 
+import { VIEW_FORBIDDEN } from "../../../appConstants";
 
 
 
@@ -31,6 +32,15 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class DepartmentAggregatesComponent extends Component{
+
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE = false;
+  CAN_EDIT =false;
+  CAN_VIEW_DETAIL = false;
+  CAN_SUBMIT = false;
+  CAN_VIEW_HISTORY = false;
+  CAN_APPROVE_OR_REJECT = false;
 
     state = {
         navigate: false,
@@ -90,6 +100,21 @@ export class DepartmentAggregatesComponent extends Component{
         super(props)
         this.preparationService = new PreparationService();
         this.appMainService = new AppMainService();
+
+        const componentName = "Preparation___Default";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        // console.log('USERRERETTETTE',props, this.userPermissions)
+
+        // set permisions
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_SUBMIT = this.userPermissions.includes(`${componentName}__CAN_SUBMIT`);
+        this.CAN_VIEW_HISTORY = this.userPermissions.includes(`${componentName}__CAN_VIEW_HISTORY`);
+        this.CAN_IMPORT_PREVIOUS_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_IMPORT_PREVIOUS_ENTRIES`);
+        this.CAN_BULK_UPLOAD_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_BULK_UPLOAD_ENTRIES`);
     }
 
     componentDidMount(){
@@ -1135,12 +1160,15 @@ export class DepartmentAggregatesComponent extends Component{
     }
 
     render(){
-      const { navigate, navigationUrls, activeBudgetCycle, active_version} = this.state;
+
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_VIEW_DETAIL, CAN_SUBMIT, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT,  state } = this;
+
+      const { navigate, navigationUrls, activeBudgetCycle, active_version} = state;
       const { create_entries, view_entries}  = navigationUrls
 
 
 
-        return navigate ? <Redirect to="/preparation/budget-entries/create" /> : (
+        return navigate ? <Redirect to="/preparation/budget-entries/create" /> : !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN}/> : (
 
             <>
                 <div className="specific">
@@ -1776,7 +1804,7 @@ export class DepartmentAggregatesComponent extends Component{
                 </Modal>
 
            {
-             !this.state.canCreate ? null :(
+             !this.state.canCreate || !CAN_CREATE ? null :(
                <div className='float-right'>
                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.setState({ navigate:true })} }>
                    <i className='i-Add'></i> Budget Entries for {this.state?.active_version?.version_code?.name} ({this.state?.active_version?.version_code?.code})
@@ -1960,14 +1988,19 @@ export class DepartmentAggregatesComponent extends Component{
                                                             Manage
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
-                                                            <Dropdown.Item className="border-bottom" href={`/preparation/budget-entries/${departmentaggregate.slug}`}>
-                                                                <NavLink className="underlinex text-info_custom" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
-                                                                <i className="nav-icon i-Eye  font-weight-bold"> </i> View
-                                                              </NavLink>
-                                                            </Dropdown.Item>
+                                                              {
+                                                                CAN_VIEW_DETAIL || CAN_EDIT ? (
+                                                                  <Dropdown.Item className="border-bottom" href={`/preparation/budget-entries/${departmentaggregate.slug}`}>
+                                                                      <NavLink className="underlinex text-info_custom" to={`/preparation/budget-entries/${departmentaggregate.slug}`}>
+                                                                      <i className="nav-icon i-Eye  font-weight-bold"> </i> View
+                                                                    </NavLink>
+                                                                  </Dropdown.Item>
+                                                                ): null
+                                                              }
+
 
                                                             {
-                                                              departmentaggregate?.entries_status || departmentaggregate?.is_archived  ? null :
+                                                              departmentaggregate?.entries_status || departmentaggregate?.is_archived || !CAN_SUBMIT  ? null :
                                                               <Dropdown.Item className="border-bottom text-success"
                                                                 onClick={()=>{
                                                                   this.submitDepartmentAggregate(departmentaggregate)
@@ -1981,12 +2014,18 @@ export class DepartmentAggregatesComponent extends Component{
                                                             }>
                                                                 <FaList/> History
                                                             </Dropdown.Item> */}
+                                                            {
 
-                                                            <Dropdown.Item className='text-info'  onClick={
-                                                                  ()=>{this.viewAggregateHistory(departmentaggregate);}
-                                                              }>
-                                                               <FaList/> History
-                                                           </Dropdown.Item>
+                                                              CAN_VIEW_HISTORY ? (
+                                                                <Dropdown.Item className='text-info'  onClick={
+                                                                      ()=>{this.viewAggregateHistory(departmentaggregate);}
+                                                                  }>
+                                                                   <FaList/> History
+                                                               </Dropdown.Item>
+                                                             ) : null
+
+                                                            }
+
 
 
 

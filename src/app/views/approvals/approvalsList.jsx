@@ -9,10 +9,14 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { FaArrowRight, FaTimes, FaExclamation, FaRecycle } from "react-icons/fa";
+
+import {FetchingRecords, ErrorView} from "../../appWidgets";
+import jwtAuthService  from "../../services/jwtAuthService";
+import { VIEW_FORBIDDEN } from "app/appConstants";
+
 
 import LaddaButton, {
     XL,
@@ -143,6 +147,12 @@ class ApprovalsList extends Component {
 
   appMainService;
 
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_REARRANGE = false;
+
   state = {
     items: ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5', 'Item 6'],
     editedIndex:0,
@@ -155,6 +165,8 @@ class ApprovalsList extends Component {
     shiftedRecaptureOptions:[],
     recaptureOptions:[],
     recaptureAssignments:[],
+    illegalTrials:0,
+    illegalNavigate:false,
     updateRejectionInfo:false,
     oldApprovals:[],
     sortIndex:0,
@@ -191,6 +203,14 @@ class ApprovalsList extends Component {
   constructor(props){
     super(props);
     this.appMainService = new AppMainService();
+
+    const componentName = "Administration___Approval_Settings";
+    const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+    this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+    this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+    this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+    this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+    this.CAN_REARRANGE = this.userPermissions.includes(`${componentName}__CAN_REARRANGE`);
   }
 
   componentDidMount = async() => {
@@ -497,6 +517,7 @@ class ApprovalsList extends Component {
 
 
   onSortStart = async(event)=>{
+
     const sortIndex = event.index;
     this.setState({ sortIndex })
     // console.log("SOrt stert", event.index)
@@ -504,6 +525,30 @@ class ApprovalsList extends Component {
 
 
   onSortEnd = async ({oldIndex, newIndex}) => {
+
+    if(!this.CAN_REARRANGE){
+      let { illegalTrials } = this.state;
+      const trialsLeft = 3 - illegalTrials;
+      if(!trialsLeft){
+      return this.setState({ illegalNavigate:true });
+      }
+
+      let illegalMsg = `You are not permitted to re-arrange approvals!`
+      let punctuate = '.';
+      if(illegalTrials > 0){
+        illegalMsg += ` You will be forced out of this page after ${trialsLeft} more illegal trial${trialsLeft > 1 ? 's':''}.`;
+        let x='';
+        for(let i=0; i<illegalTrials; i++){x+= '!';}
+        punctuate = x;
+      }
+       new AppNotification({
+        type:"warning",
+        msg:`${illegalMsg} Contact Admin${punctuate}`
+      })
+      illegalTrials += 1;
+      this.setState({ illegalTrials })
+      return false;
+    }
     let { allApprovals, allRoles, sortIndex, updateRejectionInfo, shiftedFallBackOptions, shiftedRecaptureOptions } = this.state;
     if(sortIndex == newIndex){
       return; // because nothing moved
@@ -552,9 +597,10 @@ class ApprovalsList extends Component {
 
   render() {
 
+    const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_REARRANGE, state } = this;
 
 
-    return (
+    return !CAN_VIEW_ALL || state.illegalNavigate ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
       <>
 
       <Modal show={this.state.showCreateModal} onHide={
@@ -883,10 +929,14 @@ class ApprovalsList extends Component {
 
                       </Modal>
 
+                    {
+                      CAN_CREATE ? (
+                        <div className='float-right'>
+                            <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Approval stage</Button>
+                        </div>
+                      ): null
+                    }
 
-        <div className='float-right'>
-            <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Approval stage</Button>
-        </div>
 
         <div className="breadcrumb">
             <h1>Approval Stages</h1>

@@ -227,3 +227,25 @@ export function getGraphColors(){
 export function toTiltle(stringVal){
   return titleCase(stringVal)
 }
+
+
+export function getComponentPermissions(componentName, authProps){
+
+  const componentPermissions = [];
+  if(authProps){
+    authProps.forEach((action)=>{
+      const permission = `${componentName}__${action}`;
+      componentPermissions.push(permission);
+    })
+  }
+
+  return componentPermissions;
+
+
+}
+
+
+export function comparePermissions(userPermissions, componentPermissions){
+  if(!userPermissions || !componentPermissions) return [];
+  return componentPermissions.filter(p => userPermissions.includes(p));
+}

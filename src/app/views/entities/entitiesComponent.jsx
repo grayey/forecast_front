@@ -7,7 +7,11 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords, BulkTemplateDownload} from "../../appWidgets";
+import {FetchingRecords, BulkTemplateDownload, ErrorView} from "../../appWidgets";
+
+import jwtAuthService  from "../../services/jwtAuthService";
+
+import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
 import LaddaButton, {
@@ -20,6 +24,12 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class EntitiesComponent extends Component{
+
+  userPermissions = [];
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_TOGGLE_STATUS  = false;
 
     state = {
         editedIndex:0,
@@ -46,6 +56,14 @@ export class EntitiesComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Entry_Types";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
     }
 
     componentDidMount(){
@@ -321,8 +339,9 @@ export class EntitiesComponent extends Component{
     }
 
     render(){
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS} = this;
 
-        return (
+        return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -532,9 +551,17 @@ export class EntitiesComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create entry type</Button>
-                </div>
+
+                {
+                  CAN_CREATE ? (
+
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create entry type</Button>
+                    </div>
+
+                  ) : null
+                }
+
 
                 <div className="breadcrumb">
                     <h1>Entry Types</h1>
@@ -582,19 +609,28 @@ export class EntitiesComponent extends Component{
                                                         </td>
 
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            CAN_TOGGLE_STATUS ? (
+                                                              <Form>
 
-                                                             <Form.Check
-                                                                    checked={entity.status}
-                                                                    type="switch"
-                                                                    id={`custom-switch${entity.id}`}
-                                                                    label={entity.status ? 'Enabled' : 'Disabled'}
-                                                                    className={entity.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleEntity(entity)}
-                                                                />
+                                                                   <Form.Check
+                                                                          checked={entity.status}
+                                                                          type="switch"
+                                                                          id={`custom-switch${entity.id}`}
+                                                                          label={entity.status ? 'Enabled' : 'Disabled'}
+                                                                          className={entity.status ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleEntity(entity)}
+                                                                      />
 
 
-                                                            </Form>
+                                                                  </Form>
+                                                            ): (
+                                                              <span className={entity.status ? `badge  badge-success`: `badge  badge-danger`}>
+                                                                {entity.status ? 'Enabled' : 'Disabled'}
+                                                              </span>
+                                                            )
+                                                          }
+
                                                         </td>
                                                         <td>
                                                         {utils.formatDate(entity.created_at)}

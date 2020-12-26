@@ -3,13 +3,16 @@ import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-boot
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
+import jwtAuthService  from "../../services/jwtAuthService";
+
 import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-import {FetchingRecords} from "../../appWidgets";
+import {FetchingRecords, ErrorView} from "../../appWidgets";
 import { Link, Redirect } from "react-router-dom";
 
+import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
 import LaddaButton, {
@@ -22,6 +25,14 @@ import LaddaButton, {
   } from "react-ladda";
 
 export class RolesComponent extends Component{
+
+  CAN_VIEW_ALL = false;
+  CAN_CREATE  = false;
+  CAN_EDIT  = false;
+  CAN_VIEW_DETAIL = false;
+  CAN_ASSIGN_TASKS = false;
+
+  userPermissions = [];
 
     state = {
         editedIndex:0,
@@ -51,6 +62,17 @@ export class RolesComponent extends Component{
     constructor(props){
         super(props)
         this.appMainService = new AppMainService();
+
+        const componentName = "Administration___Roles";
+        const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+        this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+        this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+        this.CAN_CREATE = this.userPermissions.includes(`${componentName}__CAN_CREATE`);
+        this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
+        this.CAN_VIEW_DETAIL = this.userPermissions.includes(`${componentName}__CAN_VIEW_DETAIL`);
+        this.CAN_ASSIGN_TASKS = this.userPermissions.includes(`${componentName}__CAN_ASSIGN_TASKS`);
+
+
     }
 
     componentDidMount(){
@@ -331,9 +353,12 @@ export class RolesComponent extends Component{
 
     render(){
 
-      const { navigate, newRoute } = this.state;
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_VIEW_DETAIL, CAN_ASSIGN_TASKS, state } = this;
 
-        return navigate ? <Redirect to={newRoute} /> : (
+
+      const { navigate, newRoute } = state;
+
+        return navigate ? <Redirect to={newRoute} /> : !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> : (
 
             <>
                 <div className="specific">
@@ -579,9 +604,14 @@ export class RolesComponent extends Component{
 
                 </Modal>
 
-                <div className='float-right'>
-                    <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Role</Button>
-                </div>
+                {
+                  CAN_CREATE ? (
+                    <div className='float-right'>
+                        <Button  variant="secondary_custom" className="ripple m-1 text-capitalize" onClick={ ()=>{ this.toggleModal('create')} }><i className='i-Add'></i> Create Role</Button>
+                    </div>
+                  ) : null
+                }
+
 
                 <div className="breadcrumb">
                     <h1>Roles</h1>
@@ -664,16 +694,27 @@ export class RolesComponent extends Component{
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
 
+                                                              {
+                                                                CAN_VIEW_DETAIL && CAN_ASSIGN_TASKS ? (
+                                                                  <Dropdown.Item  className='border-bottom' onClick={(event)=>{this.viewRole(event, role)}}>
+                                                                      <i className="nav-icon i-Eye text-info font-weight-bold"> </i> View | Configure
+                                                                  </Dropdown.Item>
+                                                                ): null
+                                                              }
 
-                                                           <Dropdown.Item  className='border-bottom' onClick={(event)=>{this.viewRole(event, role)}}>
-                                                               <i className="nav-icon i-Eye text-info font-weight-bold"> </i> View | Configure
-                                                           </Dropdown.Item>
 
-                                                            <Dropdown.Item onClick={()=> {
-                                                                this.editRole(role);
-                                                            }} className='border-bottom'>
-                                                                <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                            </Dropdown.Item>
+
+                                                           {
+                                                             CAN_EDIT ? (
+                                                               <Dropdown.Item onClick={()=> {
+                                                                   this.editRole(role);
+                                                               }} className='border-bottom'>
+                                                                   <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                               </Dropdown.Item>
+                                                             ): null
+                                                           }
+
+
                                                             <Dropdown.Item className='text-danger' onClick={
                                                                 ()=>{this.deleteRole(role);}
                                                             }>

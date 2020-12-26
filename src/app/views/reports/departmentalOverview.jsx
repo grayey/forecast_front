@@ -1,10 +1,12 @@
 import React, { Component } from "react";
 import { Row, Col, Tab, Tabs, Button, TabContent, Nav,  Dropdown, Accordion, Card, Form, ButtonToolbar, Modal,} from "react-bootstrap";
 import { FaList, FaCheck, FaTimes, FaPlusCircle, FaMinusCircle  } from "react-icons/fa";
-import { FetchingRecords, ReportsFilter } from "../../appWidgets";
+import { FetchingRecords, ReportsFilter, ErrorView } from "../../appWidgets";
+import { VIEW_FORBIDDEN } from "../../appConstants";
 import * as utils from "@utils";
-
 import { MultipleBarChart } from "../../appCharts";
+
+import jwtAuthService  from "../../services/jwtAuthService";
 
 
 
@@ -15,6 +17,9 @@ import { MultipleBarChart } from "../../appCharts";
 
 class DepartmentalOverview extends Component {
 
+  userPermissions = [];
+  CAN_VIEW_ALL = '';
+  CAN_EXPORT = '';
 
   state = {
     reportData:{},
@@ -28,12 +33,18 @@ class DepartmentalOverview extends Component {
 
   constructor(props) {
     super(props);
+    const componentName = "Reports___Departmental_View";
+    const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
+    this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
+    this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
+    this.CAN_EXPORT = this.userPermissions.includes(`${componentName}__CAN_EXPORT`);
 
   }
 
   componentDidMount() {
     const entryTypes = JSON.parse( localStorage.getItem('ENTITIES'));
     this.setState({ entryTypes })
+    // console.log('REPORTS PROPS', this.props)
   }
 
 
@@ -309,10 +320,13 @@ class DepartmentalOverview extends Component {
 
   render(){
 
-    const { reportData, isFetching, graphColors } = this.state;
+    const { userPermissions, componentName, state, CAN_VIEW_ALL, CAN_EXPORT } = this;
+
+    const { reportData, isFetching, graphColors } = state;
     const yearsData = Object.keys(reportData);
 
-    return (
+
+    return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN}/> : (
       <>
 
 
@@ -328,6 +342,7 @@ class DepartmentalOverview extends Component {
           </div>
 
           <div className='col-9'>
+
               <ReportsFilter  caller="departmentalOverview" setFetching = {(isFetching)=> this.setState({isFetching})} refresh={(reportData)=>this.renderReportData(reportData)}/>
           </div>
 
