@@ -42,6 +42,9 @@ export class DepartmentAggregatesComponent extends Component{
   CAN_VIEW_HISTORY = false;
   CAN_APPROVE_OR_REJECT = false;
 
+  AUTH_USER = null;
+
+
     state = {
         navigate: false,
         navigationUrls:{
@@ -115,6 +118,9 @@ export class DepartmentAggregatesComponent extends Component{
         this.CAN_VIEW_HISTORY = this.userPermissions.includes(`${componentName}__CAN_VIEW_HISTORY`);
         this.CAN_IMPORT_PREVIOUS_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_IMPORT_PREVIOUS_ENTRIES`);
         this.CAN_BULK_UPLOAD_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_BULK_UPLOAD_ENTRIES`);
+
+        this.AUTH_USER =  jwtAuthService.getUser();
+
     }
 
     componentDidMount(){
@@ -1161,7 +1167,7 @@ export class DepartmentAggregatesComponent extends Component{
 
     render(){
 
-      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_VIEW_DETAIL, CAN_SUBMIT, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT,  state } = this;
+      const { AUTH_USER, CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_VIEW_DETAIL, CAN_SUBMIT, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT,  state } = this;
 
       const { navigate, navigationUrls, activeBudgetCycle, active_version} = state;
       const { create_entries, view_entries}  = navigationUrls
@@ -1220,6 +1226,10 @@ export class DepartmentAggregatesComponent extends Component{
                                              <tr key={histo.id}>
                                                <td>
                                                  {histo?.user?.first_name} {histo?.user?.last_name} <small>({histo?.user?.email})</small>
+
+                                                 {
+                                                    AUTH_USER.id == histo?.user?.id ? (<sup className='badge badge-danger'> <small> You</small></sup>): null
+                                                 }
                                                </td>
 
                                                <td>

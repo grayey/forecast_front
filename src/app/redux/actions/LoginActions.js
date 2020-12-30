@@ -61,7 +61,7 @@ export async  function forwardUserIntoApp(user_access){
       if(userDepartmentRoles.length == 1){ // user belongs to just one department
         pathname = 'dashboard/v1';
         activeDepartmentRole = userDepartmentRoles[0]; // user's active department is his first (and only) department
-        const { role_tasks } = activeDepartmentRole;
+        const { role_tasks } = activeDepartmentRole.role;
         userTasks = role_tasks ? JSON.parse(role_tasks) : [];
       }
 

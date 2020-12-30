@@ -8,14 +8,24 @@ export default class AppMainService extends Component {
         super(props);
     }
 
-    /**
-     *
-     *
-     * Users Section
-     *
-     *
-     *
-     */
+
+     /*** USERS SECTION **/
+
+     async getUserProfilesById(profileId){
+       const url =`users/${profileId}/dep-roles/`;
+       return await apiService.get(url);
+     }
+
+
+     /**
+      * NOTIFICATIONS SECTION
+      */
+
+     async getAllNotifications(user_department_role){
+       const { user, department, role } = user_department_role;
+       const url =`notifications/${user.id}/${department.id}/${role.id}`;
+       return await apiService.get(url);
+     }
 
 
 
@@ -784,6 +794,11 @@ export default class AppMainService extends Component {
          const url =`${caller_url}/upload_bulk_file/`;
          return await apiService.postFile(url, file);
        }
+
+
+
+
+
 
 
 

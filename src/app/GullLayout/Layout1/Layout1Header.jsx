@@ -24,6 +24,7 @@ import AppMainService from "../../services/appMainService";
 
 import * as utils from "@utils";
 import AppNotification from "../../appNotifications";
+import { SystemNotifications } from "app/appWidgets";
 
 class Layout1Header extends Component {
 
@@ -264,7 +265,12 @@ class Layout1Header extends Component {
     if(activeDepartmentRole.id == departmentRole.id){//no need to reload
       return;
     }
+    console.log('ACTIVE DEPPEPPE',departmentRole);
+    const { role_tasks } = departmentRole.role;
+    const userTasks = role_tasks ? JSON.parse(role_tasks) : [];
   await  jwtAuthService.setActiveDepartmentRole(departmentRole);
+  jwtAuthService.setUserTasks(userTasks);
+
     let href = window.location.href;
     if(href.includes('review') && href.endsWith('approval')){ // keep up appearnces
       const { role } = jwtAuthService.getActiveDepartmentRole();
@@ -398,46 +404,12 @@ class Layout1Header extends Component {
             </Dropdown.Menu>
           </Dropdown>
 
-          <Dropdown>
-            <Dropdown.Toggle as="span" className="toggle-hidden cursor-pointer">
-              <div
-                className="badge-top-container"
-                role="button"
-                id="dropdownNotification"
-                data-toggle="dropdown"
-              >
-                <span className="badge badge-primary">3</span>
-                <i className="i-Bell text-muted header-icon"></i>
-              </div>
-            </Dropdown.Toggle>
 
-            <DropdownMenu className="notification-dropdown rtl-ps-none">
-              {notificationList.map((note, index) => (
-                <div key={index} className="dropdown-item d-flex">
-                  <div className="notification-icon">
-                    <i className={`${note.icon} text-${note.color} mr-1`}></i>
-                  </div>
-                  <div className="notification-details flex-grow-1">
-                    <p className="m-0 d-flex align-items-center">
-                      <span>{note.title}</span>
-                      <span
-                        className={`badge badge-pill badge-${note.color} ml-1 mr-1`}
-                      >
-                        {note.status}
-                      </span>
-                      <span className="flex-grow-1"></span>
-                      <span className="text-small text-muted ml-auto">
-                        {getTimeDifference(new Date(note.time))} ago
-                      </span>
-                    </p>
-                    <p className="text-small text-muted m-0">
-                      {note.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+
+        <SystemNotifications notificationList={notificationList} />
+
+
+
 
           <div className="user col align-self-end">
             <Dropdown>
@@ -460,11 +432,11 @@ class Layout1Header extends Component {
                   {activeUser?.first_name} {activeUser?.last_name}
                 </div>
                 <Link to="/" className="dropdown-item cursor-pointer">
-                  Account settings
+                Profile
                 </Link>
-                <Link to="/" className="dropdown-item cursor-pointer">
+                {/* <Link to="/" className="dropdown-item cursor-pointer">
                   Billing history
-                </Link>
+                </Link> */}
                 <Link
                   to="/"
                   className="dropdown-item cursor-pointer"

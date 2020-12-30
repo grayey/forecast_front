@@ -11,6 +11,8 @@ import * as encryptionService from "../../services/encryption.service";
 import LoadingOverlay from 'react-loading-overlay';
 import queryString from "query-string";
 
+import { FaCog } from "react-icons/fa";
+
 const SigninSchema = yup.object().shape({
   email: yup
     .string()
@@ -30,7 +32,8 @@ class Signin extends Component {
       SYSTEM_AUTHENTICATION:{},
       SYSTEM_ALIASES:{}
     },
-    loadingSettings:true
+    loadingSettings:true,
+    isSubmitting:false
   };
   appMainService;
 
@@ -86,6 +89,7 @@ return {
   };
 
   handleSubmit = (value, { isSubmitting }) => {
+    this.setState({isSubmitting:true})
     this.props.loginWithEmailAndPassword(value);
   };
 
@@ -207,8 +211,11 @@ return {
                         <button
                           className="btn btn-rounded btn-primary btn-block mt-2"
                           type="submit"
+                          disabled={this.state.isSubmitting}
                         >
-                          Sign In
+                          Sign In {
+                            this.state.isSubmitting ? (<FaCog className='spin'/>) : null
+                          }
                         </button>
                       </form>
                     )}

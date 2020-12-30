@@ -9,7 +9,7 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 
-import { FaArrowDown } from "react-icons/fa";
+import { FaArrowDown, FaSpinner } from "react-icons/fa";
 
 import {FetchingRecords, ErrorView} from "../../appWidgets";
 
@@ -36,6 +36,8 @@ export class UsersComponent extends Component{
   CAN_DELETE  = false;
   CAN_TOGGLE_STATUS  = false;
 
+  AUTH_USER = null;
+
 
     state = {
         editedIndex:0,
@@ -43,6 +45,7 @@ export class UsersComponent extends Component{
         allRoles:[],
         allDepartments:[],
         allRolesCopy:[],
+        viewedUserProfile:{},
         allDepartmentsCopy:[],
         departmentRoles:[],
         addDepartmentRoleForm:{
@@ -51,6 +54,7 @@ export class UsersComponent extends Component{
         },
         showEditModal:false,
         showCreateModal:false,
+        showProfilesModal:false,
         isSaving:false,
         isFetching:true,
         saveMsg:'Save',
@@ -84,6 +88,8 @@ export class UsersComponent extends Component{
         this.CAN_EDIT = this.userPermissions.includes(`${componentName}__CAN_EDIT`);
         this.CAN_DELETE = this.userPermissions.includes(`${componentName}__CAN_DELETE`);
         this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
+
+        this.AUTH_USER =  jwtAuthService.getUser();
     }
 
     componentDidMount(){
@@ -223,8 +229,7 @@ export class UsersComponent extends Component{
                 this.toggleModal();
                 this.resetForm();
 
-            }
-        ).catch(
+            }).catch(
             (error)=>{
                 isSaving = false;
                 saveMsg = 'Save';
@@ -239,34 +244,99 @@ export class UsersComponent extends Component{
     }
 
 
+
+    /**
+     * [viewDepartmentRoles description]
+     * @param  {[type]} event [description]
+     * @param  {[type]} user  [description]
+     * @return {[type]}       [description]
+     */
+    viewDepartmentRoles = (event, viewedUserProfile, view_only=true)=>{
+      event.preventDefault();
+
+      // let { viewedUserProfile } = this.state;
+      let { showProfilesModal, showEditModal, updateUserForm } = this.state;
+      viewedUserProfile.is_fetching = true;
+      this.setState({ viewedUserProfile });
+
+      const department_ids = [];
+
+      this.appMainService.getUserProfilesById(viewedUserProfile.id).then(
+          (profilesData)=>{
+            viewedUserProfile['viewed_profiles'] = profilesData.map((profile)=>{
+              const { department, role } = profile;
+              department_ids.push(department.id);
+              return { department, role };
+            })
+            showProfilesModal = view_only;
+            showEditModal = !showProfilesModal;
+            if(showEditModal){
+              const { first_name, last_name, email } = viewedUserProfile.user
+              updateUserForm = { first_name, last_name, email};
+              viewedUserProfile['department_ids'] = department_ids;
+            }
+            viewedUserProfile.is_fetching = false;
+
+            this.setState({ viewedUserProfile, showProfilesModal, showEditModal, updateUserForm });
+            // console.log('PROFILES DATA', profilesData)
+          }).catch(
+          (error)=>{
+              const errorNotification = {
+                  type:'error',
+                  msg:utils.processErrors(error)
+              }
+              viewedUserProfile.is_fetching = false;
+              this.setState({ viewedUserProfile });
+
+
+              console.log("ERROR", error);
+              new AppNotification(errorNotification)
+      })
+
+
+
+    }
+
     /**
      * This method updates a new user
      */
     updateUser = async ()=>{
-
-
-
-        let {updateUserForm, allUsers, editedUser} = this.state;
+        let { updateUserForm, allUsers, viewedUserProfile } = this.state;
+        const { viewed_profiles, user } = viewedUserProfile;
         let isSaving = true;
         let updateMsg = 'Updating';
-        this.setState({isSaving, updateMsg})
-        this.appMainService.updateUser(updateUserForm, editedUser.id).then(
+        this.setState({isSaving, updateMsg});
+        const department_roles = viewed_profiles.map((dr)=>{
+          const {role, department } = dr;
+          return {
+            role_id:role.id,
+            department_id:department.id
+          }
+        });
+        const user_data = {
+          ...updateUserForm,
+          department_roles
+        }
+        this.appMainService.updateUser(user_data, user.id).then(
             (updatedUser)=>{
-                updatedUser.temp_flash = true
+
                 isSaving = false;
                 updateMsg = 'Update';
-                allUsers.splice(this.state.editedIndex, 1, updatedUser)
+                const userIndex = allUsers.findIndex(u => u.id == user.id);
+                const updateObject  = {...allUsers[userIndex], user:updatedUser.user};
+                updateObject.temp_flash = true
+                allUsers.splice(userIndex, 1,updateObject)
                 this.setState({ allUsers, isSaving, updateMsg })
                 const successNotification = {
                     type:'success',
-                    msg:`${updatedUser.name} successfully updated!`
+                    msg:`${updateUserForm.first_name} ${updateUserForm.last_name} successfully updated!`
                 }
                 new AppNotification(successNotification)
                 this.toggleModal('edit');
 
              setTimeout(()=>{
-                    updatedUser.temp_flash = false
-                    allUsers.splice(this.state.editedIndex, 1, updatedUser)
+                    updateObject.temp_flash = false
+                    allUsers.splice(userIndex, 1, updateObject)
                     this.setState({ allUsers, isSaving, updateMsg })
                 }, 10000);
 
@@ -291,14 +361,22 @@ export class UsersComponent extends Component{
      * This method toggles a modal
      */
     toggleModal = (modalName='create')=> {
-        let {showEditModal, showCreateModal } = this.state;
+        let {showEditModal, showCreateModal, showProfilesModal, allDepartmentsCopy, allDepartments } = this.state;
         if(modalName == 'create'){
             showCreateModal = !showCreateModal;
+            if(showCreateModal){
+              allDepartmentsCopy = [...allDepartments];
+            }
         }else if(modalName == 'edit'){
-            showEditModal = !showEditModal
+            showEditModal = !showEditModal;
+            if(showEditModal){
+              allDepartmentsCopy = [...allDepartments];
+            }
+        }else if(modalName == 'view_profiles'){
+          showProfilesModal = !showProfilesModal;
         }
 
-        this.setState({ showEditModal, showCreateModal })
+        this.setState({ showEditModal, showCreateModal, showProfilesModal, allDepartmentsCopy })
     }
 
 
@@ -316,20 +394,34 @@ export class UsersComponent extends Component{
         this.toggleModal('edit')
     }
 
-    addDepartmentRoles = () =>{
-      let { addDepartmentRoleForm, allRolesCopy, allDepartmentsCopy, departmentRoles } = this.state;
+    addDepartmentRoles = (edit=false) =>{
+      let { addDepartmentRoleForm, allRolesCopy, allDepartmentsCopy, departmentRoles, viewedUserProfile } = this.state;
+      if(!addDepartmentRoleForm.role_id || !addDepartmentRoleForm.department_id){
+        return new AppNotification(
+          {
+            type:"error",
+            msg:"Please provide both department and role."
+          })
+      }
+      const { viewed_profiles } = viewedUserProfile;
       const role_index = allRolesCopy.findIndex(r => r.id == addDepartmentRoleForm.role_id);
       const department_index = allDepartmentsCopy.findIndex(d => d.id == addDepartmentRoleForm.department_id);
       const role = allRolesCopy[role_index];
       const department = allDepartmentsCopy[department_index];
-      departmentRoles.unshift({ role, department });
+      if(edit){
+        viewedUserProfile.viewed_profiles.unshift({ role, department });
+        viewedUserProfile.department_ids.unshift(department.id)
+      }else{
+        departmentRoles.unshift({ role, department });
+
+      }
       // allRolesCopy.splice(role_index, 1); # A user can have the same role in different departments so don't remove roles
       allDepartmentsCopy.splice(department_index, 1);
       addDepartmentRoleForm = {
         department_id:"",
         role_id:""
       };
-      this.setState({ departmentRoles, addDepartmentRoleForm, allDepartmentsCopy, allRolesCopy });
+      this.setState({ departmentRoles, addDepartmentRoleForm, allDepartmentsCopy, allRolesCopy, viewedUserProfile });
     }
 
 
@@ -339,13 +431,13 @@ export class UsersComponent extends Component{
      * This method toggles a user's status
      */
     toggleUser = (user)=>{
-        const toggleMsg = user.status? "Disable":"Enable";
-        const gL = user.status? "lose":"gain"
+        const toggleMsg = user.user.is_active? "Disable":"Enable";
+        const pre = user.user.is_active? "un":""
 
 
         swal.fire({
-            title: `<small>${toggleMsg}&nbsp;<b>${user.name}</b>?</small>`,
-            text: `${user.name} members will ${gL} permissions.`,
+            title: `<small>${toggleMsg}&nbsp;<b>${user.user.email}</b>?</small>`,
+            text: `This user will be ${pre}able to login.`,
             icon: "warning",
             type: "question",
             showCancelButton: true,
@@ -382,14 +474,33 @@ export class UsersComponent extends Component{
           });
     }
 
-    deletedepartmentRole = (index)=>{
-      const { departmentRoles, allDepartmentsCopy, allRolesCopy } = this.state;
-      const departmentRole = departmentRoles[index];
+    deletedepartmentRole = (departmentId, edit=false)=>{
+      let { departmentRoles, allDepartmentsCopy, allRolesCopy, viewedUserProfile } = this.state;
+      let { viewed_profiles, department_ids } = viewedUserProfile;
+      const listToFilter = edit ? viewed_profiles : departmentRoles;
+      const index =  listToFilter.findIndex(({role, department}) => department.id == departmentId)
+      const departmentRole = listToFilter[index];
       const { role, department } = departmentRole;
       // allRolesCopy.unshift(role);
-      allDepartmentsCopy.unshift(department);
-      departmentRoles.splice(index, 1);
-      this.setState({ departmentRoles, allDepartmentsCopy, allRolesCopy });
+       listToFilter.splice(index, 1);
+       console.log('DEP_ROLES',allDepartmentsCopy, 'DPT_IDS', department_ids);
+
+
+      if(edit){
+        department_ids = department_ids.filter(id => id !== departmentId);
+        const allDepartmentsCopyIds = allDepartmentsCopy.map(d => d.id)
+        if(!allDepartmentsCopyIds.includes(departmentId)){
+          allDepartmentsCopy.unshift(department);
+        }
+        console.log('delted department', department, allDepartmentsCopyIds.includes(departmentId), 'IDS', department_ids)
+        viewedUserProfile = {...viewedUserProfile, viewed_profiles:listToFilter, department_ids };
+      }else{
+        departmentRoles = listToFilter;
+        allDepartmentsCopy.unshift(department);
+
+      }
+
+      this.setState({ departmentRoles, allDepartmentsCopy, allRolesCopy , viewedUserProfile});
 
     }
 
@@ -401,7 +512,7 @@ export class UsersComponent extends Component{
      */
     deleteUser = (user)=>{
          swal.fire({
-                title: `<small>Delete&nbsp;<b>${user.name}</b>?</small>`,
+                title: `<small>Delete&nbsp;<b>${user.user.first_name} ${user.user.last_name}</b>?</small>`,
                 text: "You won't be able to revert this!",
                 icon: "warning",
                 type: "question",
@@ -420,7 +531,7 @@ export class UsersComponent extends Component{
                         this.setState({ allUsers })
                         const successNotification = {
                             type:'success',
-                            msg:`${user.name} successfully deleted!`
+                            msg:`${user.user.first_name} ${user.user.last_name} successfully deleted!`
                         }
                         new AppNotification(successNotification)
                     }
@@ -452,7 +563,7 @@ export class UsersComponent extends Component{
 
     render(){
 
-      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, CAN_DELETE} = this;
+      const { AUTH_USER, CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, CAN_DELETE, state} = this;
 
 
         return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> :  (
@@ -460,125 +571,328 @@ export class UsersComponent extends Component{
             <>
                 <div className="specific">
 
-                <Modal show={this.state.showEditModal} onHide={
-                    ()=>{ this.toggleModal('edit')}
-                    } {...this.props} id='edit_modal'>
-                    <Modal.Header closeButton>
-                    <Modal.Title>Update {this.state.editedUser.name}</Modal.Title>
-                    </Modal.Header>
+                  <Modal show={this.state.showProfilesModal} onHide={
+                      ()=>{ this.toggleModal('view_profiles')}
+                      } {...this.props} id='view_profiles'>
+                      <Modal.Header closeButton>
+                      <Modal.Title><b>{utils.toTiltle(`${state?.viewedUserProfile?.user?.first_name} ${state?.viewedUserProfile?.user?.last_name}`)} ({state?.viewedUserProfile?.user?.email})</b>
+                      {
+                         AUTH_USER.id == state?.viewedUserProfile?.user?.id ? (<span className='badge badge-danger'> <small> You</small></span>): null
+                      }
+                    </Modal.Title>
+                      </Modal.Header>
 
-                    <Formik
-                    initialValues={this.state.updateUserForm}
-                    validationSchema={this.updateUserSchema}
-                    onSubmit={this.updateUser}
-                    >
-                    {({
-                        values,
-                        errors,
-                        touched,
-                        handleChange,
-                        handleBlur,
-                        handleSubmit,
-                        isSubmitting,
-                        resetForm
-                    }) => {
+                               <Modal.Body>
+
+                                <div className='table-responsive'>
+                                  <div className=''>
+                                    <h5 className='card-header text-center'><u>Profiles</u></h5>
+                                  </div>
+                                  <table className='table table-striped table-hover'>
+                                    <thead>
+                                      <tr>
+                                        <th>#</th>
+                                        <th>Department</th>
+                                        <th>Role</th>
+                                      </tr>
+                                    </thead>
+
+                                    <tbody>
+                                      {
+                                        state?.viewedUserProfile?.viewed_profiles?.map((profile, index)=>{
+
+                                          const { department, role } = profile;
+                                          return (
+                                            <tr key={profile.id}>
+                                              <td><b>{index+1}.</b></td>
+                                            <td>{department?.name} ({department?.code})</td>
+                                            <td>{role?.name}</td>
+                                            </tr>
+                                          )
+                                        })
+                                      }
 
 
-                        return (
-                        <form
-                            className="needs-validation "
-                            onSubmit={handleSubmit}
-                            noValidate
-                        >
-                             <Modal.Body>
-                                <div className="form-row">
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        !errors.name && touched.name,
-                                    "invalid-field":
-                                        errors.name && touched.name
-                                    })}
-                                >
-                                    <label htmlFor="user_name">
-                                        <b>Name<span className='text-danger'>*</span></b>
-                                    </label>
-                                    <input
-                                    type="text"
-                                    className="form-control"
-                                    id="user_name"
-                                    placeholder=""
-                                    name="name"
-                                    value={values.name}
-                                    onChange={(event)=>this.handleChange(event, 'edit')}
-                                    onBlur={handleBlur}
-                                    required
-                                    />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Name is required
+                                    </tbody>
+
+                                  </table>
+                                </div>
+
+                              </Modal.Body>
+
+                              <Modal.Footer>
+
+                                      <LaddaButton
+                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                          loading={false}
+                                          progress={0.5}
+                                          type='button'
+                                          onClick={()=>this.toggleModal('view_profiles')}
+
+                                          >
+                                          Close
+                                      </LaddaButton>
+
+                                      </Modal.Footer>
+
+
+
+                  </Modal>
+
+
+                  <Modal show={this.state.showEditModal} onHide={
+                      ()=>{ this.toggleModal('edit')}
+                      } {...this.props} id='edit_modal'>
+                      <Modal.Header closeButton>
+                      <Modal.Title>Edit <small><b>{utils.toTiltle(`${state?.viewedUserProfile?.user?.first_name} ${state?.viewedUserProfile?.user?.last_name}`)} ({state?.viewedUserProfile?.user?.email})</b> </small>
+                      {
+                         AUTH_USER.id == state?.viewedUserProfile?.user?.id ? (<span className='badge badge-danger'><small>You</small></span>): null
+                      }
+                </Modal.Title>
+                      </Modal.Header>
+
+                      <Formik
+                      initialValues={this.state.updateUserForm}
+                      validationSchema={this.updateUserSchema}
+                      onSubmit={this.updateUser}
+                      >
+                      {({
+                          values,
+                          errors,
+                          touched,
+                          handleChange,
+                          handleBlur,
+                          handleSubmit,
+                          isSubmitting,
+                          resetForm
+                      }) => {
+
+                          return (
+                          <form
+                              className="needs-validation "
+                              onSubmit={handleSubmit}
+                              noValidate
+                          >
+                               <Modal.Body>
+                                  <div className="form-row">
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-6 mb-2": true,
+                                      "valid-field":
+                                          !errors.first_name && touched.first_name,
+                                      "invalid-field":
+                                          errors.first_name && touched.first_name
+                                      })}
+                                  >
+                                      <label htmlFor="first_name">
+                                          <b>First Name<span className='text-danger'>*</span></b>
+                                      </label>
+                                      <input
+                                      type="text"
+                                      className="form-control"
+                                      id="first_name"
+                                      placeholder=""
+                                      name="first_name"
+                                      value={values.first_name}
+                                      onChange={(event)=>this.handleChange(event,'edit')}
+                                      onBlur={handleBlur}
+                                      required
+                                      />
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">
+                                      First name is required
+                                      </div>
+                                  </div>
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-6 mb-2": true,
+                                      "valid-field":
+                                          touched.last_name && !errors.last_name,
+                                      "invalid-field":
+                                          touched.last_name && errors.last_name
+                                      })}
+                                  >
+                                      <label htmlFor="last_name">
+                                           <b>Last Name<span className='text-danger'>*</span></b>
+                                      </label>
+
+                                      <input
+                                      type="text"
+                                      className="form-control"
+                                      id="last_name"
+                                      placeholder=""
+                                      name="last_name"
+                                      value={values.last_name}
+                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                      onBlur={handleBlur}
+                                      required
+                                      />
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">
+                                      Last name is required
+                                      </div>
+                                  </div>
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-12 mb-2": true,
+                                      "valid-field":
+                                          touched.email && !errors.email,
+                                      "invalid-field":
+                                          touched.email && errors.email
+                                      })}
+                                  >
+                                      <label htmlFor="email">
+                                           <b>Email<span className='text-danger'>*</span></b>
+                                      </label>
+
+                                      <input
+                                      type="text"
+                                      className="form-control"
+                                      id="email"
+                                      placeholder=""
+                                      name="email"
+                                      value={values.email}
+                                      onChange={(event)=>this.handleChange(event, 'edit')}
+                                      onBlur={handleBlur}
+                                      required
+                                      />
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">
+                                      Email is required
+                                      </div>
+                                  </div>
+
+                                  <div className="col-md-12 ">
+                                    <div className="card-header border-bottom">
+                                      <h4 className="text-center">Assign Profiles</h4>
                                     </div>
-                                </div>
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        touched.description && !errors.description,
-                                    "invalid-field":
-                                        touched.description && errors.description
-                                    })}
-                                >
-                                    <label htmlFor="update_user_description">
-                                         <b>Description<span className='text-danger'>*</span></b>
-                                    </label>
+                                    <div className="card-body">
+                                      <div className="form-row pb-2">
+                                        <div className="col-md-5">
+                                          <label>Department</label>
+                                        <select className="form-control" name="department_id"
+                                          value={this.state.addDepartmentRoleForm.department_id}
+                                          onChange={this.handleDepartmentRoleChange}
+                                          >
+                                            <option>Select</option>
+                                            {
+                                              this.state.allDepartmentsCopy.map((department)=>{
+                                                if(!state?.viewedUserProfile?.department_ids?.includes(department.id)){
+                                                  return (<option key={department.id} value={department.id}>{department?.name}</option>)
+                                                }
 
-                                    <textarea className="form-control"
-                                    id="update_user_description"  onChange={(event)=>this.handleChange(event,'edit')}
-                                    name="description"
-                                    defaultValue={values.description}
-                                   />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Description is required
+                                              })
+                                            }
+                                          </select>
+                                        </div>
+                                        <div className="col-md-5">
+                                          <label>Role</label>
+                                        <select className="form-control" name="role_id"
+                                          value={this.state.addDepartmentRoleForm.role_id}
+                                          onChange={this.handleDepartmentRoleChange}>
+                                          <option>Select</option>
+                                        {
+                                          this.state.allRolesCopy.map((role)=>{
+                                        return  (<option key={role.id} value={role.id}>{role?.name}</option>)
+
+                                          })
+                                        }
+
+                                        </select>
+
+                                        </div>
+                                      <div className="col-md-2 mt-2">
+                                        <button type="button" className="btn float-right mt-4 btn-sm btn-primary" onClick={()=>this.addDepartmentRoles('edit')}>Add <FaArrowDown/></button>
+                                      </div>
+                                      </div>
+                                      <div className="form-row">
+                                        <table className="table table-hover table-striped">
+                                          <thead>
+                                            <tr>
+                                              <th>Department</th>
+                                              <th>Role</th>
+                                              <th>Action</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+
+
+                                            {
+                                              state.viewedUserProfile?.viewed_profiles.length ? (
+                                                state.viewedUserProfile?.viewed_profiles.map((dR, index)=>{
+
+                                                  return(
+                                                    <tr key={index}>
+                                                      <td>{dR?.department?.name} </td>
+                                                      <td>{dR?.role?.name} </td>
+                                                      <td>
+                                                        <span className="cursor-pointer text-danger mr-2" onClick={()=>{
+                                                            this.deletedepartmentRole(dR?.department.id, true)}
+                                                          }>
+                                                          <i className="nav-icon i-Close-Window font-weight-bold"></i>
+                                                        </span>
+                                                      </td>
+                                                    </tr>
+                                                  )
+
+                                                })
+                                              ) : (
+                                                <tr>
+                                                  <td colSpan="3" className="text-center"> No profiles assigned </td>
+                                                </tr>
+                                              )
+                                            }
+
+
+
+
+                                          </tbody>
+
+                                        </table>
+
+                                      </div>
                                     </div>
-                                </div>
+                                  </div>
 
-                                </div>
-                            </Modal.Body>
+                                  </div>
+                              </Modal.Body>
 
-                            <Modal.Footer>
+                              <Modal.Footer>
 
-                                    <LaddaButton
-                                        className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
-                                        loading={false}
-                                        progress={0.5}
-                                        type='button'
-                                        onClick={()=>this.toggleModal('edit')}
+                                      <LaddaButton
+                                          className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                                          loading={false}
+                                          progress={0.5}
+                                          type='button'
+                                          onClick={()=>this.toggleModal('edit')}
 
-                                        >
-                                        Close
-                                    </LaddaButton>
+                                          >
+                                          Close
+                                      </LaddaButton>
 
-                                    <LaddaButton
-                                        className={`btn btn-${utils.isValid(this.updateUserSchema, this.state.updateUserForm) ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
-                                        loading={this.state.isSaving}
-                                        progress={0.5}
-                                        type='submit'
-                                        data-style={EXPAND_RIGHT}
-                                        >
-                                        {this.state.updateMsg}
-                                    </LaddaButton>
-                                    </Modal.Footer>
+                                      <LaddaButton
+                                          className={`btn btn-${utils.isValid(this.updateUserSchema, this.state.updateUserForm) && state?.viewedUserProfile?.department_ids.length > 0
+                                             ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                                          loading={this.state.isSaving}
+                                          progress={0.5}
+                                          type='submit'
+                                          data-style={EXPAND_RIGHT}
+                                          disabled={state?.viewedUserProfile?.department_ids == 0}
+                                          >
+                                          {this.state.saveMsg}
+                                      </LaddaButton>
+                                      </Modal.Footer>
 
-                        </form>
-                        );
-                    }}
+                          </form>
+                          );
+                      }}
 
-                    </Formik>
+                      </Formik>
 
 
-                </Modal>
+
+                  </Modal>
 
 
                 <Modal show={this.state.showCreateModal} onHide={
@@ -702,7 +1016,7 @@ export class UsersComponent extends Component{
 
                                 <div className="col-md-12 ">
                                   <div className="card-header border-bottom">
-                                    <h4 className="text-center">Assign department & role</h4>
+                                    <h4 className="text-center">Assign Profiles</h4>
                                   </div>
                                   <div className="card-body">
                                     <div className="form-row pb-2">
@@ -738,7 +1052,7 @@ export class UsersComponent extends Component{
 
                                       </div>
                                     <div className="col-md-2 mt-2">
-                                      <button type="button" className="btn float-right mt-4 btn-sm btn-primary" onClick={this.addDepartmentRoles}>Add <FaArrowDown/></button>
+                                      <button type="button" className="btn float-right mt-4 btn-sm btn-primary" onClick={()=>this.addDepartmentRoles()}>Add <FaArrowDown/></button>
                                     </div>
                                     </div>
                                     <div className="form-row">
@@ -763,7 +1077,7 @@ export class UsersComponent extends Component{
                                                     <td>{dR?.role?.name} </td>
                                                     <td>
                                                       <span className="cursor-pointer text-danger mr-2" onClick={()=>{
-                                                          this.deletedepartmentRole(index)}
+                                                          this.deletedepartmentRole(dR?.department?.id)}
                                                         }>
                                                         <i className="nav-icon i-Close-Window font-weight-bold"></i>
                                                       </span>
@@ -774,7 +1088,7 @@ export class UsersComponent extends Component{
                                               })
                                             ) : (
                                               <tr>
-                                                <td colSpan="3" className="text-center"> No department | roles assigned </td>
+                                                <td colSpan="3" className="text-center"> No profiles assigned </td>
                                               </tr>
                                             )
                                           }
@@ -865,7 +1179,7 @@ export class UsersComponent extends Component{
                                                 <th>First Name</th>
                                                 <th>Last Name</th>
                                                 <th>Email</th>
-                                              <th>Department | Roles</th>
+                                                <th>Profiles</th>
                                                 <th>Status</th>
                                                 <th>Date Created</th>
                                                 <th>Date Updated</th>
@@ -878,7 +1192,9 @@ export class UsersComponent extends Component{
                                                 return (
                                                     <tr key={userProfile.id} className={userProfile.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
-                                                            <b>{index+1}</b>.
+                                                            <b>{index+1}</b>. {
+                                                               AUTH_USER.id == userProfile?.user?.id ? (<sup className='badge badge-danger'><small>You</small></sup>): null
+                                                            }
                                                         </td>
                                                         <td>
                                                             {userProfile?.user?.first_name}
@@ -891,20 +1207,22 @@ export class UsersComponent extends Component{
                                                         </td>
                                                         <td className="text-centerx">
 
-                                                          <a className="underline">View</a>
+                                                          <a className="underline" href='#' onClick={(event)=> this.viewDepartmentRoles(event,userProfile)}>View</a> {
+                                                            userProfile?.is_fetching ? <FaSpinner className='spin'/> : null
+                                                          }
 
                                                         </td>
                                                         <td>
                                                           {
-                                                            CAN_TOGGLE_STATUS ? (
+                                                            CAN_TOGGLE_STATUS  && AUTH_USER.id !== userProfile?.user?.id ? (
                                                               <Form>
 
                                                                    <Form.Check
-                                                                          checked={userProfile.status}
+                                                                          checked={userProfile?.user?.is_active}
                                                                           type="switch"
                                                                           id={`custom-switch${userProfile.id}`}
-                                                                          label={userProfile.status ? 'Enabled' : 'Disabled'}
-                                                                          className={userProfile.status ? 'text-success' : 'text-danger'}
+                                                                          label={userProfile?.user?.is_active ? 'Enabled' : 'Disabled'}
+                                                                          className={userProfile?.user?.is_active ? 'text-success' : 'text-danger'}
                                                                           onChange={()=> this.toggleUser(userProfile)}
                                                                       />
 
@@ -912,8 +1230,8 @@ export class UsersComponent extends Component{
                                                                   </Form>
                                                             ) :(
 
-                                                                <span className={userProfile.status ? `badge  badge-success`: `badge  badge-danger`}>
-                                                                  {userProfile.status ? 'Enabled' : 'Disabled'}
+                                                                <span className={userProfile?.user?.is_active ? `badge  badge-success`: `badge  badge-danger`}>
+                                                                  {userProfile?.user?.is_active ? 'Enabled' : 'Disabled'}
                                                                 </span>
 
                                                             )
@@ -936,8 +1254,8 @@ export class UsersComponent extends Component{
 
                                                               {
                                                                 CAN_EDIT ? (
-                                                                  <Dropdown.Item onClick={()=> {
-                                                                      this.editUser(userProfile);
+                                                                  <Dropdown.Item onClick={(event)=> {
+                                                                      this.viewDepartmentRoles(event,userProfile, false);
                                                                   }} className='border-bottom'>
                                                                       <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
                                                                   </Dropdown.Item>
@@ -945,7 +1263,7 @@ export class UsersComponent extends Component{
                                                               }
 
                                                               {
-                                                                CAN_DELETE ? (
+                                                                CAN_DELETE  && AUTH_USER.id !== userProfile?.user?.id  ? (
 
                                                                   <Dropdown.Item className='text-danger' onClick={
                                                                       ()=>{this.deleteUser(userProfile);}
@@ -985,7 +1303,7 @@ export class UsersComponent extends Component{
                                               <th>First Name</th>
                                               <th>Last Name</th>
                                               <th>Email</th>
-                                              <th>Department | Roles</th>
+                                              <th>Profiles</th>
                                               <th>Status</th>
                                               <th>Date Created</th>
                                               <th>Date Updated</th>

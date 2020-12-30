@@ -536,7 +536,7 @@ class ApprovalsList extends Component {
       let illegalMsg = `You are not permitted to re-arrange approvals!`
       let punctuate = '.';
       if(illegalTrials > 0){
-        illegalMsg += ` You will be forced out of this page after ${trialsLeft} more illegal trial${trialsLeft > 1 ? 's':''}.`;
+        illegalMsg += ` You will have to leave this page after ${trialsLeft} more illegal trial${trialsLeft > 1 ? 's':''}.`;
         let x='';
         for(let i=0; i<illegalTrials; i++){x+= '!';}
         punctuate = x;

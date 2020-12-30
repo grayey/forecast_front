@@ -38,6 +38,7 @@ import LaddaButton, {
 
 export class BudgetEntriesComponent extends Component{
 
+  userPermissions = [];
   CAN_VIEW_ALL = false;
   CAN_CREATE = false;
   CAN_EDIT =false;
@@ -47,6 +48,9 @@ export class BudgetEntriesComponent extends Component{
   CAN_APPROVE_OR_REJECT = false;
   CAN_IMPORT_PREVIOUS_ENTRIES = false;
   CAN_BULK_UPLOAD_ENTRIES = false;
+
+  AUTH_USER = null;
+
 
 
   preparationService;
@@ -175,7 +179,7 @@ export class BudgetEntriesComponent extends Component{
         const componentName = props.isApproval ? 'Review__Default' : "Preparation___Default";
         const componentPermissions = utils.getComponentPermissions(componentName, props.route.auth);
         this.userPermissions = utils.comparePermissions(jwtAuthService.getUserTasks(), componentPermissions);
-        console.log('USERRERETTETTE',props, this.userPermissions)
+        // console.log('USERRERETTETTE',props, this.userPermissions)
 
         // set permisions
         this.CAN_VIEW_ALL = this.userPermissions.includes(`${componentName}__CAN_VIEW_ALL`);
@@ -186,6 +190,8 @@ export class BudgetEntriesComponent extends Component{
         this.CAN_VIEW_HISTORY = this.userPermissions.includes(`${componentName}__CAN_VIEW_HISTORY`);
         this.CAN_IMPORT_PREVIOUS_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_IMPORT_PREVIOUS_ENTRIES`);
         this.CAN_BULK_UPLOAD_ENTRIES = this.userPermissions.includes(`${componentName}__CAN_BULK_UPLOAD_ENTRIES`);
+        this.AUTH_USER =  jwtAuthService.getUser();
+
 
 
 
@@ -1835,7 +1841,7 @@ export class BudgetEntriesComponent extends Component{
 
     render(){
 
-      const { CAN_VIEW_ALL, CAN_EDIT, CAN_CREATE, CAN_SUBMIT, CAN_VIEW_DETAIL, CAN_IMPORT_PREVIOUS_ENTRIES,
+      const {AUTH_USER, CAN_VIEW_ALL, CAN_EDIT, CAN_CREATE, CAN_SUBMIT, CAN_VIEW_DETAIL, CAN_IMPORT_PREVIOUS_ENTRIES,
          CAN_BULK_UPLOAD_ENTRIES, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT, state, props } = this
       const { navigate, viewOrEditSelections, activeDepartmentRole, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
       const { active_version } = activeBudgetCycle;
@@ -1909,6 +1915,9 @@ export class BudgetEntriesComponent extends Component{
                                                                                <tr key={histo.id}>
                                                                                  <td>
                                                                                    {histo?.user?.first_name} {histo?.user?.last_name} <small>({histo?.user?.email})</small>
+                                                                                   {
+                                                                                      AUTH_USER.id == histo?.user?.id ? (<span className='badge badge-danger'> <small> You</small></span>): null
+                                                                                   }
                                                                                  </td>
 
                                                                                  <td>

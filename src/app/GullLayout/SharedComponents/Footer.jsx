@@ -8,13 +8,17 @@ const Footer = () => {
         <div className="row">
           <div className="col-md-9">
             <p>
-              <strong>Gull - Laravel + Bootstrap 4 admin template</strong>
+              <strong>ForeKarst - Budget Management Solution</strong>
             </p>
             <p>
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Libero
-              quis beatae officia saepe perferendis voluptatum minima eveniet
-              voluptates dolorum, temporibus nisi maxime nesciunt totam
-              repudiandae commodi sequi dolor quibusdam sunt.
+              Intuitive budget capture;
+              Versioning;
+              Expense tracking (accounting systems' integrations);
+              Dynamic workflows (configurable approval stages);
+              Audit trail;
+              Reporting/graphical analytics;
+              Multiple simultaneous cycles (projections);
+              Active Directory (optional)
             </p>
           </div>
         </div>
@@ -22,18 +26,19 @@ const Footer = () => {
           <a
             id="buy-gull"
             className="btn btn-primary text-white btn-rounded"
-            href="https://1.envato.market/LV1va"
+            href="mailto:ehirim.emeka.e@gmail.com"
+
             target="_blank"
             rel="noopener noreferrer"
           >
-            Buy Gull React
+             ForeKarst &#8482;
           </a>
           <span className="flex-grow-1"></span>
           <div className="d-flex align-items-center">
             <img className="logo" src="/assets/images/logo.png" alt="" />
             <div>
-              <p className="m-0">&copy; 2019 Gull HTML</p>
-              <p className="m-0">All rights reserved</p>
+              <p className="m-0">&copy; 2021 ForeKarst <b>BMS</b></p>
+              {/* <p className="m-0">All rights reserved</p> */}
             </div>
           </div>
         </div>

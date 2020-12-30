@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import AppMainService from "./services/appMainService";
 import ProcessingService from './services/processing.service';
 import ReportsService from './services/reports.service';
+import jwtAuthService from './services/jwtAuthService';
 
 import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
 import { Dropdown, Modal, ProgressBar,  } from "react-bootstrap";
+import DropdownMenu from "react-bootstrap/DropdownMenu";
 import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion, FaList, FaCog, FaDownload, FaFilter } from "react-icons/fa";
 import Slider from "rc-slider";
 import Tooltip from "rc-tooltip";
@@ -134,6 +136,146 @@ export const CustomProgressBar = (props)=>{
       </p>
     </div>
     )
+
+}
+
+
+export const SystemNotifications = (props) => {
+    const appMainService = new AppMainService();
+    const [allNotifications, setNotifications] = useState([])
+    const [fetching_notes, setFetchingNotes] = useState(false)
+    const { department, role } = jwtAuthService.getActiveDepartmentRole();
+    const user = jwtAuthService.getUser();
+
+    // ('INITIATED', 'INITIATED'),
+    //   ('CREATED', 'CREATED'),
+    //   ('SUBMITTED', 'SUBMITTED'),
+    //   ('UPDATED', 'UPDATED'),
+    //   ('APPROVED', 'APPROVED'),
+    //   ('REJECTED', 'REJECTED'),
+    //   ('POSTED', 'POSTED'),
+    //   ('ARCHIVED', 'ARCHIVED'),
+    //   ('DEFAULT', 'DEFAULT'),
+
+    const note_object = {
+      INITIATED:{
+        color:"info",
+        icon:"i-Shop-4"
+      },
+      CREATED:{
+        color:"info_custom",
+        icon:"i-Library"
+      },
+      SUBMITTED:{
+        color:"success_custom",
+        icon:"i-Drop"
+      },
+      UPDATED:{
+        color:"secondary_custom",
+        icon:"i-File-Clipboard-File--Text"
+      },
+      APPROVED:{
+        color:"success",
+        icon:"i-Checked-User"
+      },
+      REJECTED:{
+        color:"danger",
+        icon:"i-Delete"
+      },
+      POSTED:{
+        color:"pink_custom",
+        icon:"i-Ambulance"
+      },
+      ARCHIVED:{
+        color:"secondary_custom",
+        icon:"i-Checked"
+      },
+      DEFAULT:{
+        color:"warning",
+        icon:"i-default"
+      }
+
+    }
+
+    const getAllNotifications = async() => {
+      setFetchingNotes(true);
+          appMainService.getAllNotifications({user, department, role}).then(
+              (notificationsResponse)=>{
+                setFetchingNotes(false);
+                  setNotifications(notificationsResponse);
+                  console.log('Notifications response', notificationsResponse)
+              }
+          ).catch((error)=>{
+              const errorNotification = {
+                  type:'info',
+                  msg:'Could not retrieve system notifications'
+              }
+              new AppNotification(errorNotification)
+              setFetchingNotes(false);
+
+          })
+        }
+
+    useEffect(() => {
+      getAllNotifications()
+    }, [])
+
+    return (
+      <Dropdown>
+        <Dropdown.Toggle as="span" className="toggle-hidden cursor-pointer">
+          <div
+            className="badge-top-container"
+            role="button"
+            id="dropdownNotification"
+            data-toggle="dropdown"
+          >
+            <span className="badge badge-primary">{allNotifications.length}</span>
+            <i className="i-Bell text-muted header-icon"></i>
+          </div>
+        </Dropdown.Toggle>
+
+        <DropdownMenu className="notification-dropdown rtl-ps-none">
+          { allNotifications.length ? allNotifications.map((note, index) => {
+            const { n_type, description, created_at, redirect_url } = note;
+            const noted = note_object[n_type];
+
+            return (
+
+              <div key={index} className="dropdown-item d-flex">
+                <div className="notification-icon">
+                  <i className={`${noted?.icon} text-${noted?.color} mr-1`}></i>
+                </div>
+                <div className="notification-details flex-grow-1">
+                  <p className="m-0 d-flex align-items-center">
+                    <span>{utils.toTiltle(n_type)}</span>
+                    <span
+                      className={`badge badge-pill badge-${noted?.color} ml-1 mr-1`}
+                    >
+                      {note.status}
+                    </span>
+                    <span className="flex-grow-1"></span>
+                    <span className="text-small text-muted ml-auto">
+                      {utils.getTimeDifference(new Date(created_at))} ago
+                    </span>
+                  </p>
+                  <p className="text-small text-muted m-0">
+                    {description}
+                  </p>
+                </div>
+              </div>
+            )
+
+          }) :
+          (
+            <div  className=" ml-1">
+              <FetchingRecords className='text-center' isFetching={fetching_notes} emptyMsg="No new notifcations" />
+            </div>
+          )
+        }
+        </DropdownMenu>
+      </Dropdown>
+    )
+
 
 }
 
