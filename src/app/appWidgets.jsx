@@ -147,16 +147,6 @@ export const SystemNotifications = (props) => {
     const { department, role } = jwtAuthService.getActiveDepartmentRole();
     const user = jwtAuthService.getUser();
 
-    // ('INITIATED', 'INITIATED'),
-    //   ('CREATED', 'CREATED'),
-    //   ('SUBMITTED', 'SUBMITTED'),
-    //   ('UPDATED', 'UPDATED'),
-    //   ('APPROVED', 'APPROVED'),
-    //   ('REJECTED', 'REJECTED'),
-    //   ('POSTED', 'POSTED'),
-    //   ('ARCHIVED', 'ARCHIVED'),
-    //   ('DEFAULT', 'DEFAULT'),
-
     const note_object = {
       INITIATED:{
         color:"info",
@@ -209,8 +199,8 @@ export const SystemNotifications = (props) => {
               const errorNotification = {
                   type:'info',
                   msg:'Could not retrieve system notifications'
-              }
-              new AppNotification(errorNotification)
+              };
+              new AppNotification(errorNotification);
               setFetchingNotes(false);
 
           })

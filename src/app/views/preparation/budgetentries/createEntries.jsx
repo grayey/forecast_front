@@ -2717,7 +2717,7 @@ export class BudgetEntriesComponent extends Component{
 
                                   <LaddaButton
                                       className={`btn btn-sm btn-${utils.isValid(this.createDepartmentAggregateSchema, this.state.createDepartmentAggregateForm) ? 'success':'secondary_custom'} border-0 mr-2 mb-2 position-relative`}
-                                      loading={this.state.isSaving}
+
                                       progress={0.5}
                                       type='submit'
                                       data-style={EXPAND_RIGHT}
@@ -2779,7 +2779,7 @@ export class BudgetEntriesComponent extends Component{
 
                               <div className="float-right">
                                 {
-                                  CAN_IMPORT_PREVIOUS_ENTRIES  ? (
+                                  CAN_IMPORT_PREVIOUS_ENTRIES && !this.props.updateentries  ? (
                                     <div className="input-group mb-3">
                                       <div className="input-group-prepend">
                                         <span className="input-group-text bg-info_custom text-white">

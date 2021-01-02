@@ -263,9 +263,24 @@ margin-left: 1rem;
 
 /* The heart of the matter */
        //
-       .horizontal-scrollable > .rowx {
-           overflow-x: auto !important;
-           white-space: nowrap !important;
+       // .horizontal-scrollable {
+       //   transform: rotateX(180deg) !important;
+       //   overflow-x: auto !important;
+       //   white-space: nowrap !important;
+       // }
+       // .rowx{
+       //     transform: rotateX(180deg);
+       // }
+       //
+       .invert-scroll{
+         transform: rotateX(180deg);
+         overflow-x: auto !important;
+         white-space: nowrap !important;
+       }
+       .horizontal-scrollable {
+             transform: rotateX(180deg);
+
+
        }
 
        .horizontal-scrollable > .rowx > .colx-6 {

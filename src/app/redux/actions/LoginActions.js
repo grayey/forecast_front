@@ -30,10 +30,10 @@ export function loginWithEmailAndPassword({ email, password }) {
           type:"error",
           msg:utils.processErrors(error)
         })
-        // return dispatch({
-        //   type: LOGIN_ERROR,
-        //   payload: error
-        // });
+        return dispatch({
+          type: LOGIN_ERROR,
+          payload: error
+        });
       });
   };
 }

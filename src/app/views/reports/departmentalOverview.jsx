@@ -382,175 +382,180 @@ class DepartmentalOverview extends Component {
                         <Tab.Content>
                           <Tab.Pane eventKey="list_view">
 
-                            <div className='horizontal-scrollable'>
+                            <div className='invert-scroll'>
 
-                              <div className="rowx d-flex">
+                                                          <div className='horizontal-scrollable'>
 
-                                {
-                                yearsData.length && !isFetching ?  yearsData.map((year, index)=>{
+                                                            <div className="rowx d-flex">
 
-                                  const versionAggregates = this.buildGroupedEntries(reportData[year]);
+                                                              {
+                                                              yearsData.length && !isFetching ?  yearsData.map((year, index)=>{
 
-                                    return (
-                                        <div className='colx-6 pr-5'>
+                                                                const versionAggregates = this.buildGroupedEntries(reportData[year]);
 
-
-                                          <div className='rowx'>
-                                            <div className='col-12x'>
-                                              <h3 className='card-headerx text-center'>{year}</h3>
-                                            </div>
-                                            <div className='col-12x'>
-                                            {
-                                            versionAggregates.length ?  versionAggregates.map((aggregate, ag_index)=>{
-                                              const eventKey = `${index}_${ag_index}_${year}`
-
-                                                return (
-
-                                                  <Card key={aggregate?.id} className="shadow-sm mb-3">
-                                                    <Accordion>
-                                                      <Card.Header className="d-flex align-items-center justify-content-between">
-                                                        <Accordion.Toggle
-                                                          className="cursor-pointer mb-0 text-primary"
-                                                          as="span"
-                                                          eventKey={eventKey}
-                                                          onClick={()=>this.toggleAccordion(aggregate,ag_index)}
-                                                        >
-                                                          <a href='#' onClick={(e)=> e.preventDefault()} className="underline">{aggregate?.budgetversion?.version_code?.name} ({aggregate?.budgetversion?.version_code?.code})</a>&nbsp;
-                                                          {
-                                                            aggregate?.is_open ? <FaMinusCircle className="text-danger"/> : <FaPlusCircle/>
-                                                          }
-                                                        </Accordion.Toggle>
+                                                                  return (
+                                                                      <div className='colx-6 pr-5'>
 
 
+                                                                        <div className='rowx'>
+                                                                          <div className='col-12x'>
+                                                                            <h3 className='card-headerx text-center'>{year}</h3>
+                                                                          </div>
+                                                                          <div className='col-12x'>
+                                                                          {
+                                                                          versionAggregates.length ?  versionAggregates.map((aggregate, ag_index)=>{
+                                                                            const eventKey = `${index}_${ag_index}_${year}`
 
-                                                        <div className="d-flex">
+                                                                              return (
 
-                                                          <table className="table">
-                                                            <thead>
-                                                              <tr>
+                                                                                <Card key={aggregate?.id} className="shadow-sm mb-3">
+                                                                                  <Accordion>
+                                                                                    <Card.Header className="d-flex align-items-center justify-content-between">
+                                                                                      <Accordion.Toggle
+                                                                                        className="cursor-pointer mb-0 text-primary"
+                                                                                        as="span"
+                                                                                        eventKey={eventKey}
+                                                                                        onClick={()=>this.toggleAccordion(aggregate,ag_index)}
+                                                                                      >
+                                                                                        <a href='#' onClick={(e)=> e.preventDefault()} className="underline">{aggregate?.budgetversion?.version_code?.name} ({aggregate?.budgetversion?.version_code?.code})</a>&nbsp;
+                                                                                        {
+                                                                                          aggregate?.is_open ? <FaMinusCircle className="text-danger"/> : <FaPlusCircle/>
+                                                                                        }
+                                                                                      </Accordion.Toggle>
 
-                                                                <th className="text-right">Total Naira part(&#x20a6;)</th>
-                                                                  <th className="text-right">Total USD part($)</th>
-                                                                <th className="text-right">Total in Naira(&#x20a6;)</th>
-                                                                <th className="text-right">Total in USD($)</th>
 
-                                                              </tr>
-                                                              <tr>
-                                                                <th className="text-right">
-                                                                  <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_naira_portion)}</a></b>
 
-                                                                </th>
-                                                                <th className="text-right">
-                                                                  <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_currency_portion)}</a></b>
+                                                                                      <div className="d-flex">
 
-                                                                </th>
+                                                                                        <table className="table">
+                                                                                          <thead>
+                                                                                            <tr>
 
-                                                                <th className="text-right">
-                                                                    <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_functional_naira)}</a></b>
+                                                                                              <th className="text-right">Total Naira part(&#x20a6;)</th>
+                                                                                                <th className="text-right">Total USD part($)</th>
+                                                                                              <th className="text-right">Total in Naira(&#x20a6;)</th>
+                                                                                              <th className="text-right">Total in USD($)</th>
 
-                                                                </th>
-                                                                <th className="text-right">
-                                                                  <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_functional_currency)}</a></b>
+                                                                                            </tr>
+                                                                                            <tr>
+                                                                                              <th className="text-right">
+                                                                                                <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_naira_portion)}</a></b>
 
-                                                                </th>
-                                                              </tr>
-                                                            </thead>
-                                                          </table>
-                                                          <div>
+                                                                                              </th>
+                                                                                              <th className="text-right">
+                                                                                                <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_currency_portion)}</a></b>
+
+                                                                                              </th>
+
+                                                                                              <th className="text-right">
+                                                                                                  <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_functional_naira)}</a></b>
+
+                                                                                              </th>
+                                                                                              <th className="text-right">
+                                                                                                <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_functional_currency)}</a></b>
+
+                                                                                              </th>
+                                                                                            </tr>
+                                                                                          </thead>
+                                                                                        </table>
+                                                                                        <div>
+
+                                                                                        </div>
+
+
+                                                                                      {/*  <i className="mx-1 i-Reload"> </i>
+                                                                                        <i className="mx-1 i-Close-Window"></i>
+
+                                                                                        <i className="mx-1 i-Drag"> </i>
+                                                                                        <i className="mx-1 i-Full-Screen-2"></i>
+                                                                                        <i className="mx-1 i-Close-Window"></i>
+                                                                                        */}
+                                                                                      </div>
+                                                                                    </Card.Header>
+                                                                                    <Accordion.Collapse eventKey={eventKey}>
+                                                                                      <Card.Body>
+                                                                                        <div>
+                                                                                          {this.buildVersionRows(aggregate)}
+                                                                                        </div>
+
+                                                                                        <div>
+                                                                                          {
+                                                                                            this.displayEntityCategoryGraph(aggregate)
+                                                                                          }
+                                                                                        </div>
+
+                                                                                      </Card.Body>
+                                                                                    </Accordion.Collapse>
+                                                                                  </Accordion>
+                                                                                </Card>
+
+                                                                              )
+
+                                                                          }) : (
+                                                                            <Card key={'empty'} className="shadow-sm mb-3">
+                                                                              <Accordion>
+                                                                                <Card.Header className="d-flex align-items-center justify-content-between text-center">
+                                                                                  <Accordion.Toggle
+                                                                                    className="cursor-pointer mb-0 text-primary"
+                                                                                    as="span"
+                                                                                    eventKey={'no_data'}
+
+                                                                                  >
+
+                                                                                  </Accordion.Toggle>
+
+
+
+                                                                                  <div className="empty_data text-center">
+
+
+
+                                                                                      <h5 className='mt-4'>No records for <b> {year}</b></h5>
+
+                                                                                  </div>
+                                                                                </Card.Header>
+                                                                                <Accordion.Collapse eventKey={'no_data'}>
+                                                                                  <Card.Body>
+
+                                                                                    Nothing here
+                                                                                  </Card.Body>
+                                                                                </Accordion.Collapse>
+                                                                              </Accordion>
+                                                                            </Card>
+                                                                          )
+                                                                          }
+                                                                          </div>
+
+                                                                        </div>
+
+
+                                                                      </div>
+
+                                                                  )
+
+                                                                }):  (
+                                                                  <div className="col-12">
+                                                                    <div className='row'>
+                                                                      <div className='col-md-12 text-center mt-5 pb-5 '>
+                                                                        <FetchingRecords  isFetching={isFetching} emptyMsg={(<h5><b><em>No filtered records.</em></b></h5>)}/>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+
+                                                                )
+                                                              }
+
+                                                            </div>
+
+
+
+
 
                                                           </div>
-
-
-                                                        {/*  <i className="mx-1 i-Reload"> </i>
-                                                          <i className="mx-1 i-Close-Window"></i>
-
-                                                          <i className="mx-1 i-Drag"> </i>
-                                                          <i className="mx-1 i-Full-Screen-2"></i>
-                                                          <i className="mx-1 i-Close-Window"></i>
-                                                          */}
-                                                        </div>
-                                                      </Card.Header>
-                                                      <Accordion.Collapse eventKey={eventKey}>
-                                                        <Card.Body>
-                                                          <div>
-                                                            {this.buildVersionRows(aggregate)}
-                                                          </div>
-
-                                                          <div>
-                                                            {
-                                                              this.displayEntityCategoryGraph(aggregate)
-                                                            }
-                                                          </div>
-
-                                                        </Card.Body>
-                                                      </Accordion.Collapse>
-                                                    </Accordion>
-                                                  </Card>
-
-                                                )
-
-                                            }) : (
-                                              <Card key={'empty'} className="shadow-sm mb-3">
-                                                <Accordion>
-                                                  <Card.Header className="d-flex align-items-center justify-content-between text-center">
-                                                    <Accordion.Toggle
-                                                      className="cursor-pointer mb-0 text-primary"
-                                                      as="span"
-                                                      eventKey={'no_data'}
-
-                                                    >
-
-                                                    </Accordion.Toggle>
-
-
-
-                                                    <div className="empty_data text-center">
-
-
-
-                                                        <h5 className='mt-4'>No records for <b> {year}</b></h5>
-
-                                                    </div>
-                                                  </Card.Header>
-                                                  <Accordion.Collapse eventKey={'no_data'}>
-                                                    <Card.Body>
-
-                                                      Nothing here
-                                                    </Card.Body>
-                                                  </Accordion.Collapse>
-                                                </Accordion>
-                                              </Card>
-                                            )
-                                            }
-                                            </div>
-
-                                          </div>
-
-
-                                        </div>
-
-                                    )
-
-                                  }):  (
-                                    <div className="col-12">
-                                      <div className='row'>
-                                        <div className='col-md-12 text-center mt-5 pb-5 '>
-                                          <FetchingRecords  isFetching={isFetching} emptyMsg={(<h5><b><em>No filtered records.</em></b></h5>)}/>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                  )
-                                }
-
-                              </div>
-
-
 
 
 
                             </div>
-
                           </Tab.Pane>
                           <Tab.Pane eventKey="graph_view">
 

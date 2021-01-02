@@ -346,9 +346,7 @@ export class EntitiesComponent extends Component{
             <>
                 <div className="specific">
 
-                <Modal show={this.state.showEditModal} onHide={
-                    ()=>{ this.toggleModal('edit')}
-                    } {...this.props} id='edit_modal'>
+                <Modal show={this.state.showEditModal} onHide={ ()=>{ this.toggleModal('edit')} } {...this.props} id='edit_modal'>
                     <Modal.Header closeButton>
                     <Modal.Title>
                         <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;

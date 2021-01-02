@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="row">
           <div className="col-md-9">
             <p>
-              <strong>ForeKarst - Budget Management Solution</strong>
+              <strong>ForeKarst - <em>Budget Management Portal</em></strong>
             </p>
             <p>
               Intuitive budget capture;
@@ -37,7 +37,7 @@ const Footer = () => {
           <div className="d-flex align-items-center">
             <img className="logo" src="/assets/images/logo.png" alt="" />
             <div>
-              <p className="m-0">&copy; 2021 ForeKarst <b>BMS</b></p>
+              <p className="m-0">&copy; 2021 ForeKarst <b>BMP</b></p>
               {/* <p className="m-0">All rights reserved</p> */}
             </div>
           </div>

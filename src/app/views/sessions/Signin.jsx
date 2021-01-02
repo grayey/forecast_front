@@ -50,6 +50,7 @@ async componentDidMount(){
   const urlParams = queryString.parse(this.props.location.search);
 
   console.log(urlParams, "dsjhjhjdfhjfdhj")
+  console.log('Login props',this.props)
 
   if(!Object.keys(urlParams).length){
     await this.getAppSettings();
@@ -239,7 +240,7 @@ return {
 
 
 
-                    <h4 className="text-white"><b>Budget Management System</b></h4>
+                    <h4 className="text-white"><b>Budget Management Portal</b></h4>
                   {/* <Link
                     to="/session/signup"
                     className="btn btn-rounded btn-outline-primary btn-outline-email btn-block btn-icon-text"
@@ -266,7 +267,8 @@ return {
 
 const mapStateToProps = state => ({
   loginWithEmailAndPassword: PropTypes.func.isRequired,
-  user: state.user
+  user: state.user,
+  isSubmitting: state.isSubmitting
 });
 
 export default connect(mapStateToProps, {
