@@ -14,7 +14,7 @@ import * as yup from "yup";
 import AppNotification from "../../../appNotifications";
 import { VIEW_FORBIDDEN } from "../../../appConstants";
 
-import { FetchingRecords, BulkTemplateDownload, CustomProgressBar, ErrorView } from "../../../appWidgets";
+import { FetchingRecords, BulkTemplateDownload, CustomProgressBar, ErrorView, DepartmentAggregateReport } from "../../../appWidgets";
 import moment from "moment";
 import { RichTextEditor } from "@gull";
 import { connect } from "react-redux";
@@ -700,6 +700,10 @@ export class BudgetEntriesComponent extends Component{
         })
     }
 
+    downloadDepartmentVersionReport = async () => {
+
+    }
+
     /**
      * This method lists cost items by category
      */
@@ -897,7 +901,6 @@ export class BudgetEntriesComponent extends Component{
                  historyRoles, historyUsers, initial_totals }); // so allBudgetEntries is set
               await this.getApprovalMessage();
               this.getAllItemCategories();
-
 
               this.setViewMode();
 
@@ -1843,7 +1846,7 @@ export class BudgetEntriesComponent extends Component{
 
       const {AUTH_USER, CAN_VIEW_ALL, CAN_EDIT, CAN_CREATE, CAN_SUBMIT, CAN_VIEW_DETAIL, CAN_IMPORT_PREVIOUS_ENTRIES,
          CAN_BULK_UPLOAD_ENTRIES, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT, state, props } = this
-      const { navigate, viewOrEditSelections, activeDepartmentRole, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
+      const { navigate, viewOrEditSelections, activeDepartmentRole, viewedDepartmentAggregate, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
       const { active_version } = activeBudgetCycle;
       // const { version_code } = active_version;
         return navigate ? <Redirect to="/preparation/budget-entries"/> : (!props.updateentries && !CAN_CREATE) ? <ErrorView errorType={VIEW_FORBIDDEN}/> : (
@@ -2758,22 +2761,9 @@ export class BudgetEntriesComponent extends Component{
 
                               {
                                  this.props.updateentries && viewOrEditSelections.is_view ? (
-                                   <div className="pb-2">
-
-                                     <div className="float-right">
-                                       <Dropdown>
-                                         <Dropdown.Toggle variant="info_custom" className="text-white">
-                                          Export <FaArrowDown/>
-                                         </Dropdown.Toggle>
-                                         <Dropdown.Menu>
-                                           <Dropdown.Item onClick={()=>console.log('Excel')}><FaFileExcel/> Excel</Dropdown.Item>
-                                           <Dropdown.Divider />
-                                           <Dropdown.Item onClick={()=>console.log('CSV')}><FaFileCsv/> CSV</Dropdown.Item>
-                                         </Dropdown.Menu>
-                                       </Dropdown>
-                                     </div>
-
-                                   </div>
+                                <>
+                                  <DepartmentAggregateReport department_aggregate={viewedDepartmentAggregate}  />
+                                </>
                                  )
                                 :  (
 

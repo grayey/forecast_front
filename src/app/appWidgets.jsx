@@ -8,7 +8,7 @@ import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
 import { Dropdown, Modal, ProgressBar,  } from "react-bootstrap";
 import DropdownMenu from "react-bootstrap/DropdownMenu";
-import { FaUpload, FaFileCsv, FaFileExcel, FaQuestion, FaList, FaCog, FaDownload, FaFilter } from "react-icons/fa";
+import { FaUpload, FaFileCsv, FaFileExcel, FaArrowDown, FaQuestion, FaList, FaCog, FaDownload, FaFilter } from "react-icons/fa";
 import Slider from "rc-slider";
 import Tooltip from "rc-tooltip";
 import * as utils from "@utils";
@@ -266,6 +266,84 @@ export const SystemNotifications = (props) => {
       </Dropdown>
     )
 
+
+}
+
+
+export const DepartmentAggregateReport = (props) =>{
+
+  const [isFetching, setIsFetching] = useState(false);
+  const reportsService = new ReportsService();
+  const [ viewedAggregate, setDepartmentAggregate] = useState({
+    department:{}
+  })
+
+  useEffect(()=>{
+    const { department_aggregate } = props;
+    // console.log('DEPPEPPE', props, department_aggregate);
+      setDepartmentAggregate(department_aggregate);
+  })
+
+  const downloadDepartmentVersionReport = (file_type = 'Excel') =>{
+    const { department, budgetcycle, id } = viewedAggregate
+    const export_info = {aggregate_id: id, file_type}
+    let fetching = true;
+    setIsFetching(fetching);
+    reportsService.exportVersionByDepartment(export_info).then(
+        (reportsResponse)=>{
+          fetching = false;
+          setIsFetching(fetching);
+
+          const successNotification ={
+            type:"success",
+            msg:`Report Downloaded.`
+          }
+          const file_ext = file_type=='Excel' ? 'xlsx':'csv';
+          const file_name = `${department.name}(${department.code})-${budgetcycle.year}.${file_ext}`;
+          const feedbackFile = new Blob([reportsResponse], { type: "application/octet-stream" })
+          saveAs(feedbackFile, `${file_name}`);
+
+          new AppNotification(successNotification);
+        }
+    ).catch((error)=>{
+        const errorNotification = {
+            type:'error',
+            msg:utils.processErrors(error)
+        }
+        console.log('errooror', error)
+        new AppNotification(errorNotification);
+        fetching = false;
+        setIsFetching(fetching)
+    })
+  }
+
+
+  return (
+    <div className="pb-2">
+
+      <div className="float-right">
+        <Dropdown disabled={isFetching}>
+          <Dropdown.Toggle variant="info_custom" className="text-white">
+            {
+              isFetching ? (
+                <FaCog className='spin'/>
+              ):(
+                <>
+                Export <FaArrowDown/>
+                </>
+              )
+            }
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            <Dropdown.Item onClick={()=>downloadDepartmentVersionReport('Excel')}><FaFileExcel/> Excel</Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Item onClick={()=>console.log('CSV')}><FaFileCsv/> CSV</Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      </div>
+
+    </div>
+  )
 
 }
 

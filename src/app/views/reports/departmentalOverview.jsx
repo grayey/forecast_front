@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { Row, Col, Tab, Tabs, Button, TabContent, Nav,  Dropdown, Accordion, Card, Form, ButtonToolbar, Modal,} from "react-bootstrap";
 import { FaList, FaCheck, FaTimes, FaPlusCircle, FaMinusCircle  } from "react-icons/fa";
-import { FetchingRecords, ReportsFilter, ErrorView } from "../../appWidgets";
+import { FetchingRecords, ReportsFilter, ErrorView, DepartmentAggregateReport } from "../../appWidgets";
 import { VIEW_FORBIDDEN } from "../../appConstants";
 import * as utils from "@utils";
 import { MultipleBarChart } from "../../appCharts";
@@ -425,6 +425,7 @@ class DepartmentalOverview extends Component {
 
 
 
+
                                                                                       <div className="d-flex">
 
                                                                                         <table className="table">
@@ -435,6 +436,9 @@ class DepartmentalOverview extends Component {
                                                                                                 <th className="text-right">Total USD part($)</th>
                                                                                               <th className="text-right">Total in Naira(&#x20a6;)</th>
                                                                                               <th className="text-right">Total in USD($)</th>
+                                                                                            <th className='text-center'>
+                                                                                              Action
+                                                                                            </th>
 
                                                                                             </tr>
                                                                                             <tr>
@@ -454,6 +458,10 @@ class DepartmentalOverview extends Component {
                                                                                               <th className="text-right">
                                                                                                 <b><a className="underline" href="#">{utils.formatNumber(aggregate?.total_functional_currency)}</a></b>
 
+                                                                                              </th>
+
+                                                                                              <th>
+                                                                                                <DepartmentAggregateReport department_aggregate={aggregate}  />
                                                                                               </th>
                                                                                             </tr>
                                                                                           </thead>
