@@ -117,6 +117,19 @@ export default class PreparationService {
 
 
   /**
+   * [getAggregateByDepartmentAndVersion description]
+   * @param  {[type]}  import_info [description]
+   * @return {Promise}                   [description]
+   * This method imports a department's previous entries
+   */
+  async getAggregateByDepartmentAndVersion(import_info){
+    const { v_slug, d_id } = import_info;
+    const url = `departmentaggregates/${v_slug}/${d_id}/import-entries`;
+    return await apiService.get(url);
+  }
+
+
+  /**
   *
   * @param {*} budgetentryData
   * this method creates a new budgetentry

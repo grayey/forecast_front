@@ -297,8 +297,8 @@ export default class AppMainService extends Component {
     * This method toggles a user
     */
    async toggleUser(user){
-       user.status = !user.status
-     return this.updateUser(user, user.id);
+      const url =`users/${user.id}/toggle/`;
+      return await apiService.put(url,{});
    }
 
 

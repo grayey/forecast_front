@@ -82,6 +82,9 @@ export class BudgetEntriesComponent extends Component{
         historyRoles:[],
         historyUsers:[],
         historyRoleIds:[],
+        allPreviousVersions:[],
+        selectedVersion:{},
+        selectedVersionSlug:'',
         detailLInes:(<></>),
         historyDetail:{},
         showHistoryModal:false,
@@ -207,7 +210,9 @@ export class BudgetEntriesComponent extends Component{
       await this.setState({ activeDepartmentRole });
       if(this.props.updateentries){
       await  this.getAllBudgetEntriesByDepartmentSlug();
-      }
+    }else{
+      await this.getBudgetVersionsByCycle();
+    }
         await this.getAllDepartmentAggregatesByActiveVersion();
 
          this.getAllApprovals();
@@ -583,6 +588,47 @@ export class BudgetEntriesComponent extends Component{
           console.error('Version Error', error)
         })
     }
+
+    /**
+     * This method lists all previous versions
+     */
+     getBudgetVersionsByCycle = async ()=>{
+       this.setState({fetching_versions:true})
+       const cycleId = this.selectedBudgetCycle.id;
+        this.processingService.getBudgetVersionsByCycle(cycleId).then(
+            async(allPreviousVersions)=>{
+              this.setState({fetching_versions:false});
+
+                this.setState({allPreviousVersions});
+            }
+        ).catch((error)=>{
+          this.setState({fetching_versions:false});
+
+          console.error('Version Error', error)
+        })
+    }
+
+/**
+ * [getBudgetVersionBySlug description]
+ * @param  {[type]}  slug [description]
+ * @return {Promise}      [description]
+ *
+ * NOT IN USE
+ */
+    getBudgetVersionBySlug = async (slug)=>{
+      this.setState({fetching_versions:true})
+
+       this.processingService.getBudgetVersionBySlug(slug).then(
+           async(selectedVersion)=>{
+             this.setState({fetching_versions:false});
+
+               this.setState({selectedVersion})
+           }
+       ).catch((error)=>{
+         this.setState({fetching_versions:false});
+         console.error('Selected Version Error', error)
+       })
+   }
 
     getBudgetCycleById = async () =>{
       const budgetCycleId = 66;
@@ -1011,6 +1057,205 @@ export class BudgetEntriesComponent extends Component{
 
         )
 
+    }
+
+    /**
+     * [setVersionSlug description]
+     * @param {[type]} event [description]
+     * This method sets a version slug
+     */
+    setVersionSlug = (event)=>{
+      const {name, value} = event.target;
+      this.setState({selectedVersionSlug:value})
+    }
+
+    /**
+     * [getAggregateByDepartmentAndVersion description]
+     * @param  {[type]} event [description]
+     * @return {[type]}       [description]
+     * this method imports entries from a department's previous
+     */
+    getAggregateByDepartmentAndVersion = (event)=>{
+
+      this.setState({fetching_versions:true});
+      const { selectedVersionSlug, activeDepartmentRole } = this.state;
+      const { department } = activeDepartmentRole;
+      const import_info = {
+        v_slug:selectedVersionSlug,
+        d_id:department.id
+      }
+      this.preparationService.getAggregateByDepartmentAndVersion(import_info).then(
+          async(selectedVersion)=>{
+            this.setState({fetching_versions:false});
+            this.promptOnEntriesImport(selectedVersion);
+          }
+      ).catch((error)=>{
+        this.setState({fetching_versions:false});
+        const errorNotification = {
+            type:'info',
+            msg:utils.processErrors(error)
+        }
+        new AppNotification(errorNotification)
+      })
+    }
+
+    /**
+     * [saveBudgetEntries description]
+     * @type {[type]}
+     * This method applies imported entries
+     */
+    promptOnEntriesImport = (versionAggregateData) =>{
+      const { activeBudgetCycle, allPreviousVersions } = this.state;
+      const { active_version } = activeBudgetCycle;
+      const selectedVersion = allPreviousVersions.find(p => p.slug == active_version.slug);
+      const present_budget_cycle = selectedVersion.budgetcycle;
+      const present_conv_rate = present_budget_cycle.currency_conversion_rate;
+      const { budgetversion, budgetcycle, total_currency_portion, total_functional_currency,
+        total_functional_naira, total_naira_portion } = versionAggregateData;
+      const { currency_conversion_rate, year } = budgetcycle;
+      const toDecimal = true;
+      const no_places = 4;
+      let message = "";
+      let conv_factor = 1.0000;
+
+
+      //COMMON JUST USE THIS YEAR'S RATE
+
+      if(year !== present_budget_cycle.year){
+        message = `You are importing entries from a different year (${year}).`;
+        // conv_factor = (present_conv_rate / currency_conversion_rate).toFixed(4)
+        // conv_factor = (present_conv_rate).toFixed(4)
+        conv_factor = present_conv_rate;
+      }
+
+       message += ` Conversions will be by a factor of ${conv_factor.toString()}`;
+
+       const previewLines = (
+         <div className="table-responsive">
+
+           <h4 className="card-header text-center">Preview <small>(Approx. summary)</small></h4>
+         <table className="table table-sm table-striped table-hover table-bordered">
+             <thead>
+               <tr>
+                 <th><b>#</b></th>
+                 <th><b>Item</b></th>
+               <th><b>Old</b> <em><small>&nbsp; {year} <code>({budgetversion?.version_code?.code})</code></small></em></th>
+                 <th><b>New</b></th>
+
+               </tr>
+             </thead>
+             <tbody>
+               <tr>
+                 <th><b>1.</b></th>
+
+                 <th><small>Conversion Rate</small></th>
+               <td className='text-rightx'>{utils.formatNumber(currency_conversion_rate)}</td>
+             <td className='text-rightx'>{utils.formatNumber(present_conv_rate)}</td>
+               </tr>
+               <tr>
+                 <th><b>2.</b></th>
+
+                 <th><small>Total Naira Part (₦)</small></th>
+
+               <td className='text-rightx'>{utils.formatNumber(total_naira_portion)}</td>
+             <td className='text-rightx'>{utils.formatNumber(total_naira_portion * conv_factor )}</td>
+               </tr>
+               <tr>
+                 <th><b>3.</b></th>
+
+               <th><small>Total USD Part ($)</small></th>
+
+               <td className='text-rightx'>{utils.formatNumber(total_currency_portion)}</td>
+             <td className='text-rightx'>{utils.formatNumber(total_currency_portion * conv_factor)}</td>
+               </tr>
+                <tr>
+                  <th><b>4.</b></th>
+
+                  <th><small>Total in Naira (₦)</small></th>
+
+                <td className='text-rightx'>{utils.formatNumber(total_functional_naira)}</td>
+              <td className='text-rightx'>{utils.formatNumber(total_functional_naira * conv_factor)}</td>
+
+                </tr>
+                 <tr>
+                   <th><b>5.</b></th>
+
+                   <th><small>Total in USD ($)</small></th>
+
+                 <td className='text-rightx'>{utils.formatNumber(total_functional_currency)}</td>
+               <td className='text-rightx'>{utils.formatNumber(total_functional_currency * conv_factor)}</td>
+                 </tr>
+             </tbody>
+           </table>
+         </div>
+
+                )
+
+      swal.fire({
+          title: `<small><em>${message}</em></small>`,
+          html:renderToStaticMarkup(previewLines),
+          width:"1150px",
+          icon: null,
+          type: "question",
+          showCancelButton: true,
+          confirmButtonColor: "green",
+          cancelButtonColor: "red",
+          confirmButtonText: "Apply",
+          cancelButtonText: "Cancel"
+        }).then(
+          (result)=>{
+            if(result.value){
+              console.log("Applying ..")
+              this.applyEntriesImport({...versionAggregateData}, conv_factor)
+            }
+
+        }).catch(
+          (error)=>{
+          console.log("Error", error)
+        })
+
+      console.log('versionAggregateData',versionAggregateData, selectedVersion)
+      // this.setState({selectedVersion})
+      //
+
+    }
+
+
+    applyEntriesImport = async (versionAggregateData, conv_factor) =>{
+      let { totals, isFetching, initial_totals } = this.state;
+      let { naira_part, currency_part, in_naira, in_currency } = totals;
+      const { entries, total_currency_portion, total_naira_portion,
+          total_functional_naira, total_functional_currency, capturer, budgetversion  } = versionAggregateData;
+          // viewedDepartmentAggregate.id = undefined; // remove id as it is a create
+          const { version_code, budgetcycle } = budgetversion;
+          initial_totals = {total_currency_portion, total_naira_portion, total_functional_currency, total_functional_naira };
+
+      const allBudgetEntries = entries.map((entry)=>{
+        // do something to entry totals
+
+
+        // const { currency_portion, naira_portion,  currency, total_naira, total_currency } = {...entry};
+
+        // const isNaira = currency == 'NAIRA';
+        // const isDollar = currency == 'CURRENCY';
+        // entry['naira_portion'] = isNaira ? naira_portion : isDollar ? (currency_portion * conv_factor) : naira_portion;
+        // entry['currency_portion'] = isDollar ? currency_portion : isNaira ? (naira_portion / conv_factor) : currency_portion;
+        // entry['total_naira']  = entry['naira_portion'] + (entry['currency_portion'] * conv_factor);
+        // entry['total_currency']  = entry['currency_portion'] + (entry['naira_portion'] / conv_factor);
+
+
+
+        // entry['id'] = undefined;
+        return this.formatEntry(entry);
+      });
+
+      totals.naira_part = total_naira_portion;
+      totals.currency_part = total_currency_portion;
+      totals.in_naira = total_functional_naira;;
+      totals.in_currency = total_functional_currency;
+      isFetching = false;
+
+      await  this.setState({ allBudgetEntries, isFetching, totals, initial_totals }); // so allBudgetEntries is set
     }
 
     /**
@@ -1846,7 +2091,7 @@ export class BudgetEntriesComponent extends Component{
 
       const {AUTH_USER, CAN_VIEW_ALL, CAN_EDIT, CAN_CREATE, CAN_SUBMIT, CAN_VIEW_DETAIL, CAN_IMPORT_PREVIOUS_ENTRIES,
          CAN_BULK_UPLOAD_ENTRIES, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT, state, props } = this
-      const { navigate, viewOrEditSelections, activeDepartmentRole, viewedDepartmentAggregate, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
+      const { navigate, fetching_versions, selectedVersionSlug, viewOrEditSelections, activeDepartmentRole, allPreviousVersions, viewedDepartmentAggregate, entryDescription, descriptionLine, showDescriptionAlert, activeBudgetCycle } = state;
       const { active_version } = activeBudgetCycle;
       // const { version_code } = active_version;
         return navigate ? <Redirect to="/preparation/budget-entries"/> : (!props.updateentries && !CAN_CREATE) ? <ErrorView errorType={VIEW_FORBIDDEN}/> : (
@@ -2777,25 +3022,43 @@ export class BudgetEntriesComponent extends Component{
 
                                         </span>
                                       </div>
-                                      <select className="form-control">
-                                        <option>Select Version</option>
-                                          <option>2020 (BV1)</option>
-                                            <option>2020 (BV2)</option>
-                                        <option>2019 (BV1)</option>
+                                      <select name='previous_version' className="form-control" onChange={this.setVersionSlug} disabled={fetching_versions}>
+                                        <option value=''>Select Version</option>
+                                      {
+                                        allPreviousVersions.map((b_version)=> {
+                                          const { budgetcycle, version_code } = b_version;
+                                          if(active_version.id !== b_version.id){
+                                            return (<option key={b_version.id} value={b_version.slug}>{budgetcycle.year} ({version_code.code})</option>)
+                                          }
+                                        })
+                                      }
+
 
                                       </select>
 
                                       <div className="input-group-append">
-                                        <Dropdown>
+
+                                        <button className={`btn btn-${selectedVersionSlug ? 'success':'info_custom'}`}  disabled={fetching_versions || !selectedVersionSlug} onClick={this.getAggregateByDepartmentAndVersion}>
+                                          {
+                                            fetching_versions ? (
+                                              <FaCog className={'spin'}/>
+                                            ):(
+                                              <>
+                                                Go <FaArrowDown/>
+                                              </>
+                                            )
+                                          }
+
+                                        </button>
+                                        {/* <Dropdown>
                                           <Dropdown.Toggle variant="info_custom" className="text-white">
-                                            <FaCog/>
                                           </Dropdown.Toggle>
                                           <Dropdown.Menu>
                                             <Dropdown.Item onClick={()=>console.log('IMporting')}>Import <FaArrowDown/> </Dropdown.Item>
                                             <Dropdown.Divider />
                                             <Dropdown.Item onClick={()=>console.log('Adjusting')}>Adjust Imported Total <FaArrowsAlt/> </Dropdown.Item>
                                           </Dropdown.Menu>
-                                        </Dropdown>
+                                        </Dropdown> */}
                                       </div>
                                     </div>
                                   ) :

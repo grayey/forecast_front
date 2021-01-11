@@ -83,6 +83,17 @@ async enableNextBudgetCycleVersion(budgetcycle){
   return await apiService.put(url);
 }
 
+
+/**
+ * [changeBudgetCycleMigration description]
+ * @param  {[type]}  cycleId [description]
+ * @return {Promise}         [description]
+ */
+async changeBudgetCycleMigration(cycleId){
+const url = `budgetcycles/${cycleId}/toggle-migration/`;
+return await apiService.put(url,{});
+}
+
 /**
  * BUDGET VERSIONS SECTION
  */
@@ -107,6 +118,18 @@ async getBudgetVersionBySlug(budgetVersionSlug){
 const url = `budgetversions/${budgetVersionSlug}/by-slug`;
 return await apiService.get(url);
 }
+
+async getBudgetVersionBySlug(budgetVersionSlug){
+const url = `budgetversions/${budgetVersionSlug}/by-slug`;
+return await apiService.get(url);
+}
+
+
+  async getBudgetVersionsByCycle(cycleId){
+  const url = `budgetversions/${cycleId}/by-cycle`;
+  return await apiService.get(url);
+}
+
 
 /**
 *

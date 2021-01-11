@@ -454,11 +454,12 @@ export class UsersComponent extends Component{
 
               this.appMainService.toggleUser(user).then(
                 (toggledUser)=>{
-                    allUsers.splice(toggleIndex, 1, toggledUser)
+                    user.user.is_active = !user.user.is_active;
+                    allUsers.splice(toggleIndex, 1, user)
                     this.setState({ allUsers })
                     const successNotification = {
                         type:'success',
-                        msg:`${toggledUser.name} successfully ${toggleMsg}d!`
+                        msg:`${user.user.first_name} ${user.user.last_name} successfully ${toggleMsg}d!`
                     }
                     new AppNotification(successNotification)
                 }

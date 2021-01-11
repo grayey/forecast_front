@@ -441,6 +441,57 @@ enableNextVersion = (budgetcycle) => {
     }
 
 
+changeBudgetCycleMigration = (budgetcycle) =>{
+  const isAuto = budgetcycle.version_migration == 'AUTO';
+  const gl =  isAuto ? 'MANUAL':'AUTO';
+  const title = `Change version migration for ${budgetcycle.year} to '${gl}'?`;
+  const text = `Entries for subsequent versions will ${isAuto ? 'have to be manually imported': 'be auto-migrated'}.`;
+
+  swal.fire({
+         title,
+         text,
+         icon: "warning",
+         type: "question",
+         showCancelButton: true,
+         confirmButtonColor: "#007BFF",
+         cancelButtonColor: "#d33",
+         confirmButtonText: "Yes!",
+         cancelButtonText: "No"
+       })
+       .then(result => {
+         if (result.value) {
+         let { allBudgetCycles } = this.state
+           this.processingService.changeBudgetCycleMigration(budgetcycle.id).then(
+             async (versionedCycle) => {
+                 const cycleIndex = allBudgetCycles.findIndex(r=> r.id == versionedCycle.id);
+                 versionedCycle.active_version =  budgetcycle.active_version;
+                 versionedCycle.next_version =  budgetcycle.next_version;
+                 allBudgetCycles.splice(cycleIndex, 1, versionedCycle);
+
+               await this.setState({ allBudgetCycles });
+               this.filterYears();
+                 const successNotification = {
+                     type:'success',
+                     msg:`Version migration for ${budgetcycle.year} successfully changed to ${gl}!`
+                 }
+                 new AppNotification(successNotification)
+             }
+         ).catch(
+             (error)=>{
+                 const errorNotification = {
+                     type:'error',
+                     msg:utils.processErrors(error)
+                 }
+                 const cycleIndex = allBudgetCycles.findIndex(r=> r.id == budgetcycle.id);
+                 allBudgetCycles.splice(cycleIndex, 1, budgetcycle);
+
+                this.setState({ allBudgetCycles });
+                 new AppNotification(errorNotification)
+         })}
+
+       });
+
+}
 
     /**
      *
@@ -462,7 +513,7 @@ enableNextVersion = (budgetcycle) => {
               })
               .then(result => {
                 if (result.value) {
-                let { allBudgetCycles } = this.state
+                let { allBudgetCycles } = this.state;
                   this.processingService.deleteBudgetCycle(budgetcycle).then(
                     async (deletedBudgetCycle) => {
                         allBudgetCycles = allBudgetCycles.filter(r=> r.id !== budgetcycle.id)
@@ -1094,7 +1145,7 @@ enableNextVersion = (budgetcycle) => {
                                                           {utils.formatNumber(budgetcycle?.currency_conversion_rate, false)}
                                                         </td>
                                                           <td className="text-center">
-                                                            <select className="form-controlx">
+                                                            <select className="form-controlx" onChange={()=>this.changeBudgetCycleMigration(budgetcycle)}>
 
                                                               {
                                                                 this.state?.versionMigrationOptions?.map((migration)=>{
