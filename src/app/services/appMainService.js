@@ -296,7 +296,8 @@ export default class AppMainService extends Component {
     * @param {*} user
     * This method toggles a user
     */
-   async toggleUser(user){
+   async toggleUser(userprofile){
+     const { user } = userprofile;
       const url =`users/${user.id}/toggle/`;
       return await apiService.put(url,{});
    }
