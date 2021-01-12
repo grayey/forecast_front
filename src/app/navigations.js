@@ -5,6 +5,7 @@ import TaskIcons from "./appWidgets";
 const activeBudgetCycle = JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE'));
 const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
 const userTasks = jwtAuthService.getUserTasks();
+const ACTIVE_USER = jwtAuthService.getUser();
 
 const { department, role } = activeDepartmentRole;
 const { active_version } = activeBudgetCycle;
@@ -16,6 +17,9 @@ console.log("Navigationsss", userTasks)
 
 export const navigations = () =>{
   const dummy = dummyMenu();
+  if(ACTIVE_USER.is_superuser){
+    return Object.keys(AppMenu).map(key => AppMenu[key]).concat(dummy);
+  }
   const sideBarNavigations = [];
   let module_names = [];
   let views = [];

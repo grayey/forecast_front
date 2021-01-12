@@ -1,7 +1,8 @@
 import moment from "moment";
 import * as titleCase from "titlecase";
+import jwtAuthService from "app/services/jwtAuthService";
 
-
+const ACTIVE_USER = jwtAuthService.getUser();
 
 export function debounce(func, wait, immediate) {
   var timeout;
@@ -274,6 +275,7 @@ export function getComponentPermissions(componentName, authProps){
 
 
 export function comparePermissions(userPermissions, componentPermissions){
-  if(!userPermissions || !componentPermissions) return [];
-  return componentPermissions.filter(p => userPermissions.includes(p));
+  const { is_superuser } = ACTIVE_USER;
+  if(!is_superuser){if(!userPermissions || !componentPermissions) return [];}
+  return componentPermissions.filter(p => userPermissions.includes(p) || is_superuser);
 }

@@ -93,6 +93,17 @@ class JwtAuthService {
     localStorage.removeItem("bms_auth_user");
   }
 
+
+  setAppSettings =  (appSettings) =>{
+    localStorageService.setItem("app_settings",appSettings);
+
+  }
+  getAppSettings =  () =>{
+
+    return localStorageService.getItem("app_settings");
+
+  }
+
   setActiveDepartmentRole = (department) => {
     localStorageService.setItem("bms_user_active_department_role",department);
   }
@@ -114,6 +125,9 @@ class JwtAuthService {
   removeUserDepartmentRoles = () => {
     localStorage.removeItem("bms_user_department_roles");
   }
+
+
+
 }
 
 export default new JwtAuthService();

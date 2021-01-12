@@ -7,6 +7,8 @@ import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import AppMainService from "../../services/appMainService";
+import jwtAuthService from "app/services/jwtAuthService";
+
 import * as encryptionService from "../../services/encryption.service";
 import LoadingOverlay from 'react-loading-overlay';
 import queryString from "query-string";
@@ -103,6 +105,8 @@ return {
           async (app_settings) => {
             const { SYSTEM_AUTHENTICATION, SERVER_URL }  = app_settings;
             loadingSettings = SYSTEM_AUTHENTICATION == "ACTIVE_DIRECTORY";
+
+            jwtAuthService.setAppSettings(app_settings);
             if(loadingSettings){
               window.location.href = `${SERVER_URL}/ad/logon`;
             }

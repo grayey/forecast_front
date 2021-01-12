@@ -9,7 +9,7 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
 
-import { FaArrowDown, FaSpinner } from "react-icons/fa";
+import { FaArrowDown, FaSpinner, FaSearch } from "react-icons/fa";
 
 import {FetchingRecords, ErrorView} from "../../appWidgets";
 
@@ -37,6 +37,7 @@ export class UsersComponent extends Component{
   CAN_TOGGLE_STATUS  = false;
 
   AUTH_USER = null;
+  APP_SETTINGS = {};
 
 
     state = {
@@ -90,6 +91,7 @@ export class UsersComponent extends Component{
         this.CAN_TOGGLE_STATUS = this.userPermissions.includes(`${componentName}__CAN_TOGGLE_STATUS`);
 
         this.AUTH_USER =  jwtAuthService.getUser();
+        this.APP_SETTINGS = jwtAuthService.getAppSettings();
     }
 
     componentDidMount(){
@@ -296,6 +298,9 @@ export class UsersComponent extends Component{
 
 
     }
+
+
+
 
     /**
      * This method updates a new user
@@ -564,7 +569,8 @@ export class UsersComponent extends Component{
 
     render(){
 
-      const { AUTH_USER, CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, CAN_DELETE, state} = this;
+      const { AUTH_USER, CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, CAN_DELETE, APP_SETTINGS, state} = this;
+      const { SYSTEM_AUTHENTICATION } = APP_SETTINGS || "";
 
 
         return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> :  (
@@ -676,6 +682,39 @@ export class UsersComponent extends Component{
                           >
                                <Modal.Body>
                                   <div className="form-row">
+
+                                    <div
+                                        className={utils.classList({
+                                        "col-md-12 mb-2": true,
+                                        "valid-field":
+                                            touched.email && !errors.email,
+                                        "invalid-field":
+                                            touched.email && errors.email
+                                        })}
+                                    >
+                                        <label htmlFor="email">
+                                             <b>Email<span className='text-danger'>*</span></b>
+                                        </label>
+
+                                        <input
+                                        type="text"
+                                        className="form-control"
+                                        id="email"
+                                        placeholder=""
+                                        name="email"
+                                        value={values.email}
+                                        onChange={(event)=>this.handleChange(event, 'edit')}
+                                        onBlur={handleBlur}
+                                        required
+                                        />
+                                        <div className="valid-feedback"></div>
+                                        <div className="invalid-feedback">
+                                        Email is required
+                                        </div>
+                                    </div>
+
+
+
                                   <div
                                       className={utils.classList({
                                       "col-md-6 mb-2": true,
@@ -734,37 +773,9 @@ export class UsersComponent extends Component{
                                       </div>
                                   </div>
 
-                                  <div
-                                      className={utils.classList({
-                                      "col-md-12 mb-2": true,
-                                      "valid-field":
-                                          touched.email && !errors.email,
-                                      "invalid-field":
-                                          touched.email && errors.email
-                                      })}
-                                  >
-                                      <label htmlFor="email">
-                                           <b>Email<span className='text-danger'>*</span></b>
-                                      </label>
 
-                                      <input
-                                      type="text"
-                                      className="form-control"
-                                      id="email"
-                                      placeholder=""
-                                      name="email"
-                                      value={values.email}
-                                      onChange={(event)=>this.handleChange(event, 'edit')}
-                                      onBlur={handleBlur}
-                                      required
-                                      />
-                                      <div className="valid-feedback"></div>
-                                      <div className="invalid-feedback">
-                                      Email is required
-                                      </div>
-                                  </div>
 
-                                  <div className="col-md-12 ">
+                                  <div className="col-md-12 mt-2">
                                     <div className="card-header border-bottom">
                                       <h4 className="text-center">Assign Profiles</h4>
                                     </div>
@@ -927,6 +938,50 @@ export class UsersComponent extends Component{
                         >
                              <Modal.Body>
                                 <div className="form-row">
+
+                                  <div
+                                      className={utils.classList({
+                                      "col-md-12 mb-2": true,
+                                      "valid-field":
+                                          touched.email && !errors.email,
+                                      "invalid-field":
+                                          touched.email && errors.email
+                                      })}
+                                  >
+                                      <label htmlFor="email">
+                                           <b>Email<span className='text-danger'>*</span></b>
+                                      </label>
+
+                                      <div className='input-group'>
+                                      <input
+                                      type="text"
+                                      className="form-control"
+                                      id="email"
+                                      placeholder=""
+                                      name="email"
+                                      value={values.email}
+                                      onChange={(event)=>this.handleChange(event)}
+                                      onBlur={handleBlur}
+                                      required
+                                      />
+                                      <div className="valid-feedback"></div>
+                                      <div className="invalid-feedback">
+                                      Email is required
+                                      </div>
+
+                                      {
+                                        SYSTEM_AUTHENTICATION == "ACTIVE_DIRECTORY" ? (
+                                          <div className="input-group-append">
+                                              <button type='button' className={`btn btn-info_custom`}>Active Directory <FaSearch/></button>
+                                            </div>
+                                        ) : null
+                                      }
+
+                                      </div>
+                                  </div>
+
+
+
                                 <div
                                     className={utils.classList({
                                     "col-md-6 mb-2": true,
@@ -985,37 +1040,9 @@ export class UsersComponent extends Component{
                                     </div>
                                 </div>
 
-                                <div
-                                    className={utils.classList({
-                                    "col-md-12 mb-2": true,
-                                    "valid-field":
-                                        touched.email && !errors.email,
-                                    "invalid-field":
-                                        touched.email && errors.email
-                                    })}
-                                >
-                                    <label htmlFor="email">
-                                         <b>Email<span className='text-danger'>*</span></b>
-                                    </label>
 
-                                    <input
-                                    type="text"
-                                    className="form-control"
-                                    id="email"
-                                    placeholder=""
-                                    name="email"
-                                    value={values.email}
-                                    onChange={(event)=>this.handleChange(event)}
-                                    onBlur={handleBlur}
-                                    required
-                                    />
-                                    <div className="valid-feedback"></div>
-                                    <div className="invalid-feedback">
-                                    Email is required
-                                    </div>
-                                </div>
 
-                                <div className="col-md-12 ">
+                                <div className="col-md-12 mt-2">
                                   <div className="card-header border-bottom">
                                     <h4 className="text-center">Assign Profiles</h4>
                                   </div>
@@ -1215,7 +1242,7 @@ export class UsersComponent extends Component{
                                                         </td>
                                                         <td>
                                                           {
-                                                            CAN_TOGGLE_STATUS  && AUTH_USER.id !== userProfile?.user?.id ? (
+                                                            CAN_TOGGLE_STATUS  && AUTH_USER.id !== userProfile?.user?.id && !userProfile?.user?.is_superuser ? (
                                                               <Form>
 
                                                                    <Form.Check
@@ -1264,7 +1291,7 @@ export class UsersComponent extends Component{
                                                               }
 
                                                               {
-                                                                CAN_DELETE  && AUTH_USER.id !== userProfile?.user?.id  ? (
+                                                                CAN_DELETE  && AUTH_USER.id !== userProfile?.user?.id && !userProfile?.user?.is_superuser  ? (
 
                                                                   <Dropdown.Item className='text-danger' onClick={
                                                                       ()=>{this.deleteUser(userProfile);}
