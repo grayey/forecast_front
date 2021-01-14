@@ -1,5 +1,5 @@
 import React, { Component, useState, useEffect } from "react"
-import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, OverlayTrigger, Tooltip, } from "react-bootstrap";
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
@@ -30,6 +30,8 @@ export class DepartmentsComponent extends Component{
   CAN_CREATE  = false;
   CAN_EDIT  = false;
   CAN_TOGGLE_STATUS  = false;
+  appMainService;
+
 
     state = {
         editedIndex:0,
@@ -44,17 +46,49 @@ export class DepartmentsComponent extends Component{
         createDepartmentForm: {
             name: "",
             description: "",
-            code:""
+            code:"",
+            is_budgeting:true,
           },
           updateDepartmentForm: {
             name: "",
             description: "",
-            code:""
+            code:"",
+            is_budgeting:true,
+
 
           },
 
     }
-    appMainService;
+
+    
+    columns = [
+      {
+        dataField: "index",
+        text: "#"
+      },
+      {
+        dataField: "name",
+        text: "Name"
+      },
+      {
+        dataField: "code",
+        text: "Code"
+      },
+      {
+        dataField: "description",
+        text: "Description"
+      },
+      {
+        dataField: "status",
+        text: "Status",
+      },
+      {
+        dataField: "age",
+        text: "Age",
+        align: "center",
+        headerAlign: "center"
+      }
+    ];
 
 
 
@@ -84,10 +118,20 @@ export class DepartmentsComponent extends Component{
 
     handleChange = (event, form='create') => {
         const {createDepartmentForm, updateDepartmentForm} = this.state
+        let {name, value} = event.target;
+
         if(form=='create'){
-            createDepartmentForm[event.target.name] = event.target.value;
+          if(name == 'is_budgeting'){
+            const { is_budgeting } = createDepartmentForm;
+            value = !is_budgeting;
+          }
+            createDepartmentForm[name] = value;
         }else if(form=='edit'){
-            updateDepartmentForm[event.target.name] = event.target.value;
+          if(name == 'is_budgeting'){
+            const { is_budgeting } = updateDepartmentForm;
+            value = !is_budgeting;
+          }
+            updateDepartmentForm[name] = value;
         }
         this.setState({ createDepartmentForm, updateDepartmentForm });
     }
@@ -462,6 +506,58 @@ export class DepartmentsComponent extends Component{
                                     </div>
                                 </div>
 
+                                <div   className={utils.classList({
+                                  "col-md-12 mb-2": true,
+                                  "valid-field":
+                                      touched.is_budgeting && !errors.is_budgeting,
+                                  "invalid-field":
+                                      touched.is_budgeting && errors.is_budgeting
+                                  })}>
+
+                                  <div className='form-group row mt-2'>
+
+                                    <div className="col-sm-6"><b>Is this a budgeting department?</b></div>
+                                  <div className="col-sm-6">
+                                      <div className="form-check">
+                                        <input
+                                          className="form-check-input"
+                                          type="checkbox"
+                                          id="is_budgeting_update"
+                                          name="is_budgeting"
+                                          checked={values.is_budgeting}
+                                          onChange={(event)=>this.handleChange(event,'edit')}
+
+                                        />
+                                        <label
+                                          className="form-check-label ml-3"
+                                          htmlFor="is_budgeting_update"
+                                        >
+                                          {
+                                              values.is_budgeting ? (
+                                                <b className='text-success'>
+                                                  Yes
+                                                </b>
+                                              ):(
+                                                <b className='text-danger'>
+                                                  No
+                                                </b>
+                                              )
+                                          }
+                                        </label>
+                                      </div>
+                                    </div>
+
+                                  </div>
+                                  {
+                                    !values.is_budgeting ? (
+                                      <div className='jumbotron animated fadeInDown dwarf'>
+                                        This department will be <b className='text-danger'><em><u>excluded from</u></em></b>  budgeting.
+                                      </div>
+                                    ): null
+                                  }
+
+                                </div>
+
                                 </div>
                             </Modal.Body>
 
@@ -612,6 +708,58 @@ export class DepartmentsComponent extends Component{
                                     </div>
                                 </div>
 
+                                <div   className={utils.classList({
+                                  "col-md-12 mb-2": true,
+                                  "valid-field":
+                                      touched.is_budgeting && !errors.is_budgeting,
+                                  "invalid-field":
+                                      touched.is_budgeting && errors.is_budgeting
+                                  })}>
+
+                                  <div className='form-group row mt-2'>
+
+                                    <div className="col-sm-6"><b>Is this a budgeting department?</b></div>
+                                  <div className="col-sm-6">
+                                      <div className="form-check">
+                                        <input
+                                          className="form-check-input"
+                                          type="checkbox"
+                                          id="is_budgeting_create"
+                                          name="is_budgeting"
+                                          checked={values.is_budgeting}
+                                          onChange={(event)=>this.handleChange(event)}
+
+                                        />
+                                        <label
+                                          className="form-check-label ml-3"
+                                          htmlFor="is_budgeting_create"
+                                        >
+                                          {
+                                              values.is_budgeting ? (
+                                                <b className='text-success'>
+                                                  Yes
+                                                </b>
+                                              ):(
+                                                <b className='text-danger'>
+                                                  No
+                                                </b>
+                                              )
+                                          }
+                                        </label>
+                                      </div>
+                                    </div>
+
+                                  </div>
+                                  {
+                                    !values.is_budgeting ? (
+                                      <div className='jumbotron animated fadeInDown dwarf'>
+                                        This department will be <b className='text-danger'><em><u>excluded from</u></em></b>  budgeting.
+                                      </div>
+                                    ): null
+                                  }
+
+                                </div>
+
                                 </div>
                             </Modal.Body>
 
@@ -698,6 +846,26 @@ export class DepartmentsComponent extends Component{
                                                     <tr key={department.id} className={department.temp_flash ? 'bg-success text-white':''}>
                                                         <td>
                                                             <b>{index+1}</b>.
+                                                            {
+                                                              department?.is_budgeting ? null :(
+
+                                                                <OverlayTrigger
+                                                                  placement={'top'}
+                                                                  overlay={
+                                                                    <Tooltip id={`tooltip-${department.code}`}>
+                                                                      Non-budgeting.
+                                                                    </Tooltip>
+                                                                  }
+                                                                >
+                                                                <b>
+                                                                  <sup className='text-danger'>
+                                                                      <i className='i-Delete-File'></i>
+                                                                  </sup>
+                                                              </b>
+                                                            </OverlayTrigger>
+
+                                                              )
+                                                            }
                                                         </td>
                                                         <td>
                                                             {department.name}

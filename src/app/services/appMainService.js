@@ -287,6 +287,7 @@ export default class AppMainService extends Component {
     * This method deletes a user
     */
    async deleteUser(user){
+     // const { user } = userProfile;
        const url = `users/${user.id}`
        return await apiService.del(url);
    }

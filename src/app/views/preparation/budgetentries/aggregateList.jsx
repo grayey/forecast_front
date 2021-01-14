@@ -218,7 +218,7 @@ export class DepartmentAggregatesComponent extends Component{
             const { department_aggregates, budget_versions } = this.buildGroupedEntries(departmentaggregatesResponse);
             const version_exists = !!budget_versions.find(version => version.id == ACTIVE_VERSION_ID);
 
-            let canCreate = !version_exists; // cannot create if version exists
+            let canCreate = !version_exists && department.is_budgeting; // cannot create if version exists or department is non-budgeting
 
            const allDepartmentAggregates = department_aggregates.sort((a, b) => (a.id > b.id) ? -1 : 1); //reverse
            await  this.setState({ allDepartmentAggregates, isFetching, canCreate, activeBudgetCycle, active_version, budget_versions });
@@ -1169,8 +1169,12 @@ export class DepartmentAggregatesComponent extends Component{
 
       const { AUTH_USER, CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_VIEW_DETAIL, CAN_SUBMIT, CAN_VIEW_HISTORY, CAN_APPROVE_OR_REJECT,  state } = this;
 
-      const { navigate, navigationUrls, activeBudgetCycle, active_version} = state;
-      const { create_entries, view_entries}  = navigationUrls
+      const { navigate, navigationUrls, activeBudgetCycle, active_version , single_department, isFetching} = state;
+      const { create_entries, view_entries}  = navigationUrls;
+      const empty_table_props = {
+        isFetching,
+        emptyMsg:`No records found. ${Object.keys(single_department).length && !single_department.is_budgeting ? 'Your department is Non-budgeting.':''}`
+      }
 
 
 
@@ -2052,7 +2056,7 @@ export class DepartmentAggregatesComponent extends Component{
                                             (
                                                 <tr>
                                                     <td className='text-center' colSpan='11'>
-                                                    <FetchingRecords isFetching={this.state.isFetching}/>
+                                                    <FetchingRecords {...empty_table_props} />
                                                     </td>
                                                 </tr>
                                             )

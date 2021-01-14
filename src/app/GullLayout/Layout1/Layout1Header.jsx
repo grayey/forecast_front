@@ -204,19 +204,23 @@ class Layout1Header extends Component {
             return cycle.is_current;
           })
           const storedCycle = localStorage.getItem('ACTIVE_BUDGET_CYCLE') ? JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')) : allBudgetCycles[0];
-
           allBudgetCycles.reverse();
-          const activeBudgetCycle = allBudgetCycles.find(bc=> bc.id == storedCycle.id);// because the stored cycle might have old active version
-          const { budgetversions } = activeBudgetCycle;
-          activeBudgetCycle.budgetversions = undefined; //delete budgetversions
-          activeBudgetCycle.active_version = budgetversions.find(version=>version.is_active);
+          let activeBudgetCycle = {};
+          if(storedCycle){
+             activeBudgetCycle = allBudgetCycles.find(bc=> bc.id == storedCycle.id) || {};// because the stored cycle might have old active version
+            const { budgetversions } = activeBudgetCycle;
+            activeBudgetCycle.budgetversions = undefined; //delete budgetversions
+            activeBudgetCycle.active_version = budgetversions ? budgetversions.find(version=>version.is_active) : {};
 
-          localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(activeBudgetCycle));
+            localStorage.setItem('ACTIVE_BUDGET_CYCLE', JSON.stringify(activeBudgetCycle));
+          }
+
         this.setState({ allBudgetCycles,fetching, activeBudgetCycle })
 
         }).catch((error)=>{
           fetching = !fetching;
-            this.setState({ fetching })
+            this.setState({ fetching });
+            console.error(error)
         const errorNotification = {
             type:'error',
             msg:utils.processErrors(error)
