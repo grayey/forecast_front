@@ -24,11 +24,12 @@ const Footer = () => {
         </div>
         <div className="footer-bottom border-top pt-3 d-flex flex-column flex-sm-row align-items-center">
           <a
-            id="buy-gull"
+            id="contact-ForeKarst"
             className="btn btn-primary text-white btn-rounded"
             href="mailto:ehirim.emeka.e@gmail.com"
 
-            target="_blank"
+
+            onclick={(e)=>e.preventDefault()}
             rel="noopener noreferrer"
           >
              ForeKarst &#8482;

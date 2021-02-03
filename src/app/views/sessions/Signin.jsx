@@ -8,6 +8,8 @@ import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import AppMainService from "../../services/appMainService";
 import jwtAuthService from "app/services/jwtAuthService";
+import AppNotification from "app/appNotifications";
+
 
 import * as encryptionService from "../../services/encryption.service";
 import LoadingOverlay from 'react-loading-overlay';
@@ -51,19 +53,39 @@ async componentDidMount(){
 
   const urlParams = queryString.parse(this.props.location.search);
 
-  console.log(urlParams, "dsjhjhjdfhjfdhj")
-  console.log('Login props',this.props)
+  // console.log(urlParams, "dsjhjhjdfhjfdhj");
+  // console.log('Login props',this.props);
+  //
+  try{
+    if(!Object.keys(urlParams).length){
+        await this.getAppSettings();
+    }
+    else{
+      const { AD_LOGON } = urlParams;
+      if(AD_LOGON && AD_LOGON=='ERROR'){
+        new AppNotification({
+          type:"error",
+          msg:"Active directory logon failed. Please login here or contact Admin."
+        });
+        this.setState({ loadingSettings:false });
+      }else{
+        const user = await this.getUserFromParams(urlParams);
+         this.props.loginWithEmailAndPassword(user);
+        // loadingSettings = false;
+        this.setState({ loadingSettings });
+      }
 
-  if(!Object.keys(urlParams).length){
-    await this.getAppSettings();
-  }
-  else{
-    const user = await this.getUserFromParams(urlParams);
-     this.props.loginWithEmailAndPassword(user);
-    // loadingSettings = false;
-    this.setState({ loadingSettings })
 
+    }
+  }catch(e){
+    new AppNotification({
+      type:"error",
+      msg:"Access attempt failed. Please try again or contact admin."
+    });
+      this.setState({ loadingSettings:false });
   }
+
+
 }
 
 getUserFromParams = (urlParams) => {
@@ -92,7 +114,7 @@ return {
   };
 
   handleSubmit = (value, { isSubmitting }) => {
-    this.setState({isSubmitting:true})
+    this.setState({ isSubmitting:true });
     this.props.loginWithEmailAndPassword(value);
   };
 

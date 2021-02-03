@@ -1,5 +1,6 @@
 import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal, OverlayTrigger, Tooltip, } from "react-bootstrap";
+
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
@@ -12,6 +13,7 @@ import {FetchingRecords, ErrorView} from "../../appWidgets";
 import jwtAuthService  from "../../services/jwtAuthService";
 
 import { VIEW_FORBIDDEN } from "app/appConstants";
+import { AppCustomPagination } from "app/dataTableWidgets";
 
 
 import LaddaButton, {
@@ -58,9 +60,20 @@ export class DepartmentsComponent extends Component{
 
           },
 
+          paginationOptions:{
+            rowsDisplayed:2,
+            totalNumRows:0,
+            startIndex:1,
+            stopIndex:5,
+          }
+
+
+
+
+
     }
 
-    
+
     columns = [
       {
         dataField: "index",
@@ -83,12 +96,18 @@ export class DepartmentsComponent extends Component{
         text: "Status",
       },
       {
-        dataField: "age",
-        text: "Age",
+        dataField: "created_at",
+        text: "Date Created",
         align: "center",
         headerAlign: "center"
+      },
+      {
+        dataField: "updated_at",
+        text: "Date Updated",
       }
     ];
+
+
 
 
 
@@ -137,6 +156,30 @@ export class DepartmentsComponent extends Component{
     }
 
 
+    paginateData = (pageIndex) =>{
+
+      let { paginationOptions, allDepartments } = this.state;
+      const { rowsDisplayed } = paginationOptions;
+      const start_pos = pageIndex+1;
+      const start_chunk = Math.ceil(allDepartments.length / start_pos);
+      const end_chunk = start_chunk + rowsDisplayed;
+      console.log('Page Index', pageIndex, 'Start:',start_chunk,'End:', end_chunk, 'rows displayed', rowsDisplayed);
+      allDepartments.forEach((department, index)=>{
+        if(start_chunk <= index && index < end_chunk ){
+          department.show_ = true;
+        }else{
+          department.show_ = false;
+        }
+      })
+
+      // allDepartments = allDepartments.slice(start_chunk, end_chunk);
+      this.setState({allDepartments});
+
+
+
+    }
+
+
 
 
 
@@ -148,8 +191,12 @@ export class DepartmentsComponent extends Component{
 
         this.appMainService.getAllDepartments().then(
             (departmentsResponse)=>{
-                const allDepartments = departmentsResponse;
-                this.setState({ allDepartments, isFetching })
+                const allDepartments = departmentsResponse.map((d)=>{
+                  d.show_ = true;
+                  return d;
+                });
+
+                this.setState({ allDepartments, isFetching})
                 console.log('Departments response', departmentsResponse)
             }
         ).catch((error)=>{
@@ -385,7 +432,11 @@ export class DepartmentsComponent extends Component{
 
     render(){
 
-      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS} = this;
+      const { CAN_VIEW_ALL, CAN_CREATE, CAN_EDIT, CAN_TOGGLE_STATUS, state} = this;
+
+      const { paginationOptions, allDepartments } = state;
+      const { rowsDisplayed, startIndex, stopIndex } = paginationOptions;
+      const pagination_props = { rowsDisplayed, totalNumRows:allDepartments.length };
 
         return !CAN_VIEW_ALL ? <ErrorView errorType={VIEW_FORBIDDEN} /> :  (
 
@@ -842,105 +893,109 @@ export class DepartmentsComponent extends Component{
                                         <tbody>
                                         {
                                           this.state.allDepartments.length ?  this.state.allDepartments.map( (department, index)=>{
-                                                return (
-                                                    <tr key={department.id} className={department.temp_flash ? 'bg-success text-white':''}>
-                                                        <td>
-                                                            <b>{index+1}</b>.
-                                                            {
-                                                              department?.is_budgeting ? null :(
-
-                                                                <OverlayTrigger
-                                                                  placement={'top'}
-                                                                  overlay={
-                                                                    <Tooltip id={`tooltip-${department.code}`}>
-                                                                      Non-budgeting.
-                                                                    </Tooltip>
-                                                                  }
-                                                                >
-                                                                <b>
-                                                                  <sup className='text-danger'>
-                                                                      <i className='i-Delete-File'></i>
-                                                                  </sup>
-                                                              </b>
-                                                            </OverlayTrigger>
-
-                                                              )
-                                                            }
-                                                        </td>
-                                                        <td>
-                                                            {department.name}
-                                                        </td>
-                                                        <td>
-                                                            <code>{department.code}</code>
-                                                        </td>
-                                                        <td>
-                                                        {department.description}
-                                                        </td>
-                                                        <td>
+                                            const { show_ } = department;
+                                            if(show_){
+                                              return (
+                                                  <tr key={department.id} className={department.temp_flash ? 'bg-success text-white':''}>
+                                                      <td>
+                                                          <b>{index+1}</b>.
                                                           {
-                                                            CAN_TOGGLE_STATUS ? (
+                                                            department?.is_budgeting ? null :(
 
-                                                              <Form>
+                                                              <OverlayTrigger
+                                                                placement={'top'}
+                                                                overlay={
+                                                                  <Tooltip id={`tooltip-${department.code}`}>
+                                                                    Non-budgeting.
+                                                                  </Tooltip>
+                                                                }
+                                                              >
+                                                              <b>
+                                                                <sup className='text-danger'>
+                                                                    <i className='i-Delete-File'></i>
+                                                                </sup>
+                                                            </b>
+                                                          </OverlayTrigger>
 
-                                                                   <Form.Check
-                                                                          checked={department.status}
-                                                                          type="switch"
-                                                                          id={`custom-switch${department.id}`}
-                                                                          label={department.status ? 'Enabled' : 'Disabled'}
-                                                                          className={department.status ? 'text-success' : 'text-danger'}
-                                                                          onChange={()=> this.toggleDepartment(department)}
-                                                                      />
-
-
-                                                                  </Form>
-                                                            ) : (
-                                                              <span className={department.status ? `badge  badge-success`: `badge  badge-danger`}>
-                                                                {department.status ? 'Enabled' : 'Disabled'}
-                                                              </span>
                                                             )
                                                           }
+                                                      </td>
+                                                      <td>
+                                                          {department.name}
+                                                      </td>
+                                                      <td>
+                                                          <code>{department.code}</code>
+                                                      </td>
+                                                      <td>
+                                                      {department.description}
+                                                      </td>
+                                                      <td>
+                                                        {
+                                                          CAN_TOGGLE_STATUS ? (
 
-                                                        </td>
-                                                        <td>
-                                                        {utils.formatDate(department.created_at)}
-                                                        </td>
-                                                        <td>
-                                                        {utils.formatDate(department.updated_at)}
-                                                        </td>
+                                                            <Form>
 
-                                                        <td>
-                                                        <Dropdown key={department.id}>
-                                                            <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
-                                                            Manage
-                                                            </Dropdown.Toggle>
-                                                            <Dropdown.Menu>
-                                                              {
-                                                                CAN_EDIT ? (
+                                                                 <Form.Check
+                                                                        checked={department.status}
+                                                                        type="switch"
+                                                                        id={`custom-switch${department.id}`}
+                                                                        label={department.status ? 'Enabled' : 'Disabled'}
+                                                                        className={department.status ? 'text-success' : 'text-danger'}
+                                                                        onChange={()=> this.toggleDepartment(department)}
+                                                                    />
 
-                                                                  <Dropdown.Item onClick={()=> {
-                                                                      this.editDepartment(department);
-                                                                  }} className='border-bottomx'>
-                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
-                                                                  </Dropdown.Item>
 
-                                                                ) : null
-                                                              }
+                                                                </Form>
+                                                          ) : (
+                                                            <span className={department.status ? `badge  badge-success`: `badge  badge-danger`}>
+                                                              {department.status ? 'Enabled' : 'Disabled'}
+                                                            </span>
+                                                          )
+                                                        }
 
-                                                            {/* <Dropdown.Item className='text-danger' onClick={
-                                                                ()=>{this.deleteDepartment(department);}
-                                                            }>
-                                                                <i className="i-Close-Window"> </i> Delete
-                                                            </Dropdown.Item> */}
-                                                            {/* <Dropdown.Item>
-                                                                <i className="i-Money-Bag"> </i> Something else here
-                                                            </Dropdown.Item> */}
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
+                                                      </td>
+                                                      <td>
+                                                      {utils.formatDate(department.created_at)}
+                                                      </td>
+                                                      <td>
+                                                      {utils.formatDate(department.updated_at)}
+                                                      </td>
 
-                                                        </td>
+                                                      <td>
+                                                      <Dropdown key={department.id}>
+                                                          <Dropdown.Toggle variant='secondary_custom' className="mr-3 mb-3" size="sm">
+                                                          Manage
+                                                          </Dropdown.Toggle>
+                                                          <Dropdown.Menu>
+                                                            {
+                                                              CAN_EDIT ? (
 
-                                                    </tr>
-                                                )
+                                                                <Dropdown.Item onClick={()=> {
+                                                                    this.editDepartment(department);
+                                                                }} className='border-bottomx'>
+                                                                    <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                </Dropdown.Item>
+
+                                                              ) : null
+                                                            }
+
+                                                          {/* <Dropdown.Item className='text-danger' onClick={
+                                                              ()=>{this.deleteDepartment(department);}
+                                                          }>
+                                                              <i className="i-Close-Window"> </i> Delete
+                                                          </Dropdown.Item> */}
+                                                          {/* <Dropdown.Item>
+                                                              <i className="i-Money-Bag"> </i> Something else here
+                                                          </Dropdown.Item> */}
+                                                          </Dropdown.Menu>
+                                                      </Dropdown>
+
+                                                      </td>
+
+                                                  </tr>
+                                              )
+                                            }
+
 
 
                                             }) :
@@ -967,7 +1022,10 @@ export class DepartmentsComponent extends Component{
                                             </tr>
                                         </tfoot>
                                     </table>
+
+
                                 </div>
+                              <AppCustomPagination onPaginate={(pageIndex) => this.paginateData(pageIndex)} {...pagination_props}/>
                             </div>
 
                             </div>

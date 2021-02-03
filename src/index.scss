@@ -307,3 +307,31 @@ margin-left: 1rem;
         max-height: 20px !important;
         padding: 1.5rem !important;
       }
+
+      .outer-footer{
+
+        padding-bottom: 0;
+        // position: fixed;
+        bottom: 0;
+        margin-top: -15vh;
+      }
+
+.ante-page{
+  // backgroundImage: "url(/assets/images/user-depts_bg.png)",
+  // background-color: skyblue !important;
+  background-size: cover !important;
+  min-height: 80vh !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden;
+  background:
+  -webkit-linear-gradient(rgba(135, 60, 255, 1), rgba(135, 60, 255, 0.0) 0%),
+ -webkit-linear-gradient(-52deg, rgba(36,47,106, 0.9) 50%, rgb(23,162,184) 0%) !important;
+
+}
+.ante-header{
+  z-index: 100;
+  background-color: #F7F7F7 !important;
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+}

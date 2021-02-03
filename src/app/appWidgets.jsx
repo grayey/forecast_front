@@ -144,8 +144,10 @@ export const SystemNotifications = (props) => {
     const appMainService = new AppMainService();
     const [allNotifications, setNotifications] = useState([])
     const [fetching_notes, setFetchingNotes] = useState(false)
-    const { department, role } = jwtAuthService.getActiveDepartmentRole();
-    const user = jwtAuthService.getUser();
+    const { department, role } = jwtAuthService.getActiveDepartmentRole() || { department:{}, role:{} };
+    const user = jwtAuthService.getUser() || { user:{} };
+
+
 
     const note_object = {
       INITIATED:{

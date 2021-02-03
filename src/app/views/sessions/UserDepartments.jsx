@@ -1,7 +1,16 @@
 import React, { Component} from "react";
+
 import Footer from "../../GullLayout/SharedComponents/Footer";
 import jwtAuthService from "../../services/jwtAuthService";
-import { Redirect } from "react-router-dom";
+import { logoutUser } from "app/redux/actions/UserActions";
+import AppNotification from "app/appNotifications";
+
+import { Redirect, withRouter } from "react-router-dom";
+import { FaCog } from "react-icons/fa";
+
+import PropTypes from "prop-types";
+import { connect } from "react-redux";
+
 
 
 
@@ -40,6 +49,13 @@ export class UserDepartmentsComponent extends Component {
     let { departmentRolesList, activeUser } = this.state
       departmentRolesList = jwtAuthService.getUserDepartmentRoles();
       activeUser = jwtAuthService.getUser();
+      if(!activeUser){
+        new AppNotification({
+          msg:"Unauthenticated! Please login.",
+          type:"error"
+        })
+        this.props.logoutUser();
+      }
       this.setState({ departmentRolesList, activeUser });
   }
 
@@ -65,7 +81,7 @@ export class UserDepartmentsComponent extends Component {
 render(){
 
   let itemIndex = 0;
-  const { backgroundColors, activeUser } = this.state;
+  const { backgroundColors, activeUser, departmentRolesList } = this.state;
   const setIndex = (departmentIndex) => {
     itemIndex = departmentIndex;
     if(itemIndex > 7){
@@ -82,28 +98,36 @@ render(){
   return this.state.navigate ? (<Redirect to="/dashboard/v1"/>) : (
     <>
 
-    <div className="card"   style={{
-        backgroundImage: "url(/assets/images/user-depts_bg.png)",
+    <div className="cardx"   style={{
+
       }}>
 
-      <div className="card-header border-bottom">
-        <button className="float-right btn btn-secondary_custom">
-          Logout
+      <div className="card-header border-bottom ante-header">
+        <button className="float-right btn btn-secondary_custom" onClick={this.props.logoutUser}>
+          Logout <i className='i-Power-2'></i>
         </button>
         <h3>
-          <span className="text-success">Welcome,</span> <b>{ activeUser?.first_name }</b>. Continue to one of your departments. You can always switch later on.
+          <span className="text-success">Welcome,</span> <b>{ activeUser?.first_name } { activeUser?.last_name }</b>.&nbsp;
+          {
+            departmentRolesList.length ? (<em>Continue to one of your departments. You can always switch later on.</em>)  :(
+                <em className='text-danger'>You do not have any active profile(s) for now. Please contact Admin.</em>
+              )
+          }
+
         </h3>
       </div>
 
-      <div className="card-body">
+      <div className="card-bodyx ante-page" style={{ backgroundImage: "url(/assets/images/photo-long-3.jpg)"}}>
 
-
-
-
-
-        <div className="row">
+        <div className="row p-3">
           {
-            this.state.departmentRolesList.map((departmentRole, index)=>{
+          !departmentRolesList.length ? (
+          <div className='col-md-12 '>
+            <div className='jumbotron mt-6' >
+                <textarea className='form-control'/>
+            </div>
+          </div>
+          ):  departmentRolesList.map((departmentRole, index)=>{
               return (
 
                 <div className={`col-md-4 mb-3 hover`} key={departmentRole?.slug} onClick={()=>this.pushUserToDashboard(departmentRole)}>
@@ -130,12 +154,14 @@ render(){
 
 
         </div>
-      </div>
 
-      <div style={{height:"80px"}}>
 
       </div>
-      <Footer/>
+
+
+      <div className='outer-footer'>
+        <Footer/>
+      </div>
 
 
     </div>
@@ -150,6 +176,19 @@ render(){
 }
 
 
+UserDepartmentsComponent.propTypes = {
+  logoutUser: PropTypes.func.isRequired,
+};
+
+const mapStateToProps = state => ({
+  logoutUser: PropTypes.func.isRequired,
+});
+
+export default withRouter(
+  connect(mapStateToProps, {
+    logoutUser
+  })(UserDepartmentsComponent)
+);
 
 
-export default UserDepartmentsComponent;
+// export default UserDepartmentsComponent;

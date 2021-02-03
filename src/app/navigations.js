@@ -4,12 +4,12 @@ import TaskIcons from "./appWidgets";
 
 const activeBudgetCycle = JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE'));
 const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
-const userTasks = jwtAuthService.getUserTasks();
-const ACTIVE_USER = jwtAuthService.getUser();
+const userTasks = jwtAuthService.getUserTasks() || [];
+const ACTIVE_USER = jwtAuthService.getUser() || {};
 
-const { department, role } = activeDepartmentRole;
-const { active_version } = activeBudgetCycle;
-const approval_path = role.name.toLowerCase().split(' ').join('') + '-approval';
+const { department, role } = activeDepartmentRole || { department:{}, role:{} };
+const { active_version } = activeBudgetCycle || {};
+const approval_path = role.name ? role.name.toLowerCase().split(' ').join('') + '-approval':"";
 
 console.log("Navigationsss", userTasks)
 
@@ -17,10 +17,10 @@ console.log("Navigationsss", userTasks)
 
 export const navigations = () =>{
   const dummy = dummyMenu();
+  const sideBarNavigations = [];
   if(ACTIVE_USER.is_superuser){
     return Object.keys(AppMenu).map(key => AppMenu[key]).concat(dummy);
   }
-  const sideBarNavigations = [];
   let module_names = [];
   let views = [];
   userTasks.forEach((userTask) =>{

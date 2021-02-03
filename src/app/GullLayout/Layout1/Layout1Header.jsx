@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import history from "@history.js";
 import { Dropdown } from "react-bootstrap";
 import DropdownMenu from "react-bootstrap/DropdownMenu";
 import { getTimeDifference } from "@utils";
@@ -30,11 +31,37 @@ class Layout1Header extends Component {
 
   processingService;
   appMainService;
+  activeUser;
+  userDepartmentRoles;
+  activeDepartmentRole;
 
   constructor(props){
     super(props);
     this.processingService = new ProcessingService();
     this.appMainService = new AppMainService();
+
+    this.activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
+    this.userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
+    this.activeUser = jwtAuthService.getUser();
+    if(!this.activeUser){
+
+      new AppNotification({
+        msg:"Unauthenticated! Please login.",
+        type:"error"
+      })
+      this.props.logoutUser();
+    }
+    if(this.activeUser && !this.activeDepartmentRole){
+      new AppNotification({
+        msg:"You must be signed in with an active profile.",
+        type:"warning"
+      })
+      const { CLIENT_URL } = jwtAuthService.getAppSettings();
+      const href = `${CLIENT_URL}/user-departments`;
+      window.location.href = href;
+      // this.props.logoutUser();zz
+    }
+
   }
   state = {
 
@@ -152,11 +179,13 @@ class Layout1Header extends Component {
 
   componentDidMount = async() => {
     let { activeDepartmentRole, userDepartmentRoles, activeUser } = this.state;
+    activeDepartmentRole = this.activeDepartmentRole;
+    userDepartmentRoles = this.userDepartmentRoles;
+    activeUser = this.activeUser;
+
+
     await this.getactivebudgetcycle();
-    activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
-    userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
-    activeUser = jwtAuthService.getUser();
-    console.log("ACTIVE USER", activeUser);
+    console.log("ACTIVE USER", activeUser, userDepartmentRoles, activeDepartmentRole);
     this.getAllEntities();
     this.setState({ activeDepartmentRole, userDepartmentRoles, activeUser })
     // const { activeBudgetCycle } = this.props.bugetcycleData;
@@ -446,7 +475,7 @@ class Layout1Header extends Component {
                   className="dropdown-item cursor-pointer"
                   onClick={this.props.logoutUser}
                 >
-                  Sign out
+                <i className='i-Power-2'></i>  Sign out
                 </Link>
               </DropdownMenu>
             </Dropdown>

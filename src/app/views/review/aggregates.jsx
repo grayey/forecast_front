@@ -957,7 +957,7 @@ export class DepartmentAggregatesApprovalComponent extends Component{
       console.log("Submitted Aggregate",departmentaggregate)
       const { budgetcycle, budgetversion, department } = departmentaggregate;
       const { version_code } = budgetversion;
-      const apostrophe = department.name.toLocaleLowerCase().endsWith('s')? `'`:`'s`;
+      const apostrophe = department.name.toLowerCase().endsWith('s')? `'`:`'s`;
       const msg = `${department.name}${apostrophe} ${budgetcycle.year} ${version_code.name} (${version_code.code})`
 
       swal.fire({

@@ -16,8 +16,8 @@ import { Loading } from "@gull";
 import {
   NotificationContainer,
 } from "react-notifications";
-
 function App() {
+
   return (
     <AppContext.Provider value={{ routes }}>
       <Provider store={Store}>

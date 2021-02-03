@@ -65,10 +65,10 @@ class JwtAuthService {
     if (token) {
       localStorage.setItem("bms_user_token", token);
       axios.defaults.headers.common["Authorization"] = "Token " + token;
-    } else {
-      localStorage.removeItem("bms_user_token");
-      delete axios.defaults.headers.common["Authorization"];
+      return;
     }
+      localStorage.clear();
+      delete axios.defaults.headers.common["Authorization"];
   };
 
 

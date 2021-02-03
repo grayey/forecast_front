@@ -77,15 +77,15 @@ export async  function forwardUserIntoApp(user_access){
   //
 
  // dispatch(setUserData(activeUser));
+ const { CLIENT_URL } = jwtAuthService.getAppSettings();
 
  jwtAuthService.setUser(activeUser);
  jwtAuthService.setActiveDepartmentRole(activeDepartmentRole);
  jwtAuthService.setUserDepartmentRoles(userDepartmentRoles);
  jwtAuthService.setUserTasks(userTasks);
 
-
  // history.push({ pathname });
- window.location.href += `${pathname}`;
+ window.location.href = `${CLIENT_URL}/${pathname}`;
 
 }
 
