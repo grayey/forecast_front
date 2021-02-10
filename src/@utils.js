@@ -187,7 +187,7 @@ export function processErrors(error){
   }
 
   if(error){
-  const errorData = error.data;
+  const errorData = error.data || {};
   const errorStatus = error.status;
   const err_value = errorStatus ?  errorObject[errorStatus.toString()](errorData) : errorData;
   const response_object = err_value.response || err_value ||  {data:{messgae:"An unknown error occurred!"}};
@@ -271,8 +271,8 @@ export function getComponentPermissions(componentName, authProps){
   return componentPermissions;
 
 
-}
 
+}
 
 export function comparePermissions(userPermissions, componentPermissions){
   const { is_superuser } = ACTIVE_USER;

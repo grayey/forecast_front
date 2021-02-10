@@ -28,6 +28,14 @@ export default class AppMainService extends Component {
      }
 
 
+     /**
+      * ACCOUNT SYSTEMS' SECTION
+      */
+
+     async getAllAccountSystems(){
+       return await apiService.get(`integrations`);
+     }
+
 
 
     /**

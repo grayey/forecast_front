@@ -32,6 +32,8 @@ import versionCodesRoutes from "./views/versioncodes/versionCodesRoutes";
 import reviewRoutes from "./views/review/reviewRoutes";
 import reportRoutes from "./views/reports/reportRoutes";
 import emailTemplatesRoutes from "./views/emailtemplates/emailTemplatesRoutes";
+import integrationRoutes from "./views/integrations/integrationRoutes";
+
 
 
 
@@ -74,6 +76,7 @@ const routes = [
       ...versionCodesRoutes,
       ...reviewRoutes,
       ...reportRoutes,
+      ...integrationRoutes,
       ...uiKitsRoutes,
       ...formsRoutes,
       ...widgetsRoute,

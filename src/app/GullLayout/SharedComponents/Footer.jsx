@@ -27,9 +27,7 @@ const Footer = () => {
             id="contact-ForeKarst"
             className="btn btn-primary text-white btn-rounded"
             href="mailto:ehirim.emeka.e@gmail.com"
-
-
-            onclick={(e)=>e.preventDefault()}
+            onClick={(e)=>e.preventDefault()}
             rel="noopener noreferrer"
           >
              ForeKarst &#8482;

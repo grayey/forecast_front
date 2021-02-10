@@ -40,7 +40,8 @@ class JwtAuthService {
   // MAIN LOGIN METHOD
   //
    app_login =  (data) => {
-    const url = 'token-jwt/';
+     const url = 'token-jwt/';
+    // const url = 'users/auth_login/';
     return apiService.post(url, data);
   }
 

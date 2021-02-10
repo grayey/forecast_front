@@ -268,51 +268,52 @@ return [
           icon: "i-Clock-3",
           name: "User Authentication",
           description: "Application database(default) or Active Directory ",
-          path: "/dashboard/roles",
+          path: "/integration/user-authentication",
           type: "link"
         },
         {
           icon: "i-Clock-3",
           name: "Accounting systems",
-          type: "dropDown",
-          sub:[
-            {
-              icon: "i-Clock-3",
-              name: "QuickBooks",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-            {
-              icon: "i-Clock-3",
-              name: "Odoo",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-            {
-              icon: "i-Clock-3",
-              name: "Sun system",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-            {
-              icon: "i-Clock-3",
-              name: "Sage",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-            {
-              icon: "i-Clock-3",
-              name: "Xero",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-            {
-              icon: "i-Clock-3",
-              name: "Open ERP",
-              path: "/dashboard/roles",
-              type: "link"
-            },
-          ]
+          path: "/integrations/accounting-systems",
+          type: "link"
+          // sub:[
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "QuickBooks",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "Odoo",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "Sun system",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "Sage",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "Xero",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          //   {
+          //     icon: "i-Clock-3",
+          //     name: "Open ERP",
+          //     path: "/dashboard/roles",
+          //     type: "link"
+          //   },
+          // ]
         },
       ]
     },

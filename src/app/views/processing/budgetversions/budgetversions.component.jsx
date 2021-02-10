@@ -1021,7 +1021,7 @@ export class BudgetVersionsComponent extends Component{
                                                         <td>
                                                           {
                                                             CAN_VIEW_DETAIL  ? (
-                                                              <NavLink className="underline" to={`/processing/budget-versions/${budgetversion.slug}`}>
+                                                              <NavLink className="underline" id={`link_${budgetversion.id}`} to={`/processing/budget-versions/${budgetversion.slug}`}>
                                                               {budgetcycle?.year} {version_code?.name} ({version_code?.code})
                                                             </NavLink>
                                                           ) :
@@ -1117,7 +1117,7 @@ export class BudgetVersionsComponent extends Component{
                                                               {
                                                                 CAN_VIEW_DETAIL ? (
                                                                   <Dropdown.Item onClick={()=> {
-                                                                      this.editBudgetVersion(budgetversion);
+                                                                      document.getElementById(`link_${budgetversion.id}`).click();
                                                                   }} className='border-bottom'>
                                                                       <i className="nav-icon i-Eye text-primary font-weight-bold"> </i> View
                                                                   </Dropdown.Item>
