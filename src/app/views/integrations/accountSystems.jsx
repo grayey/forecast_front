@@ -1,5 +1,6 @@
 import React, { Component, useState, useEffect } from "react"
-import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+import { Dropdown, ProgressBar, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
@@ -35,6 +36,7 @@ export class AccountSystemsComponent extends Component{
         saveMsg:'Save',
         updateMsg:'Update',
         editedAccountSystem: {},
+        installedAccountSystem:{},
         createAccountSystemForm: {
             name: "",
             code: "",
@@ -61,10 +63,10 @@ export class AccountSystemsComponent extends Component{
 
     setSystemLogo = (systemCode) => {
       const logos = {
-        quickbooks:`quickbooks.jpg`,
-        xero:`xero.png`,
+        quickbooks:`quickbooks.png`,
+        xero:`xero.jpg`,
         sage:`sage.jpg`,
-        salesforce:`salesforce.jpg`,
+        salesforce:`salesforce.png`,
         odoo:`odoo.jpg`,
       }
       return `${LOGO_URL}/${logos[systemCode]}`;
@@ -104,7 +106,10 @@ export class AccountSystemsComponent extends Component{
             (itemcategoriesResponse)=>{
                 isFetching = false;
                 const allAccountSystems = itemcategoriesResponse;
-                this.setState({ allAccountSystems, isFetching })
+                let installedAccountSystem = allAccountSystems.filter(system => system.is_installed)[0] || {}
+
+                console.log("installedAccountSystem",installedAccountSystem)
+                this.setState({ allAccountSystems, isFetching, installedAccountSystem})
             }
         ).catch((error)=>{
           isFetching = false;
@@ -340,6 +345,8 @@ export class AccountSystemsComponent extends Component{
 
     render(){
 
+      const { installedAccountSystem } = this.state;
+
         return (
 
             <>
@@ -352,6 +359,18 @@ export class AccountSystemsComponent extends Component{
                         <li><a href="#">List</a></li>
                       <li>Account Systems</li>
                     </ul>
+
+                    {
+                      installedAccountSystem.code ? (
+                        <div className="d-inline ml-5 pl-5 text-center">
+                          <span className="badge badge-success"><b>{installedAccountSystem.name} <em>installed.</em></b></span> &nbsp;<img
+                            className=" rounded-circle m-2 avatar-sm "
+                            src={this.setSystemLogo(installedAccountSystem.code)}
+                            alt=""
+                          />
+                        </div>
+                      ): null
+                    }
 
 
                 </div>
@@ -412,19 +431,44 @@ export class AccountSystemsComponent extends Component{
                                                         {utils.formatDate(accountsystem.updated_at)}
                                                         </td>
                                                         <td>
-                                                        <Form>
+                                                          {
+                                                            accountsystem.is_installed ? (
+                                                              <>
+                                                              <ProgressBar
+                                                                key={100}
+                                                                now={100}
+                                                                variant="success"
+                                                                label="Installed"
 
-                                                             <Form.Check
-                                                                    checked={accountsystem.status}
-                                                                    type="switch"
-                                                                    id={`custom-switch${accountsystem.id}`}
-                                                                    label={accountsystem.status ? 'Installed' : 'Disabled'}
-                                                                    className={accountsystem.status ? 'text-success' : 'text-danger'}
-                                                                    onChange={()=> this.toggleAccountSystem(accountsystem)}
-                                                                />
+                                                              ></ProgressBar>
 
+                                                            <div className='text-center mt-2'>
+                                                              <Form>
 
-                                                            </Form>
+                                                                   <Form.Check
+                                                                          checked={accountsystem.is_installed}
+                                                                          type="switch"
+                                                                          id={`custom-switch${accountsystem.id}`}
+                                                                          label={accountsystem.is_installed ? '' : ''}
+                                                                          className={accountsystem.is_installed ? 'text-success' : 'text-danger'}
+                                                                          onChange={()=> this.toggleAccountSystem(accountsystem)}
+                                                                      />
+
+                                                                  </Form>
+                                                            </div>
+                                                              </>
+
+                                                            ): (
+                                                              <ProgressBar
+                                                                key={100}
+                                                                now={100}
+                                                                variant="danger"
+                                                                label="Disabled"
+
+                                                              ></ProgressBar>
+                                                            )
+                                                          }
+
                                                         </td>
                                                     </tr>
                                                 )

@@ -17,6 +17,27 @@ export default class AppMainService extends Component {
      }
 
 
+      async checkForgotPassword(email){
+        const url =`users/forgot-password/`;
+        return await apiService.post(url, { email });
+      }
+
+      async checkResetToken(HREF){
+        const url =`users/check-reset/`;
+        return await apiService.post(url, { HREF });
+      }
+
+      async resetPassword(data){
+        const url =`users/reset-password/`;
+        return await apiService.post(url, data);
+      }
+
+
+
+
+
+
+
      /**
       * NOTIFICATIONS SECTION
       */

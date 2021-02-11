@@ -180,8 +180,8 @@ export function processErrors(error){
   let errorMessage = '';
   const errorObject = {
     '400':(e_o) => Object.keys(e_o).map(err_key => `${e_o[err_key]}`).join(`\r\n`),
-    '401':(u_o) => u_o.detail,
-    '403':(r_o) => r_o.detail,
+    '401':(u_o) => u_o.detail || u_o,
+    '403':(r_o) => r_o.detail || r_o,
     '404':(n_o)=> n_o,
     '500':(s_o)=> s_o,
   }
@@ -189,10 +189,13 @@ export function processErrors(error){
   if(error){
   const errorData = error.data || {};
   const errorStatus = error.status;
+
   const err_value = errorStatus ?  errorObject[errorStatus.toString()](errorData) : errorData;
+
   const response_object = err_value.response || err_value ||  {data:{messgae:"An unknown error occurred!"}};
+
   const response_is_string = typeof(response_object) == 'string';
-  const response_object_data = response_is_string ? response_object :  response_object.data;
+  const response_object_data = response_is_string ? response_object :  response_object.data || response_object;
 
   if(!response_is_string){
     for(let key in  response_object_data){

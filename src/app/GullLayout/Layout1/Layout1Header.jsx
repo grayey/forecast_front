@@ -461,15 +461,15 @@ class Layout1Header extends Component {
               </DropdownToggle>
               <DropdownMenu>
                 <div className="dropdown-header">
-                  <i className="i-Lock-User mr-1"></i>
                   {activeUser?.first_name} {activeUser?.last_name}
                 </div>
                 <Link to="/" className="dropdown-item cursor-pointer">
-                Profile
+                <i className="i-Lock-User mr-1"></i>
+                 Profile
                 </Link>
-                {/* <Link to="/" className="dropdown-item cursor-pointer">
-                  Billing history
-                </Link> */}
+                <Link to="/reset-password/?XSR=true" onClick={()=> {localStorage.setItem('RESET_EMAIL',activeUser.email); localStorage.setItem('RESET_REDIRECT_URL',window.location.pathname) }} className="dropdown-item cursor-pointer">
+                  <i className='i-Restore-Window'></i> Reset password
+                </Link>
                 <Link
                   to="/"
                   className="dropdown-item cursor-pointer"

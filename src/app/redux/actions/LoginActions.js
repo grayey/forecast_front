@@ -42,6 +42,8 @@ export async  function forwardUserIntoApp(user_access){
   const { user_id } = jwtAuthService.decode_token(user_access);
   let pathname = "user-departments";
   let activeUser = null;
+  let first_login = false;
+  let email = "";
   let activeDepartmentRole = null;
   let userDepartmentRoles = [];
   let userTasks = [];
@@ -52,6 +54,8 @@ export async  function forwardUserIntoApp(user_access){
       const { department_roles, profile } = loginInfoResponse;
       console.log("USER DEPARTMENT ROLES", department_roles)
       activeUser = profile.user;
+      first_login = profile.first_login;
+      email = activeUser.email;
       userDepartmentRoles = department_roles.map((dr)=>{
         dr.userprofile = undefined; // delete userprofile from department_role
         dr.itemcategories = undefined;
@@ -85,8 +89,19 @@ export async  function forwardUserIntoApp(user_access){
  jwtAuthService.setUserTasks(userTasks);
 
  // history.push({ pathname });
- window.location.href = `${CLIENT_URL}/${pathname}`;
-
+ if(first_login){
+   localStorage.setItem("RESET_REDIRECT_URL",pathname);
+   localStorage.setItem("RESET_EMAIL",email);
+   new AppNotification({
+     type:"info",
+     msg:"First time login. Please reset your password."
+   })
+   setTimeout(()=>{
+     window.location.href = `${CLIENT_URL}/reset-password/?XSR=true`;
+   },2000)
+ }else{
+   window.location.href = `${CLIENT_URL}/${pathname}`;
+ }
 }
 
 export function resetPassword({ email }) {

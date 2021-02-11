@@ -10,12 +10,11 @@ import AppMainService from "../../services/appMainService";
 import jwtAuthService from "app/services/jwtAuthService";
 import AppNotification from "app/appNotifications";
 
-
 import * as encryptionService from "../../services/encryption.service";
 import LoadingOverlay from 'react-loading-overlay';
 import queryString from "query-string";
-
 import { FaCog } from "react-icons/fa";
+
 
 const SigninSchema = yup.object().shape({
   email: yup
@@ -37,7 +36,9 @@ class Signin extends Component {
       SYSTEM_ALIASES:{}
     },
     loadingSettings:true,
-    isSubmitting:false
+    isSubmitting:false,
+    PRIMARY_COLOR:"rgb(36,47,106)" ,
+    SECONDARY_COLOR:"rgb(23,162,184)"
   };
   appMainService;
 
@@ -125,7 +126,7 @@ return {
     await this.setState({ loadingSettings })
         this.appMainService.getAppSettings().then(
           async (app_settings) => {
-            const { SYSTEM_AUTHENTICATION, SERVER_URL }  = app_settings;
+            const { SYSTEM_AUTHENTICATION, SERVER_URL, PRIMARY_COLOR , SECONDARY_COLOR}  = app_settings;
             loadingSettings = SYSTEM_AUTHENTICATION == "ACTIVE_DIRECTORY";
 
             jwtAuthService.setAppSettings(app_settings);
@@ -133,7 +134,7 @@ return {
               window.location.href = `${SERVER_URL}/ad/logon`;
             }
 
-            this.setState({ loadingSettings, app_settings });
+            this.setState({ loadingSettings, app_settings, PRIMARY_COLOR , SECONDARY_COLOR });
 
             console.log("app_settings", app_settings)
           }).catch((error)=>{
@@ -157,7 +158,7 @@ return {
 
   render() {
 
-    const { loadingSettings } = this.state;
+    const { loadingSettings, PRIMARY_COLOR, SECONDARY_COLOR, app_settings } = this.state;
 
     return loadingSettings ?
       (
@@ -236,9 +237,10 @@ return {
                           )}
                         </div>
                         <button
-                          className="btn btn-rounded btn-primary btn-block mt-2"
+                          className="btn btn-rounded text-white btn-block mt-2"
                           type="submit"
                           disabled={this.state.isSubmitting}
+                          style={{backgroundColor:PRIMARY_COLOR}}
                         >
                           Sign In {
                             this.state.isSubmitting ? (<FaCog className='spin'/>) : null
@@ -249,7 +251,7 @@ return {
                   </Formik>
 
                   <div className="mt-3 text-center">
-                    <Link to="/session/forgot-password" className="text-muted">
+                    <Link to="/forgot-password" className="text-muted">
                       <u>Forgot Password?</u>
                     </Link>
                   </div>
@@ -265,7 +267,7 @@ return {
                 <div className="auth-right">
 
 
-
+                    <h3 className="text-white mb-1"><em>{app_settings?.COMPANY_NAME}</em></h3>
                     <h4 className="text-white"><b>Budget Management Portal</b></h4>
                   {/* <Link
                     to="/session/signup"
