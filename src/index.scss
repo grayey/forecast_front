@@ -335,3 +335,16 @@ margin-left: 1rem;
   position: sticky;
   top: 0;
 }
+
+.initials{
+  font-family:sans-serif verdana;
+  font-size: 25px !important;
+  border-radius: 50%;
+  height:  36px;
+  width:36px;
+  background:  -webkit-linear-gradient(rgba(135, 60, 255, 1), rgba(135, 60, 255, 0.0) 0%),
+   -webkit-linear-gradient(-52deg, rgba(36,47,106, 0.9) 50%, rgb(23,162,184) 0%) !important;;
+  padding: 5px;
+  color:white;
+
+}

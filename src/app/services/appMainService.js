@@ -315,9 +315,10 @@ export default class AppMainService extends Component {
     * @param {*} user
     * This method deletes a user
     */
-   async deleteUser(user){
+   async deleteUser(userProfile){
      // const { user } = userProfile;
-       const url = `users/${user.id}`
+      const id = userProfile.id || userProfile.user.id;
+       const url = `users/${id}`
        return await apiService.del(url);
    }
 

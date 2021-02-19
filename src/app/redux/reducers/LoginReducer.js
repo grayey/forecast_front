@@ -37,6 +37,7 @@ const LoginReducer = function(state = initialState, action) {
       };
     }
     case LOGIN_ERROR: {
+      console.log('Login ERREDD')
       return {
         success: false,
         loading: false,

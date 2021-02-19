@@ -48,6 +48,14 @@ class Signin extends Component {
 
   }
 
+  componentWillReceiveProps(props){
+    const { login } = props;
+    if(!login.success && !login.loading){
+      this.setState({ isSubmitting:false})
+    }
+    
+  }
+
 async componentDidMount(){
 
   let { loadingSettings } = this.state;
@@ -114,9 +122,10 @@ return {
     this.setState({ [event.target.name]: event.target.value });
   };
 
-  handleSubmit = (value, { isSubmitting }) => {
+  handleSubmit = async (value, { isSubmitting }) => {
     this.setState({ isSubmitting:true });
-    this.props.loginWithEmailAndPassword(value);
+    await this.props.loginWithEmailAndPassword(value);
+
   };
 
   getAppSettings = async () => {
@@ -296,6 +305,7 @@ return {
 const mapStateToProps = state => ({
   loginWithEmailAndPassword: PropTypes.func.isRequired,
   user: state.user,
+  login:state.login,
   isSubmitting: state.isSubmitting
 });
 

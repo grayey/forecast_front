@@ -101,25 +101,26 @@ export class VersionCodesComponent extends Component{
     /**
      * This method lists all versioncodes
      */
-     getAllVersionCodes = async ()=>{
-         let isFetching = false;
 
-        this.appMainService.getAllVersionCodes().then(
-            async(versioncodesResponse)=>{
-                const allVersionCodes = versioncodesResponse;
-                await this.setState({ allVersionCodes, isFetching })
-                this.sortVersionioning();
-                console.log('VersionCodes response', versioncodesResponse)
-            }
-        ).catch((error)=>{
-            this.setState({isFetching})
-            const errorNotification = {
-                type:'error',
-                msg:utils.processErrors(error)
-            }
-            new AppNotification(errorNotification)
-            console.log('Error', error)
-        })
+     getAllVersionCodes = async ()=>{
+       let isFetching = false;
+
+       this.appMainService.getAllVersionCodes().then(
+         async(versioncodesResponse)=>{
+           const allVersionCodes = versioncodesResponse;
+           await this.setState({ allVersionCodes, isFetching })
+           this.sortVersionioning();
+           console.log('VersionCodes response', versioncodesResponse)
+         }
+       ).catch((error)=>{
+         this.setState({isFetching})
+         const errorNotification = {
+           type:'error',
+           msg:utils.processErrors(error)
+         }
+         new AppNotification(errorNotification)
+         console.log('Error', error)
+       })
     }
 
     /**

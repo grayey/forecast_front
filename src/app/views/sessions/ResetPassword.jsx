@@ -12,7 +12,7 @@ import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import { Link, Redirect } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import { FaCog, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { FaCog, FaCheckCircle, FaTimesCircle, FaArrowLeft } from "react-icons/fa";
 import queryString from "query-string";
 import { FetchingRecords } from "app/appWidgets";
 
@@ -53,6 +53,7 @@ class ResetPassword extends Component {
     redirectTimer:null,
     isXTK:false,
     isXSR:false,
+    showBackButton:false
   };
 
   handleChange =  event => {
@@ -67,6 +68,10 @@ class ResetPassword extends Component {
     // this.checkResetPassword(value);
   };
 
+  goBack = () =>{
+    window.history.back();
+  }
+
   componentDidMount = () => {
     const { PRIMARY_COLOR, SECONDARY_COLOR, COMPANY_NAME } = jwtAuthService.getAppSettings() || {};
     this.setState({ PRIMARY_COLOR, SECONDARY_COLOR, COMPANY_NAME });
@@ -78,6 +83,10 @@ class ResetPassword extends Component {
     }else if(XSR){
       this.setState({canReset:true, isXSR:true})
     }
+
+  this.setState({
+    showBackButton:!!localStorage.getItem('RESET_EMAIL')
+  })
 
   }
 
@@ -152,7 +161,7 @@ class ResetPassword extends Component {
   }
 
   render() {
-    const { PRIMARY_COLOR, SECONDARY_COLOR, COMPANY_NAME, isLoading, resetErrorResponse, canReset, redirect_url} = this.state;
+    const { PRIMARY_COLOR, SECONDARY_COLOR, COMPANY_NAME, isLoading, resetErrorResponse, canReset, showBackButton, redirect_url} = this.state;
     return redirect_url ? <Redirect to={redirect_url}/> : (
       <div
         className="auth-layout-wrap"
@@ -173,6 +182,7 @@ class ResetPassword extends Component {
                   <div className="auth-logo text-center mb-4">
                     <img src="/assets/images/logo.png" alt="" />
                   </div>
+
                   <h1 className="mb-3 text-18">Reset Password</h1>
 
 
@@ -255,6 +265,7 @@ class ResetPassword extends Component {
 
 
                   <div className="mt-3 text-center">
+
                     <Link to="/" className="text-muted mr-4">
                       <u>Signin</u>
                     </Link>
@@ -274,6 +285,15 @@ class ResetPassword extends Component {
                 <div className="pr-3 auth-right">
                   <h3 className="text-white mb-1"><em>{COMPANY_NAME}</em></h3>
                   <h4 className="text-white"><b>Budget Management Portal</b></h4>
+                  {
+                    showBackButton ? (
+                      <div className='mt-5'>
+                        <button onClick={this.goBack} className="btn btn-secondary text-muted mr-4">
+                          <FaArrowLeft/> Go Back
+                      </button>
+                      </div>
+                    ): null
+                  }
                   {/* <Button className="btn btn-rounded btn-outline-primary btn-outline-email btn-block btn-icon-text">
                     <i className="i-Mail-with-At-Sign"></i> Sign up with Email
                   </Button>

@@ -262,8 +262,8 @@ export class UsersComponent extends Component{
       this.setState({ viewedUserProfile });
 
       const department_ids = [];
-
-      this.appMainService.getUserProfilesById(viewedUserProfile.id).then(
+      const profile_id = viewedUserProfile.id || viewedUserProfile.user.id;
+      this.appMainService.getUserProfilesById(profile_id).then(
           (profilesData)=>{
             viewedUserProfile['viewed_profiles'] = profilesData.map((profile)=>{
               const { department, role } = profile;
@@ -1087,6 +1087,7 @@ export class UsersComponent extends Component{
                                       <table className="table table-hover table-striped">
                                         <thead>
                                           <tr>
+                                            <th>#</th>
                                             <th>Department</th>
                                             <th>Role</th>
                                             <th>Action</th>
@@ -1101,6 +1102,7 @@ export class UsersComponent extends Component{
 
                                                 return(
                                                   <tr key={index}>
+                                                    <td><b>{index + 1}.</b></td>
                                                     <td>{dR?.department?.name} </td>
                                                     <td>{dR?.role?.name} </td>
                                                     <td>
@@ -1116,7 +1118,7 @@ export class UsersComponent extends Component{
                                               })
                                             ) : (
                                               <tr>
-                                                <td colSpan="3" className="text-center"> No profiles assigned </td>
+                                                <td colSpan="4" className="text-center"> No profiles assigned </td>
                                               </tr>
                                             )
                                           }

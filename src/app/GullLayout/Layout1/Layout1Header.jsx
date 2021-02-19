@@ -203,6 +203,10 @@ class Layout1Header extends Component {
     this.setactivebudgetcycle(event.target.value);
   }
 
+  setFirstLetter = (text) => {
+    return text ? text.split('')[0]?.toUpperCase() : '?';
+  }
+
   /**
    * This method lists all entities
    */
@@ -450,14 +454,15 @@ class Layout1Header extends Component {
                 as="span"
                 className="toggle-hidden cursor-pointer"
               >
-                <img
+                {/* <img
                   src="/assets/images/faces/1.jpg"
                   id="userDropdown"
                   alt=""
                   data-toggle="dropdown"
                   aria-haspopup="true"
                   aria-expanded="false"
-                />
+                /> */}
+                <span className='initials'>{this.setFirstLetter(activeUser?.first_name)}{this.setFirstLetter(activeUser?.last_name)}</span>
               </DropdownToggle>
               <DropdownMenu>
                 <div className="dropdown-header">
@@ -472,7 +477,7 @@ class Layout1Header extends Component {
                 </Link>
                 <Link
                   to="/"
-                  className="dropdown-item cursor-pointer"
+                  className="dropdown-item text-danger cursor-pointer"
                   onClick={this.props.logoutUser}
                 >
                 <i className='i-Power-2'></i>  Sign out
