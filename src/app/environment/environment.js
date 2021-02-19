@@ -9,7 +9,7 @@ const environment = {
 
     },
     production: {
-        base_url: 'https://bmspro.herokuapp.com',
+        base_url: 'https://forekarst.herokuapp.com/api',
         base_url_front: ''
     }
 
