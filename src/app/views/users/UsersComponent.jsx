@@ -1,5 +1,7 @@
 import React, { Component, useState, useEffect } from "react"
 import { Dropdown, Row, Col, Button,Form, ButtonToolbar,Modal } from "react-bootstrap";
+import { Link, Redirect } from "react-router-dom";
+
 // import SweetAlert from "sweetalert2-react";
 import swal from "sweetalert2";
 import AppMainService from "../../services/appMainService";
@@ -8,13 +10,9 @@ import * as utils from "@utils";
 import { Formik } from "formik";
 import * as yup from "yup";
 import AppNotification from "../../appNotifications";
-
 import { FaArrowDown, FaSpinner, FaSearch } from "react-icons/fa";
-
 import {FetchingRecords, ErrorView} from "../../appWidgets";
-
 import jwtAuthService  from "../../services/jwtAuthService";
-
 import { VIEW_FORBIDDEN } from "app/appConstants";
 
 
@@ -1282,12 +1280,18 @@ export class UsersComponent extends Component{
                                                             </Dropdown.Toggle>
                                                             <Dropdown.Menu>
 
+                                                              <Dropdown.Item as='button' className='border-bottom'>
+                                                                <Link className='underlinex w-100' to={`../dashboard/user-profile/${userProfile.slug}`}>
+                                                                  <i className="nav-icon i-Eye text-info font-weight-bold"> </i> View
+                                                                </Link>
+                                                              </Dropdown.Item>
+
                                                               {
                                                                 CAN_EDIT ? (
                                                                   <Dropdown.Item onClick={(event)=> {
                                                                       this.viewDepartmentRoles(event,userProfile, false);
                                                                   }} className='border-bottom'>
-                                                                      <i className="nav-icon i-Pen-2 text-success font-weight-bold"> </i> Edit
+                                                                      <i className="nav-icon i-Pen-2 text-primary font-weight-bold"> </i> Edit
                                                                   </Dropdown.Item>
                                                                 ): null
                                                               }

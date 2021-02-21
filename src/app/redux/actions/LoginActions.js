@@ -54,6 +54,7 @@ export async  function forwardUserIntoApp(user_access){
       const { department_roles, profile } = loginInfoResponse;
       console.log("USER DEPARTMENT ROLES", department_roles)
       activeUser = profile.user;
+      activeUser.slug = profile.slug;
       first_login = profile.first_login;
       email = activeUser.email;
       userDepartmentRoles = department_roles.map((dr)=>{
@@ -63,7 +64,7 @@ export async  function forwardUserIntoApp(user_access){
         return dr;
       })
       if(userDepartmentRoles.length == 1){ // user belongs to just one department
-        pathname = 'dashboard/v1';
+        pathname = 'dashboard';
         activeDepartmentRole = userDepartmentRoles[0]; // user's active department is his first (and only) department
         const { role_tasks } = activeDepartmentRole.role;
         userTasks = role_tasks ? JSON.parse(role_tasks) : [];

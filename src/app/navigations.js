@@ -6,20 +6,50 @@ const activeBudgetCycle = JSON.parse(localStorage.getItem('ACTIVE_BUDGET_CYCLE')
 const activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
 const userTasks = jwtAuthService.getUserTasks() || [];
 const ACTIVE_USER = jwtAuthService.getUser() || {};
+const dashboard = [{
+  name: "Dashboard",
+  description: "Lorem ipsum dolor sit.",
+  type: "link",
+  icon: "i-Bar-Chart",
+  path: "/dashboard",
+  // sub: [
+  //   {
+  //     icon: "i-Clock-3",
+  //     name: "Version 1",
+  //     path: "/dashboard",
+  //     type: "link"
+  //   },
+  //   {
+  //     icon: "i-Clock-4",
+  //     name: "Version 2",
+  //     path: "/dashboard/v2",
+  //     type: "link"
+  //   }
+  // ]
+}]
 
 const { department, role } = activeDepartmentRole || { department:{}, role:{} };
 const { active_version } = activeBudgetCycle || {};
 const approval_path = role.name ? role.name.toLowerCase().split(' ').join('') + '-approval':"";
+if(role.name && role.name.split(' ').length > 1){
+  let pseudo_name = '';
+  role.name.split(' ').forEach((word)=>{
+    pseudo_name+=word[0].toUpperCase();
+  })
+  role.name = pseudo_name;
+}
 
-console.log("Navigationsss", userTasks)
+// console.log("Navigationsss", userTasks)
 
 
 
 export const navigations = () =>{
   const dummy = dummyMenu();
+
   const sideBarNavigations = [];
   if(ACTIVE_USER.is_superuser){
-    return Object.keys(AppMenu).map(key => AppMenu[key]).concat(dummy);
+    const mainMenu = Object.keys(AppMenu).map(key => AppMenu[key]).concat(dummy);
+    return dashboard.concat(mainMenu)
   }
   let module_names = [];
   let views = [];
@@ -58,36 +88,32 @@ export const navigations = () =>{
     }
 
   }
-
-
-  console.log('module_names NAVIGATIONS',module_names)
-
-
-  return sideBarNavigations.concat(dummy);
+  // console.log('module_names NAVIGATIONS',module_names)
+  return dashboard.concat(sideBarNavigations.concat(dummy));
 
 }
 
 export const AppMenu = {
-  "Dashboard":{
-    name: "Dashboard",
-    description: "Lorem ipsum dolor sit.",
-    type: "dropDown",
-    icon: "i-Bar-Chart",
-    sub: [
-      {
-        icon: "i-Clock-3",
-        name: "Version 1",
-        path: "/dashboard/v1",
-        type: "link"
-      },
-      {
-        icon: "i-Clock-4",
-        name: "Version 2",
-        path: "/dashboard/v2",
-        type: "link"
-      }
-    ]
-  },
+  // "Dashboard":{
+  //   name: "Dashboard",
+  //   description: "Lorem ipsum dolor sit.",
+  //   type: "dropDown",
+  //   icon: "i-Bar-Chart",
+  //   sub: [
+  //     {
+  //       icon: "i-Clock-3",
+  //       name: "Version 1",
+  //       path: "/dashboard",
+  //       type: "link"
+  //     },
+  //     {
+  //       icon: "i-Clock-4",
+  //       name: "Version 2",
+  //       path: "/dashboard/v2",
+  //       type: "link"
+  //     }
+  //   ]
+  // },
   "Preparation":{
     name: "Preparation",
     description: "Budget entries & aggregates",
@@ -110,12 +136,14 @@ export const AppMenu = {
     "Review":  {
         name: "Review",
         description: "Budget approvals & task delegation",
-        type: "dropDown",
+        type: "link",
         icon: "i-Computer-Secure",
-        sub: [
-          { icon: "i-Email", name: `${role.name} Approval`, path: `/review/${approval_path}`, type: "link", view_name:"Default" },
-          { icon: "i-Speach-Bubble-3", name: "Delegate task", path: "/chat", type: "link" },
-        ]
+        pseudo_info:`${role.name} Approval`,
+        path: `/review/${approval_path}`,
+        // sub: [
+        //   { icon: "i-Email", name: `${role.name} Approval`, path: `/review/${approval_path}`, type: "link", view_name:"Default" },
+        //   { icon: "i-Speach-Bubble-3", name: "Delegate task", path: "/chat", type: "link" },
+        // ]
       },
       "Reports":{
         name: "Reports",

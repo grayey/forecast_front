@@ -27,7 +27,7 @@ class Layout2Sidenav extends Component {
         {
           icon: "i-Clock-3",
           name: "Version 1",
-          path: "/dashboard/v1",
+          path: "/dashboard",
           type: "link"
         },
         {

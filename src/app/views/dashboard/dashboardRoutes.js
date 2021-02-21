@@ -7,11 +7,13 @@ const Dashboard2 = lazy(() => import("./dashboard2/Dashboard2"));
 
 const dashboardRoutes = [
   {
-    path: "/dashboard/v1",
+    exact:true,
+    path: "/dashboard",
     component: Dashboard1,
     auth: authRoles.admin
   },
   {
+    exact:true,
     path: "/dashboard/v2",
     component: Dashboard2,
     auth: authRoles.admin

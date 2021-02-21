@@ -43,6 +43,7 @@ class Layout1Header extends Component {
     this.activeDepartmentRole = jwtAuthService.getActiveDepartmentRole();
     this.userDepartmentRoles = jwtAuthService.getUserDepartmentRoles();
     this.activeUser = jwtAuthService.getUser();
+
     if(!this.activeUser){
 
       new AppNotification({
@@ -427,8 +428,8 @@ class Layout1Header extends Component {
               ></i>
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <div className="menu-icon-grid">
-
+              <div className='card-header'><h6 className='text-center'><code><b>Profiles</b></code></h6></div>
+            <div className="menu-icon-grid mt-1">
                 {
                   userDepartmentRoles.map(dr => (
                     <Link key={dr.slug} to="#" className={dr.id == activeDepartmentRole.id ? "bg-success text-white" : ""} onClick={
@@ -468,7 +469,7 @@ class Layout1Header extends Component {
                 <div className="dropdown-header">
                   {activeUser?.first_name} {activeUser?.last_name}
                 </div>
-                <Link to="/" className="dropdown-item cursor-pointer">
+                <Link to={`/dashboard/user-profile/${activeUser?.slug}`} className="dropdown-item cursor-pointer">
                 <i className="i-Lock-User mr-1"></i>
                  Profile
                 </Link>

@@ -70,7 +70,7 @@ export class UserDepartmentsComponent extends Component {
     jwtAuthService.setUserTasks(userTasks);
 
     let href= window.location.href;
-    href = href.replace("user-departments","dashboard/v1");
+    href = href.replace("user-departments","dashboard");
     window.location.href=href;
     // this.setState({navigate:true});
 
@@ -95,7 +95,7 @@ render(){
 
 
 
-  return this.state.navigate ? (<Redirect to="/dashboard/v1"/>) : (
+  return this.state.navigate ? (<Redirect to="/dashboard"/>) : (
     <>
 
     <div className="cardx"   style={{
@@ -132,8 +132,14 @@ render(){
 
                 <div className={`col-md-4 mb-3 hover`} key={departmentRole?.slug} onClick={()=>this.pushUserToDashboard(departmentRole)}>
                   <div className={`card ${departmentRole.hover_class ? "shadow-lg":""} text-white bg-${setIndex(index)}`} onMouseEnter={()=>this.setHoverClass(index)}>
-                    <div className="card-title">
-                      <h4 className="pt-2 text-center text-white">{departmentRole?.department?.name} ({departmentRole?.department?.code})</h4>
+                    <div className="card-title pt-2 pl-3">
+                      <h4 className="pt-2 text-white">{departmentRole?.department?.name} ({departmentRole?.department?.code})</h4>
+                      <p className="card-text text-white">
+                          {departmentRole?.department.description}
+                      </p>
+                    </div>
+                    <div className='text-centerx pl-3'>
+                      <h4 className='text-white'>AS</h4>
                     </div>
                     <div className="card-body">
                       <h4 className="text-white">

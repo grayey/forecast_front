@@ -51,7 +51,7 @@ class ConsolidatedApproval extends Component {
       allBudgetEntries:[],
       allAggregates:[],
       entryTypes:[
-      
+
       ],
       grandTotalsN:{
         naira:0,
@@ -87,10 +87,10 @@ class ConsolidatedApproval extends Component {
 
       this.setState({ isFetching, activeBudgetCycle, active_version, user_approval });
 
-
+      const slug = active_version ? active_version.slug : undefined;
 
       // const slug = jwtAuthService.getactivebudgetcycle()
-     this.processingService.getBudgetVersionBySlug(active_version.slug).then(
+     this.processingService.getBudgetVersionBySlug(slug).then(
          async (budgetversionsResponse)=>{
            isFetching = !isFetching;
 

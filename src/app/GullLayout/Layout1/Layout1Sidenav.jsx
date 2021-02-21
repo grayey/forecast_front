@@ -169,6 +169,11 @@ class Layout1Sidenav extends Component {
                   <NavLink className="nav-item-hold" to={item.path}>
                     <i className={`nav-icon ${item.icon}`}></i>
                     <span className="nav-text">{item.name}</span>
+                  {
+                    item.pseudo_info ? (
+                      <small><code>{item.pseudo_info}</code></small>
+                    ): null
+                  }
                   </NavLink>
                 )}
                 {item.path && item.type === "extLink" && (

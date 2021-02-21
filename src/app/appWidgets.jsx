@@ -8,7 +8,8 @@ import { APP_ENVIRONMENT } from './environment/environment';
 import AppNotification from "./appNotifications";
 import { Dropdown, Modal, ProgressBar,  } from "react-bootstrap";
 import DropdownMenu from "react-bootstrap/DropdownMenu";
-import { FaUpload, FaFileCsv, FaFileExcel, FaArrowDown, FaQuestion, FaList, FaCog, FaDownload, FaFilter } from "react-icons/fa";
+import { FaUpload, FaFileCsv, FaFileExcel, FaArrowDown, FaQuestion,
+  FaList, FaCog, FaDownload, FaFilter, FaEnvelope,  } from "react-icons/fa";
 import Slider from "rc-slider";
 import Tooltip from "rc-tooltip";
 import * as utils from "@utils";
@@ -66,6 +67,110 @@ export const FetchingRecords = (props)=>{
         </div>
       </>
     )
+}
+
+export const StandInRequest = (props) => {
+
+  const appMainService = new AppMainService();
+  const [msg, setMsg] = useState('Send');
+  const [requesting, setRequesting] = useState(false)
+  const [showStandinRequestModal, setStandInModal] = useState(false);
+  const [allColleagues, setColleagues] = useState([]);
+
+
+  const toggleStandInModal = (modalName='request')=> {
+      if(modalName == 'request'){
+           return setStandInModal(!showStandinRequestModal);
+      }
+  }
+
+  const sendStandInRequest = (event) => {
+    event.preventDefault();
+    console.log('Sending request')
+  }
+
+  const openRequest = async () => {
+    setRequesting(true);
+    appMainService.getAllUsers().then(
+      (usersResponse)=>{
+        setRequesting(false);
+        const clgs = usersResponse.map((clg) => {
+          const colleague = {...clg, ...clg.user};
+          delete colleague.user;
+          return colleague;
+        }).filter((user) => user.is_active && user.slug !== props.userSlug); //change true to user is not this user
+        setColleagues(clgs);
+        setStandInModal(true);
+      console.log({clgs})
+    }).catch((e)=>{
+      setRequesting(false);
+      new AppNotification({
+        type:"error",
+        msg:utils.processErrors(e)
+      })
+    })
+  }
+  return (
+    <>
+    <Modal show={showStandinRequestModal} onHide={
+        ()=>{toggleStandInModal()}
+        } {...props} id='showStandinRequestModal'>
+
+        <form encType="multipart/form-data" onSubmit={sendStandInRequest}>
+        <Modal.Header closeButton>
+        <Modal.Title>
+          <img src="/assets/images/logo.png" alt="Logo" className="modal-logo"  />&nbsp;&nbsp;
+          Hand-Over Request
+        </Modal.Title>
+        </Modal.Header>
+
+
+                 <Modal.Body>
+                    <div className="form-row">
+                      <div className='col-md-12'>
+
+                      </div>
+                    </div>
+                </Modal.Body>
+
+                <Modal.Footer>
+
+                        <LaddaButton
+                            className="btn btn-secondary_custom border-0 mr-2 mb-2 position-relative"
+                            loading={false}
+                            progress={0.5}
+                            type='button'
+                            onClick={()=>toggleStandInModal()}
+
+                            >
+                            Close
+                        </LaddaButton>
+
+                        <LaddaButton
+                            className={`btn btn-${true ? 'success':'info_custom'} border-0 mr-2 mb-2 position-relative`}
+                            loading={false}
+                            progress={0.5}
+                            disabled={true}
+                            type='submit'
+
+                            data-style={EXPAND_RIGHT}
+                            >
+                            {msg}
+                        </LaddaButton>
+                        </Modal.Footer>
+                        </form>
+    </Modal>
+
+    <button className='btn btn-secondary_custom float-right' disabled={requesting} onClick={openRequest}>
+      {
+        requesting ? <FaCog className='spin'/> : <FaEnvelope/>
+      }
+        &nbsp;New Hand-Over Request
+    </button>
+  </>
+  )
+
+
 }
 
 export const CustomProgressBar = (props)=>{

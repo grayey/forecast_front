@@ -334,6 +334,17 @@ export default class AppMainService extends Component {
    }
 
 
+
+       /**
+         * This method returns a user by its slug
+         *
+         */
+        async getUserBySlug(userSlug){
+           const url = `users/${userSlug}/profile`;
+           return await apiService.get(url);
+       }
+
+
      /**
      *
      * --- DEPARTMENTS SECTION HERE ----

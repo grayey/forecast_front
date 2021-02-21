@@ -740,11 +740,7 @@ toggleAccordion = async (task, index)=>{
                                                             <b>{index+1}</b>.
                                                         </td>
                                                         <td>
-                                                            <Link  key={role_user.id} to={`/admin/users/${role_user?.id}}`} onClick={
-                                                                (event)=>{
-                                                                    this.viewrole_user(event, role_user)
-                                                                }
-                                                            }>
+                                                            <Link  key={role_user.id} to={`/dashboard/user-profile/${userprofile?.slug}`}>
                                                             {utils.toTiltle(`${user.first_name} ${user.last_name}`)}
                                                             </Link>
 
